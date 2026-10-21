@@ -1,0 +1,34 @@
+h3. Description
+On *Tool > Notification > Add Notification*, choosing *Optional* for the Agent Group and saving with nothing moved into its *Selected* column is accepted. The create request returns 200, the page says "Successfully added", and the new rule is listed with Agent Group *All* - so an empty selective list is stored as "every agent group", the opposite of what the operator chose. Under "Optional" an empty Selected column means no agent group was chosen, and Save should refuse it with a validation message, the same way it refuses a missing Title or Content.
+
+*Environment:* Test - https://admin-test.1083.city/tools/notification-form (currency HKD), operator {{qa0001}}
+
+h3. Steps to reproduce
+# Sign in to https://admin-test.1083.city/ as qa0001, with currency HKD, and open *Tool > Notification*, then *+ Add notification*.
+# On the 繁體 tab fill Title "QA NOT Optional No Agent", Content and Link, and tick *Override above contents to: All languages*.
+# Set Type *System*, Schedule *Daily*, Timer *12 AM*, Status *Inactive*.
+# Under *Agent Group* choose *Optional* and leave the Selected column empty (click « if anything is there).
+# Under *Member group* choose *Optional* and move *Default 00* into Selected.
+# Click *Save Notification* and confirm "Confirm to add?".
+
+h3. Expected result
+Save is refused. The form stays open and says which target is missing (for example "Please select at least one Agent Group"), and nothing is added to the Notification list.
+
+h3. Actual result
+* The page says *"Successfully added"* and returns to the list.
+* The rule is listed (ID 251) with Agent Group *All* and Member group Default 00 - the empty Optional selection was saved as every agent group.
+* API:
+{code}
+POST /api/account/inbox-notification-rule?currency=HKD
+HTTP 200 - rule created
+{code}
+* The same acceptance was measured on 2026-09-28 with both Selected columns empty.
+
+h3. Impact
+A rule the operator restricted to chosen agent groups, but left unfilled, is saved as a broadcast to all agent groups. Once Active it reaches every agent group's members, and the form gives no sign of that. The workbook's AQ-07 answer says at least one Agent Group and one Member Group are mandatory.
+
+h3. Attachment
+* notification-optional-empty-agent-group-saved-as-all.png - the list after Save: "QA NOT Optional No Agent", Agent Group All, Member group Default 00
+
+h3. Suggested fix
+Validate on create and update: when the Agent Group (or Member group) selection mode is "selective", refuse an empty id list with a field-level message; only the explicit "Select all" mode should store All.

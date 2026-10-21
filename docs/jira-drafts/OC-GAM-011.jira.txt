@@ -1,0 +1,25 @@
+h3. Description
+On *Product > Other Category > Manage games*, searching for a game that doesn't exist makes the table header break. With the body showing only "No data", the *Game* column collapses to zero width. Its header disappears, and the header bar covers only part of the table's width, while "No data" spans all of it.
+
+*Environment:* Test - https://admin-test.1083.city/product/other-category-games?id=384 (currency HKD), operator {{qa0001}}
+*Found by:* Admin_weibo automation - OtherCategoryManageGamesSuite, run 2026-09-29 14:41 (GMT+7)
+*Test case:* OC-GAM-011
+
+h3. Steps to reproduce
+# Sign in to https://admin-test.1083.city/ as qa0001, with currency HKD.
+# Open *Product > Other Category* and click *Manage games* on any category (e.g. "QA OC Popular Games").
+# In *Game*, type {{sss}} and press Enter.
+
+h3. Expected result
+The empty table still shows every column header - *Selected | Game | Provider | Game banner | Action* - each on one line across the full table width, with "No data" below.
+
+h3. Actual result
+* The header shows *Selected | Provider | Game banner | Action*. The *Game* header is squeezed to nothing (automation measured "Game: cut off").
+* The header bar ends partway across, while the "No data" row spans the full width.
+* The search request itself is fine: {{GET /api/account/game?paginate=20&page=1&game_name=sss&currency=HKD}} returns 200 with no games.
+
+h3. Attachment
+* oc-gam-011-game-header-collapsed.png - the table after searching "sss"
+
+h3. Note
+With games listed, the headers are fine even in 1280 and 1024 wide windows (OC-GAM-023 passes), and the Selected filter with no match passes (OC-GAM-901). So the collapse happens when the list is empty and the columns lose the content that sets their widths.

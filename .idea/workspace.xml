@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="BackgroundAgentGlobalSettings">
+    <option name="selectedModelId" value="auto" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="dd778d41-ad36-4835-be1a-fe5223fc8688" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_C:/Users/Acer/IdeaProjects/Admin_weibo" value="3JS3UE7OT0tN2nftcddB6ZBRvnc" />
+    </persistenceIdMap>
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Sengmean007&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/Sengmean007/Admin_weibo.git&quot;,
+    &quot;accountId&quot;: &quot;57d080d0-e86c-4405-9213-72ee0f6bee2e&quot;
+  }
+}</component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2
+}</component>
+  <component name="ProjectId" id="3JM6TwNv4QsNWuY9NUaHxeerbOB" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;JUnit.AdminLoginTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.AuthSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.ClientValidDepositTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.DailyRebateTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.DiscountSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationAccessControlSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationClientInboxSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationCreateSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationE2ESuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationEditSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationListSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationLocalizationSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationRecordDetailSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationRecordHistorySuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationRegressionSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationSeedSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationSendNowSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationTargetGroupsSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationTest$CreateNotification.untickingOverrideLeavesLanguagesRequired.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.NotificationTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryAccessControlSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryBannerSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryClientDisplaySuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryCreateSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryDeleteSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryEditSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryListSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryLocalizationSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryManageGamesSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryRegressionSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategorySeedSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryTest$CreateCategory.createWithOneLanguageBlank.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryTest$EditCategory.editStatus.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.OtherCategoryTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.ProductSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.RealTimeRebateTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.RebateAccessControlTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.RebateLocalizationTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.RebateMigrationTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.RebateSetUpTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.RebateSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.SystemPromotionRecordsTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.SystemPromotionSetupSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.SystemPromotionSetupTest.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.UiNotificationCenterClientHK.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.UiNotificationCenterClientHKSuite.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.UiOtherCategoryClientHK.executor&quot;: &quot;Run&quot;,
+    &quot;JUnit.UiOtherCategoryClientHKSuite.executor&quot;: &quot;Run&quot;,
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;TestNG.DailyRebateTest.executor&quot;: &quot;Run&quot;,
+    &quot;TestNG.RealTimeRebateTest.executor&quot;: &quot;Run&quot;,
+    &quot;copilot.chat.legacySessionMetadata.migrated&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/Acer/IdeaProjects/Admin_weibo&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;
+  }
+}</component>
+  <component name="RunManager" selected="JUnit.OtherCategoryTest">
+    <configuration name="DiscountSuite" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_weibo" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.sengmean.suites.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="org.sengmean.suites" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.suites.DiscountSuite" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="OtherCategoryTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_weibo" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.sengmean.tests.product.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="org.sengmean.tests.product" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.product.OtherCategoryTest" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SystemPromotionSetupSuite" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_weibo" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.sengmean.suites.promo.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="org.sengmean.suites.promo" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.suites.promo.SystemPromotionSetupSuite" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="SystemPromotionSetupTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_weibo" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.sengmean.tests.promo.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="org.sengmean.tests.promo" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.promo.SystemPromotionSetupTest" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="UiOtherCategoryClientHK" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_weibo" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.sengmean.tests.product.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <option name="PACKAGE_NAME" value="org.sengmean.tests.product" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.product.UiOtherCategoryClientHK" />
+      <option name="TEST_OBJECT" value="class" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="JUnit.OtherCategoryTest" />
+        <item itemvalue="JUnit.UiOtherCategoryClientHK" />
+        <item itemvalue="JUnit.SystemPromotionSetupTest" />
+        <item itemvalue="JUnit.DiscountSuite" />
+        <item itemvalue="JUnit.SystemPromotionSetupSuite" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.31033.145" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="dd778d41-ad36-4835-be1a-fe5223fc8688" name="Changes" comment="" />
+      <created>1789458602009</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1789458602009</updated>
+    </task>
+    <servers />
+  </component>
+</project>

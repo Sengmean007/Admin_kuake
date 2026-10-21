@@ -1,0 +1,54 @@
+Description:
+- Detail of issue (Actual result):
+  1. [Mobile - Android & iPhone] The home page and an Other Category page
+     (e.g. /en/game-category-features/394/) are wider than the screen and
+     can be dragged sideways: by 12px on Android (Pixel 7, 412px wide)
+     and by 34px on iPhone 14 (390px wide), as a visitor and as a logged-in
+     member. The elements found beyond the right edge are the 44x44 close
+     (x) button of a hidden modal (left 352 / right 396 on a 390px screen)
+     and a small icon path at x 401-417. The marquee and the game card
+     rows scroll inside their own boxes and are not the cause.
+  2. [PC & Mobile] An Other Category with no games assigned ("test",
+     id 426) is still served to the client and drawn on the home page as
+     an empty section: icon, name and "More Games >" with nothing under
+     them. Its own page (/en/game-category-features/426/) lists no game.
+
+- Pre-condition:
+  1. Environment: https://test-v2.138hk.vip, New UI chosen
+  2. Item 1: user not logged in or logged in (qa00001); Android: Chrome
+     (Pixel 7, 412x915); iPhone 14: Safari (390x844)
+  3. Item 2: in admin (Product > Other Category) an Active category
+     exists with 0 games assigned - currently "test", id 426 - and the
+     category feed (GET /api/member/game-category-features) serves it
+
+- Test Steps:
+  Item 1
+  1. On the phone, open the home page (/en/) and drag the page to the
+     left; repeat on /en/game-category-features/394/
+  2. The page pans sideways and content appears cut at the right edge
+     (automation measures document scrollWidth - window width = 12 on
+     Android, 34 on iPhone)
+
+  Item 2
+  1. Open the home page on PC or a phone and scroll to the Other Category
+     sections under the category bar
+  2. Check the "test" section
+  3. Open /en/game-category-features/426/
+
+- Screenshot of issue:
+  1. ticket-iphone-home-visitor.png, ticket-android-home-visitor.png -
+     phone home page (also shows the empty "test" section)
+  2. empty-test-section-iphone.png - the empty "test" section with More Games
+
+- Expected result:
+  1. Nothing extends beyond the screen width and the page does not pan
+     sideways on a phone; a hidden modal's elements must not take layout
+     space outside the viewport.
+  2. A category with no games is not listed on the client (the feed does
+     not serve it), or, if it is meant to be shown, the section shows a
+     "No games" state as in Figma rather than an empty panel.
+
+Note: measured on 2026-10-05 by the UiOtherCategoryClientHK automation
+(rows OC-CLI-023 / OC-CLI-024) and confirmed by a direct probe on the same
+day. Item 1 reproduces on the home page as well, so it is likely a shared
+layout element rather than the Other Category page itself.

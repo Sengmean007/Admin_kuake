@@ -1,0 +1,5 @@
+Captured 2026-09-29T11:24:35.377555800 (GMT+7), operator qa0001
+
+POST https://admin-test.1083.city/api/account/inbox-notification-rule/124/send-now?currency=HKD
+HTTP 200
+{"status":-10,"message":"Permission denied","timestamp":1790655872,"data":{}}

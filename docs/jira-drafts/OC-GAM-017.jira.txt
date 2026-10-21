@@ -1,0 +1,34 @@
+h3. Description
+In *Manage games*, the Game search treats {{%}} as "match anything" instead of as a plain character. Searching {{%}} lists *every game*, although no game name contains {{%}}. The page sends the character correctly encoded ({{game_name=%25}}), so the server itself interprets it. That usually means the value goes into a SQL {{LIKE}} pattern without its wildcard characters escaped, and {{_}} would likely behave the same way (matching any single character).
+
+*Environment:* Test - https://admin-test.1083.city/product/other-category-games?id=384 (currency HKD), operator {{qa0001}}
+*Found by:* Admin_weibo automation - OtherCategoryManageGamesSuite, run 2026-09-29 14:41 (GMT+7)
+*Test case:* OC-GAM-017
+
+h3. Steps to reproduce
+# Sign in to https://admin-test.1083.city/ as qa0001, with currency HKD.
+# Open *Product > Other Category* and click *Manage games* on any category.
+# In *Game*, type {{%}} and press Enter.
+
+h3. Expected result
+The search matches {{%}} as a literal character. No game name contains it, so the list is empty ("No data").
+
+h3. Actual result
+* The full, unfiltered list is shown (JILI, EVOPLAY game-en, WM Live Casino, Weibo Sport, WinWin City, Red Tiger, ... - 20 on the first page).
+* API:
+{code}
+GET /api/account/game?paginate=20&page=1&game_name=%25&currency=HKD
+HTTP 200 - every game returned
+{code}
+
+h3. Other characters checked in the same case (all correct)
+||Search||Result||
+|{{'}}|Plain result, no error|
+|{{<script>alert(1)</script>}}|No script ran, no error|
+|😀|Plain result, no error|
+
+h3. Attachment
+* oc-gam-017-percent-lists-all-games.png - "%" in the Game box and the unfiltered list
+
+h3. Suggested fix
+Escape {{%}}, {{_}} and {{\}} in {{game_name}} before building the {{LIKE}} pattern (or use the ORM's literal-contains helper).

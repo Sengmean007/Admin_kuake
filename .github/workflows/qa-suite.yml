@@ -1,0 +1,159 @@
+# Nightly run of the Playwright suites against the Weibo Empire admin back office.
+#
+# Scheduled rather than gating, because these are integration tests against a live
+# third-party site. They fail for reasons unrelated to any commit, so a red run here is a
+# signal to look rather than proof of a regression. Pull requests are gated by build.yml,
+# which only compiles.
+#
+# ---------------------------------------------------------------------------------------
+# SAFETY: this workflow runs the safe set only.
+#
+#   -DexcludedGroups=known-defect,creates-data
+#
+# Both exclusions are load-bearing and must not be dropped from an unattended run:
+#
+#   known-defect  asserts the behavior the application *should* have, so it fails today
+#                 by design. It is the regression net for open findings, not a health check.
+#   creates-data  has side effects that outlive the run. In a back office that is a wide
+#                 category: approving or rejecting a real transaction, creating or editing
+#                 a member, changing a setting every other suite reads. None of that
+#                 belongs on a timer.
+#
+# There is deliberately no input to switch creates-data on. Run those cases locally and
+# attended, where you can watch what they spend.
+# ---------------------------------------------------------------------------------------
+name: QA suite (nightly)
+
+on:
+  # The nightly schedule is OFF by request, until it is explicitly switched back on.
+  # Re-enable by uncommenting the two lines below; nothing else needs changing.
+  #
+  # schedule:
+  #   # 19:00 UTC = 02:00 the next day in UTC+7, so the run lands overnight local time and
+  #   # the results are waiting in the morning.
+  #   - cron: '0 19 * * *'
+  #
+  # Until then this workflow only runs when someone starts it from the Actions tab.
+  workflow_dispatch:
+
+jobs:
+  playwright:
+    name: Safe set against the admin back office
+    runs-on: ubuntu-latest
+    # Generous, because the safe set is minutes rather than seconds once there are suites
+    # in it. Lower it if it ever starts masking a hang.
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pom.xml') }}
+          restore-keys: playwright-${{ runner.os }}-
+
+      - name: Resolve dependencies
+        run: ./mvnw -B -ntp test-compile
+
+      - name: Install Chromium and its system libraries
+        # Not `mvn exec:java`. The exec plugin in this POM is configured with
+        # mainClass=org.sengmean.report.ExcelReportGenerator, and a plugin-level <configuration> beats
+        # -Dexec.mainClass, so that route silently runs the report generator instead of
+        # Playwright's CLI. Verified rather than assumed: the override was tried locally
+        # and printed "Report written to target/E2E-Test-Report.xlsx".
+        #
+        # --with-deps matters on a runner. Playwright downloads browsers by itself on first
+        # use, but it does not install the OS packages Chromium needs in order to start, and
+        # that failure surfaces much later as a launch error inside a test.
+        #
+        # The dependency plugin is pinned so the step cannot change behaviour under us.
+        run: |
+          ./mvnw -B -ntp org.apache.maven.plugins:maven-dependency-plugin:3.6.1:build-classpath \
+            -Dmdep.outputFile=cp.txt -q
+          java -cp "$(cat cp.txt)" com.microsoft.playwright.CLI install --with-deps chromium
+
+      - name: Run the safe set
+        env:
+          # Supplied from repository secrets so credentials are not read from the committed
+          # defaults in Config/config.properties. Each is optional: an unset secret leaves
+          # that default in place rather than overriding it with an empty string, which
+          # would break sign-in.
+          #
+          # These names are not arbitrary, and the -D lines below are now belt and braces:
+          # ConfigDataProvider reads the environment variable for any setting - the same key
+          # upper-cased with dots as underscores - so TEST_USERNAME and BASE_URL would be
+          # picked up by the run even with no ARGS built at all. The explicit -D is kept
+          # because it is what the log shows, and a run whose account cannot be read off the
+          # command line is a run nobody can reproduce.
+          TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          TEST_CAPTCHA: ${{ secrets.TEST_CAPTCHA }}
+          BASE_URL: ${{ secrets.BASE_URL }}
+        run: |
+          ARGS=""
+          [ -n "$TEST_USERNAME" ] && ARGS="$ARGS -Dtest.username=$TEST_USERNAME"
+          [ -n "$TEST_PASSWORD" ] && ARGS="$ARGS -Dtest.password=$TEST_PASSWORD"
+          [ -n "$TEST_CAPTCHA" ]  && ARGS="$ARGS -Dtest.captcha=$TEST_CAPTCHA"
+          [ -n "$BASE_URL" ]      && ARGS="$ARGS -Dbase.url=$BASE_URL"
+          # -Dheadless=true is not optional. BaseTest defaults it to false for local
+          # debugging, and a runner has no display for a headed browser to open on.
+          ./mvnw -B -ntp test \
+            -Dheadless=true \
+            -DexcludedGroups=known-defect,creates-data \
+            $ARGS
+
+      - name: Build the Excel report
+        # Reads the Surefire XML that the step above wrote. Runs even when tests failed,
+        # because a failing run is exactly when the report is worth reading.
+        if: always()
+        continue-on-error: true
+        run: ./mvnw -B -ntp exec:java
+
+      - name: Upload the HTML test case reports
+        # No build step here on purpose. org.sengmean.report.HtmlReportListener writes these during the
+        # run above, pass or fail, so by this point they are already on disk and already
+        # describe this run. Re-running the generator would only rebuild them from the XML,
+        # which is the weaker of the two sources.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-test-case-reports
+          path: docs/reports/
+          if-no-files-found: ignore
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: warn
+
+      - name: Upload the Excel report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: excel-report
+          path: target/*.xlsx
+          if-no-files-found: ignore
+
+      - name: Upload case screenshots
+        # ScreenshotOnFinish writes one per case. They are what makes a failed run
+        # diagnosable afterwards, when the message says an element was not found but not
+        # what was on the screen instead.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: case-screenshots
+          path: target/case-screenshots/
+          if-no-files-found: ignore

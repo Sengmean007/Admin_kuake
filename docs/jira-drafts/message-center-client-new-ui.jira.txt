@@ -1,0 +1,64 @@
+Description:
+- Detail of issue (Actual result):
+  1. [PC & Mobile][Functional] A visitor who is not logged in can open
+     /en/messages and sees the whole Message Center: the "Message
+     Center" heading, Back, Mark All as Read, the All / System / Deposit /
+     Withdraw tabs and "No messages yet". There is no login prompt and no
+     redirect. The same page stays reachable after a member logs out.
+  2. [PC][Functional] A message's own address (e.g. /en/messages/360/,
+     opened earlier by a member) still opens after logging out: the
+     visitor gets the "Message Details" page with "Couldn't load this
+     message" and a Retry button, instead of being asked to log in or
+     sent away.
+  3. [PC] On arriving at /en/messages as a logged-in member, the header's
+     message popover (the envelope button) is already open
+     (aria-expanded="true") and shows a second copy of the list - heading,
+     Mark All as Read, the four tabs and the rows - beside the page's own
+     list. Nothing was clicked; it opens by itself on that page only.
+
+- Pre-condition:
+  1. Environment: https://test-v2.138hk.vip, New UI chosen
+  2. Items 1-2: user not logged in (or logged out after a session)
+  3. Item 2: the address of an existing message (open any message as a
+     member and copy the address)
+  4. Item 3: logged in as a member who has messages (qa00001), PC Chrome
+     at 1920x1080
+
+- Test Steps:
+  Item 1
+  1. Without logging in, open https://test-v2.138hk.vip/en/messages
+  2. Check what is shown
+  3. Log in, log out from the header, open /en/messages again
+
+  Item 2
+  1. Log in, open the Message Center, open any message and copy its
+     address (e.g. /en/messages/360/)
+  2. Log out from the header
+  3. Open the copied address
+
+  Item 3
+  1. Log in on PC and open https://test-v2.138hk.vip/en/messages
+  2. Look at the envelope button in the header and the panel under it
+
+- Screenshot of issue:
+  1. UiNotificationCenterClientHK.visitorIsKeptOut.png - the Message
+     Center shown to a visitor (automation run 2026-10-05 08:36);
+     ticket-pc-visitor-messages.png - the same after logging out
+  2. ticket-pc-visitor-message-address.png - Message Details shown to a
+     visitor with "Couldn't load this message"
+  3. desktop_pc-messages-member.png, pc-popover.png - the header popover
+     open beside the Message Center page
+
+- Expected result:
+  1. The Message Center is for logged-in members only: a visitor is
+     asked to log in (login dialog) or redirected to the home page.
+  2. A message's address opened without a session is refused the same
+     way - login prompt or redirect - not an empty Message Details page
+     with an error.
+  3. The header popover opens only when the envelope is clicked; landing
+     on the Message Center page does not open it.
+
+Note: items 1 and 2 are the rows NOT-CLI-021 / 033 / 034 of the
+UiNotificationCenterClientHK automation, red since 2026-10-02 on the
+ruling that the Message Center is for members only. Item 3 was seen on
+every PC run and probe on 2026-10-05.

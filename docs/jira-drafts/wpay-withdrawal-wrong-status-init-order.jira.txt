@@ -1,0 +1,31 @@
+h3. Description
+When a user submits a withdrawal request using the *WPAY* payment option from the client app/web, the transaction record is saved and displayed in the Admin Portal with status *Init order* instead of moving into the expected *New Request* status for operator processing.
+
+*Environment:* Test Environment (QA)
+*Module / Feature:* Withdrawal / WPAY / Admin Portal (Transaction Records)
+*Affects Version/s:* Platform V5.0.0
+*QA Owner:* Si
+
+h3. Steps to reproduce
+# Log in to the client app/web.
+# Navigate to the withdrawal section, select *WPAY* as the payment option, and submit a new withdrawal request.
+# Log in to the Admin Portal and go to *Trade > Transaction Records* ([https://admin-test.1083.city/ticketing/ticketing-history]).
+# Search for the recently submitted WPAY withdrawal transaction.
+# Check the Status column for the newly created transaction record.
+
+h3. Expected result
+The requested WPAY withdrawal should be created with status *New Request*, so operators can review and process it.
+
+h3. Actual result
+The withdrawal transaction is created with status *Init order* instead, leaving it unhandled or miscategorized in administrative workflows.
+
+h3. Impact
+A WPAY withdrawal sits in a status operators don't treat as actionable, so it goes unprocessed unless someone happens to search specifically for Init order - the normal New Request operator workflow never picks it up.
+
+h3. Acceptance criteria
+* Newly submitted withdrawal requests via WPAY must be initialized with the New Request status in the database, and shown as such on the Admin Portal's Transaction Records page.
+* Operators must be able to process or assign the WPAY withdrawal directly from the New Request state.
+
+h3. Suggested fields (for whoever files this)
+Priority: High / Medium
+Labels: withdraw, wpay, admin-portal, transaction-record, backend-api

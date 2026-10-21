@@ -1,0 +1,44 @@
+Description:
+- Detail of issue (Actual result):
+  1. [Functional] With the new Notification Pushing feature enabled, the
+     Auto Greeting Message configured for Customer Service on a 30-minute
+     cycle does not fire: the 30-minute interval completes and no auto
+     greeting message is triggered or delivered to Customer Service for
+     a user who holds an Unsettled Rebate Claim.
+     Module / Feature: Customer Service Automation / Notification Pushing /
+     Rebate Claim. Trigger interval: 30-minute cycle.
+
+- Pre-condition:
+  1. Environment: Test (QA)
+  2. The user account has an active Rebate Claim with a value present
+  3. That Rebate Claim's status is Unsettled
+  4. Auto Greeting Message is enabled and set to a 30-minute repeat cycle
+  5. The new Notification Pushing feature is enabled / deployed for
+     customer alerts
+
+- Test Steps:
+  1. Log in to the platform in the Test environment
+  2. Make sure the user meets the pre-condition: a Rebate Claim is
+     present with status Unsettled
+  3. Configure the Auto Greeting Message for Customer Services with a
+     30-minute trigger cycle
+  4. Enable / deploy the new Notification Pushing feature for customer
+     alerts
+  5. Wait for the 30-minute cycle interval to elapse
+  6. Check the Customer Service chat window / messaging log for the auto
+     greeting message
+
+- Screenshot of issue:
+  1. (attach the Customer Service chat window / messaging log after the
+     30-minute cycle, showing no greeting message)
+
+- Expected result:
+  1. After 30 minutes the background trigger runs and the Auto Greeting
+     Message is sent to Customer Service for eligible users with an
+     Unsettled Rebate Claim.
+
+- Impact:
+  Severity High / Major. A critical automated customer engagement flow
+  is broken following the integration of the Notification Pushing
+  service: users with unsettled rebates are not receiving their
+  scheduled automated touchpoints.

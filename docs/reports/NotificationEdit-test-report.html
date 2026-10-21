@@ -1,0 +1,1579 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notification - Edit notification - test case report</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2230; --muted:#5b6676;
+    --line:#e2e7ef; --head:#26314a; --headink:#ffffff;
+    --pass:#137a43; --pass-bg:#e6f5ec;
+    --fail:#b02525; --fail-bg:#fdecec;
+    --partial:#9a6a00; --partial-bg:#fdf3dd;
+    --info:#1f6a9c; --info-bg:#e6f1f9;
+    --accent:#c79a2f;                  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:32px 18px}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.rpt{background:var(--head);color:var(--headink);border-radius:14px;padding:26px 30px;
+    box-shadow:0 6px 20px rgba(20,30,50,.12)}
+  header.rpt h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header.rpt .sub{opacity:.85;font-size:14px}
+  header.rpt code{background:rgba(255,255,255,.14);color:inherit}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px;font-size:13.5px}
+  .meta b{color:var(--accent)}
+  .tally{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:14px;font-weight:600}
+  /* The run at a glance. Proportional segments, so the shape of a result is
+     readable before any of the five numbers above it has been read. */
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:12px;
+    background:rgba(255,255,255,.16)}
+  .bar .seg{display:block;height:100%}
+  .bar .seg.pass{background:#3ddc84}
+  .bar .seg.fail{background:#ff6b6b}
+  .bar .seg.skip{background:#ffcc66}
+  .bar .seg.notrun{background:#8fa3bf}
+  .rate{margin-top:8px;font-size:12.5px;opacity:.85}
+  /* The same bar in a table cell, where the ground is white rather than the
+     header's navy, so the empty track has to be redrawn to stay visible. */
+  .bar.mini{width:150px;height:8px;margin:0;background:var(--line)}
+  td.minibar{width:170px}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 4px}
+  .toolbar .filters{display:flex;flex-wrap:wrap;gap:6px}
+  button.flt{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+  button.flt:hover{color:var(--ink);border-color:var(--muted)}
+  button.flt.on{background:var(--head);border-color:var(--head);color:#fff}
+  .toolbar input[type=search]{font:inherit;font-size:13px;padding:7px 12px;flex:1 1 220px;
+    min-width:180px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    color:var(--ink)}
+  .toolbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hide{display:none !important}
+  .callout.bad{border-left-color:var(--fail)}
+  ol.findings{margin:0;padding-left:20px}
+  ol.findings li{margin-bottom:10px}
+  ol.findings a{color:var(--fail);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;text-decoration:none}
+  ol.findings a:hover{text-decoration:underline}
+  .tag.known{background:var(--fail-bg);color:var(--fail)}
+  /* The detail panel under a row. It is a second <tr> rather than a nested table
+     so the seven columns stay aligned across every group on the page. */
+  button.more{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;margin-right:7px;
+    border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);cursor:pointer;vertical-align:middle}
+  button.more:hover{color:var(--ink);border-color:var(--muted)}
+  button.more::before{content:"\25B8 "}
+  tr.case.open button.more::before{content:"\25BE "}
+  tr.case.open>td{background:#f2f6fd}
+  tr.case.flash>td{animation:flash 1.4s ease-out}
+  @keyframes flash{from{background:#fdf3dd}to{background:transparent}}
+  tr.detail>td{background:#f7f9fc;border-top:0;padding:0 13px 18px}
+  .panels{display:flex;flex-wrap:wrap;gap:14px}
+  .panel{flex:1 1 340px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.wide{flex-basis:100%;margin-top:14px}
+  .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .panel dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+  .panel dt{color:var(--muted);font-weight:600}
+  .panel dd{margin:0;word-break:break-word}
+  .panel p{font-size:13px;margin:10px 0 0}
+  .cmp{display:grid;gap:6px}
+  .cmp>div{display:flex;gap:8px;align-items:baseline}
+  .cmp span{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);min-width:58px}
+  .cmp code{white-space:pre-wrap;word-break:break-word}
+  .cmp>div:first-child code{background:var(--pass-bg);color:var(--pass)}
+  .cmp>div:last-child code{background:var(--fail-bg);color:var(--fail)}
+  .frames{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  details.trace{margin-top:12px;font-size:12.5px}
+  details.trace>summary{cursor:pointer;color:var(--muted)}
+  details.trace pre{margin:8px 0 0;padding:12px;background:#f4f6fa;border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.45;max-height:340px}
+  /* The step trail. Kinds are badges rather than prose because they are what makes
+     it scannable - red for the network and console lines a failure hangs off. */
+  ol.steps{margin:0;padding:0;list-style:none;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  ol.steps li{display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line);
+    align-items:baseline}
+  ol.steps li:first-child{border-top:0}
+  ol.steps .at{color:var(--muted);min-width:52px;text-align:right;font-size:11.5px}
+  ol.steps .kind{min-width:74px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    padding:2px 7px;border-radius:4px;text-align:center;background:#eef1f6;color:var(--muted)}
+  ol.steps .what{flex:1;word-break:break-word;white-space:pre-wrap}
+  /* A capture shown against the trail line that describes it. Kept small so a
+     case with fifty-two of them still scrolls as a trail rather than a gallery,
+     and clickable so the full-size image is one click away. align-self:flex-start
+     stops a tall thumbnail stretching a short line's row. */
+  ol.steps .step-shot{flex:0 0 auto;align-self:flex-start;line-height:0;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  ol.steps .step-shot img{display:block;width:180px;height:auto}
+  ol.steps li.k-evidence{align-items:flex-start}
+  @media (max-width:900px){ol.steps .step-shot img{width:120px}}
+  ol.steps li.k-step .kind{background:var(--info-bg);color:var(--info)}
+  ol.steps li.k-check .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-data .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-network .kind,ol.steps li.k-console .kind{background:var(--fail-bg);color:var(--fail)}
+  ol.steps li.k-network .what,ol.steps li.k-console .what{color:var(--fail)}
+  /* A line the case declared FAIL. Tinted across the whole row rather than only
+     the text, so it is findable while scrolling a trail of a hundred lines, and
+     given a left rule so it still reads as failed without relying on colour. */
+  ol.steps li.failed{background:var(--fail-bg);
+    box-shadow:inset 3px 0 0 var(--fail);padding-left:7px}
+  ol.steps li.failed .what{color:var(--fail);font-weight:600}
+  ol.steps li.failed .kind{background:var(--fail);color:#fff}
+  ol.steps li.k-evidence .kind{background:var(--partial-bg);color:var(--partial)}
+  .nav{margin:18px 0 0;font-size:13.5px}
+  .nav a{color:var(--info);text-decoration:none}
+  .nav a:hover{text-decoration:underline}
+  .callout{background:var(--card);border-left:5px solid var(--accent);border-radius:10px;
+    padding:16px 20px;margin:22px 0;box-shadow:0 2px 8px rgba(20,30,50,.06);font-size:14px}
+  .callout h2{margin:0 0 8px;font-size:16px}
+  .callout p{margin:0 0 10px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--partial)}
+  h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  /* The index's package sections: heading, the package name beside it, then its tally. */
+  h2.section .pkg-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    font-weight:500;color:var(--muted);margin-left:8px}
+  .pkg-tally{display:flex;align-items:center;gap:12px;margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+  .pkg-tally .bar.mini{width:160px;flex:0 0 160px}
+  h3.pkg-findings{font-size:14px;margin:14px 0 4px}
+  h3.pkg-findings a{color:inherit}
+  .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
+  thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
+    font-weight:600;white-space:nowrap}
+  tbody td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;
+    overflow-wrap:break-word}
+  /* Fixed column widths on the case tables, because automatic layout shares the
+     width out by content and one long cell then starves the rest: a remark
+     carrying a two-sentence reading of a failure took 792 of 1565 pixels and left
+     the Actual result column at 103, wrapping its message one word per line. It
+     also stops the full-width detail row from widening the whole table, which was
+     pushing the failure panel off the right of the page. */
+  table.cases{table-layout:fixed;min-width:1600px}
+  table.cases th:nth-child(1),table.cases td:nth-child(1){width:6%}
+  table.cases th:nth-child(2),table.cases td:nth-child(2){width:10%}
+  table.cases th:nth-child(3),table.cases td:nth-child(3){width:12%}
+  table.cases th:nth-child(4),table.cases td:nth-child(4){width:14%}
+  table.cases th:nth-child(5),table.cases td:nth-child(5){width:10%}
+  table.cases th:nth-child(6),table.cases td:nth-child(6){width:11%}
+  table.cases th:nth-child(7),table.cases td:nth-child(7){width:11%}
+  table.cases th:nth-child(8),table.cases td:nth-child(8){width:6%}
+  table.cases th:nth-child(9),table.cases td:nth-child(9){width:10%}
+  table.cases th:nth-child(10),table.cases td:nth-child(10){width:10%}
+  table.cases tr.detail>td{width:auto}
+  /* Pre-condition, Test steps and Test data: the client workbook's own wording, with the values
+     the run actually used listed under the sheet's. */
+  .tc-pre{font-size:12.5px;white-space:pre-wrap}
+  ol.tc-steps{margin:0;padding-left:18px;font-size:12.5px}
+  ol.tc-steps li{margin:0 0 3px}
+  ul.tc-data{margin:0;padding-left:16px;font-size:12.5px}
+  ul.tc-data li{margin:0 0 3px;overflow-wrap:anywhere}
+  ul.tc-data.used code{font-size:11.5px;white-space:normal}
+  td.tsteps .src,td.tdata .src{margin:6px 0 3px;font-size:10.5px;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  /* The sheet ids run from HOME-001 to HKDWITHDRAWAL-012, and a fixed column
+     clips what it cannot fit: the longer ones were cut mid-word with no sign
+     that anything was missing. They wrap here rather than truncate. */
+  table.cases td.id{white-space:normal;overflow-wrap:anywhere}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td.tc{font-weight:600}
+  td.tc a{color:var(--ink)}
+  td.id{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);
+    font-size:12.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .why{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--fail);
+    white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted)}
+  .secs{margin-top:6px;font-size:11.5px;color:var(--muted)}
+  .tag{display:inline-block;margin-top:6px;margin-right:4px;padding:1px 7px;border-radius:4px;
+    background:#eef1f6;color:var(--muted);font-size:11px;font-weight:600;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .st{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;
+    white-space:nowrap}
+  .st.pass{color:var(--pass);background:var(--pass-bg)}
+  .st.fail{color:var(--fail);background:var(--fail-bg)}
+  .st.partial{color:var(--partial);background:var(--partial-bg)}
+  .st.info{color:var(--info);background:var(--info-bg)}
+  details.shots{max-width:100%}
+  details.shots>summary{cursor:pointer;font-size:12.5px;color:var(--muted);
+    padding:5px 9px;border:1px solid var(--line);border-radius:999px;
+    display:inline-block;list-style:none;user-select:none}
+  details.shots>summary::-webkit-details-marker{display:none}
+  details.shots>summary::before{content:"\25B8 ";color:var(--muted)}
+  details.shots[open]>summary::before{content:"\25BE "}
+  details.shots>summary:hover{color:var(--ink);border-color:var(--muted)}
+  details.shots[open]>summary{margin-bottom:8px}
+  a.shot{display:inline-block;margin:0 6px 6px 0;position:relative;cursor:zoom-in}
+  a.shot img{width:100%;max-width:260px;border:1px solid var(--line);border-radius:8px;display:block;
+    box-shadow:0 2px 6px rgba(20,30,50,.10);transition:transform .12s,box-shadow .12s}
+  a.shot:hover img{transform:scale(1.03);box-shadow:0 6px 18px rgba(20,30,50,.22)}
+  a.shot::after{content:"\2315";position:absolute;right:8px;bottom:8px;
+    background:rgba(15,25,45,.72);color:#fff;font-size:13px;line-height:1;
+    padding:5px 7px;border-radius:6px;opacity:0;transition:opacity .12s}
+  a.shot:hover::after{opacity:1}
+  /* Click-to-zoom overlay. A 260px thumbnail of a 1920x1080 capture is a
+     smudge - readable enough to say a picture exists, not enough to read the
+     page in it - so the full image opens over the report rather than in a
+     separate tab the reader then has to navigate back from. */
+  #lightbox{position:fixed;inset:0;background:rgba(10,16,28,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:999;
+    padding:24px;cursor:zoom-out}
+  #lightbox.open{display:flex}
+  #lightbox img{max-width:96vw;max-height:86vh;border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff}
+  #lightbox .cap{color:#e8eef8;font-size:13px;margin-top:12px;text-align:center;
+    max-width:80vw}
+  #lightbox .hint{color:#93a4bd;font-size:12px;margin-top:6px}
+  /* A suite page's header is its statistics summary, and collapses to its first
+     lines: title, counts and bar stay; run details, tiles, chart and the cases by
+     result fold away. Drawn on the header's navy, so the status colours are the
+     same bright steps as the header bar, each paired with an icon and a label. */
+  details.rpt-sum>summary{list-style:none;cursor:pointer;user-select:none}
+  details.rpt-sum>summary::-webkit-details-marker{display:none}
+  details.rpt-sum>summary:focus-visible{outline:2px solid #9cc9ff;outline-offset:6px;border-radius:6px}
+  .rpt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rpt-line{flex-wrap:nowrap}
+  .rpt-line h1{margin:0;flex:1 1 auto;min-width:0}
+  details.rpt-sum>.sub{margin-top:14px}
+  header.rpt .sub code{overflow-wrap:anywhere}
+  .chev::before{content:"\25B8";display:inline-block;opacity:.8;transition:transform .15s}
+  details[open]>summary .chev::before{transform:rotate(90deg)}
+  .rpt-toggle-hint{margin-left:auto;font-size:12px;opacity:.6}
+  .rpt-counts{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:14px;
+    font-weight:600;font-variant-numeric:tabular-nums}
+  .cnt i,.tile i,details.cl>summary i{font-style:normal;margin-right:5px}
+  .cnt.pass i,.tile.pass i,details.cl.pass>summary i{color:#3ddc84}
+  .cnt.fail i,.tile.fail i,details.cl.fail>summary i{color:#ff6b6b}
+  .cnt.skip i,.tile.skip i,details.cl.skip>summary i{color:#ffcc66}
+  .cnt.notrun i,.tile.notrun i,details.cl.notrun>summary i{color:#b8c4d6}
+  .cnt.zero{opacity:.55}
+  .rpt-h{font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;opacity:.75;
+    margin:20px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .tile{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:10px 12px}
+  .tile b{display:block;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+  .tile span{font-size:12px;opacity:.75}
+  .chart{margin:16px 0 0}
+  .stack{display:flex;gap:2px;height:28px}
+  .stack .seg{display:flex;align-items:center;justify-content:center;flex-basis:0;
+    min-width:4px;overflow:hidden}
+  .stack .seg:first-child{border-radius:4px 0 0 4px}
+  .stack .seg:last-child{border-radius:0 4px 4px 0}
+  .stack .seg:only-child{border-radius:4px}
+  .stack .seg.pass{background:#3ddc84}
+  .stack .seg.fail{background:#ff6b6b}
+  .stack .seg.skip{background:#ffcc66}
+  .stack .seg.notrun{background:#8fa3bf}
+  .stack .seg:focus-visible{outline:2px solid #fff;outline-offset:1px}
+  .stack em{font-style:normal;font-size:12px;font-weight:700;color:#14203a}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;opacity:.85}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .sw.pass{background:#3ddc84}
+  .sw.fail{background:#ff6b6b}
+  .sw.skip{background:#ffcc66}
+  .sw.notrun{background:#8fa3bf}
+  .case-lists{display:flex;flex-direction:column;gap:8px}
+  details.cl{border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:0 14px;
+    background:rgba(255,255,255,.04)}
+  details.cl>summary{cursor:pointer;padding:9px 0;font-weight:600;font-size:13.5px}
+  details.cl .n{opacity:.7;font-weight:400}
+  details.cl ol{margin:0 0 12px;padding-left:22px;font-size:13px;max-height:280px;overflow:auto}
+  details.cl li{margin:5px 0}
+  details.cl li a{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+    text-decoration:none;color:#9cc9ff}
+  details.cl.fail li a{color:#ff9d9d}
+  details.cl li a:hover{text-decoration:underline}
+  header.rpt .why{color:#ffb3b3}
+  #tip{position:fixed;display:none;z-index:1000;background:#0e1524;color:#fff;font-size:12px;
+    padding:6px 9px;border-radius:6px;pointer-events:none;max-width:320px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  @media (max-width:640px){.rpt-toggle-hint{display:none}}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rpt">
+  <details class="rpt-sum" open>
+    <summary>
+      <span class="rpt-line"><span class="chev" aria-hidden="true"></span><h1>Notification - Edit notification</h1><span class="rpt-toggle-hint">click to minimise / expand</span></span>
+      <span class="rpt-counts"><span class="cnt pass"><i>&#10003;</i>3 passed</span><span class="cnt fail zero"><i>&#10007;</i>0 failed</span><span class="cnt skip zero"><i>&#8856;</i>0 skipped</span><span class="cnt notrun"><i>&#9675;</i>10 not run</span><span class="cnt">13 cases</span></span>
+<span class="bar">      <span class="seg pass" style="width:23.0769%" title="3 passed"></span>
+      <span class="seg notrun" style="width:76.9231%" title="10 not run"></span>
+</span>
+    </summary>
+    <div class="sub">Test case report &mdash; <code>org.sengmean.suites.tool.NotificationEditSuite</code></div>
+    <div class="meta">
+      <div><b>Target:</b> https://admin-test.1083.city/</div>
+      <div><b>Account:</b> qa0001</div>
+      <div><b>Run:</b> 2026-10-01 14:15</div>
+      <div><b>Elapsed:</b> 254.5s</div>
+      <div><b>Scope:</b> 1 of 34 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headless)</div>
+      <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
+      <div><b>Machine:</b> Windows 11 10.0</div>
+    </div>
+    <h2 class="rpt-h">Statistics</h2>
+    <div class="tiles">
+        <div class="tile "><b>13</b><span>cases</span></div>
+        <div class="tile pass"><b><i>&#10003;</i>3</b><span>passed</span></div>
+        <div class="tile fail"><b><i>&#10007;</i>0</b><span>failed</span></div>
+        <div class="tile skip"><b><i>&#8856;</i>0</b><span>skipped</span></div>
+        <div class="tile notrun"><b><i>&#9675;</i>10</b><span>not run</span></div>
+        <div class="tile"><b>100%</b><span>pass rate of the cases that ran</span></div>
+        <div class="tile"><b>199.7s</b><span>browser time</span></div>
+    </div>
+      <div class="chart" role="img" aria-label="Notification - Edit notification: 3 passed, 0 failed, 0 skipped, 10 not run">
+        <div class="stack big"><span class="seg pass" style="flex-grow:3" tabindex="0" data-tip="Notification - Edit notification - 3 passed (23%)"><em>3</em></span><span class="seg notrun" style="flex-grow:10" tabindex="0" data-tip="Notification - Edit notification - 10 not run (77%)"><em>10</em></span></div>
+        <div class="chart-legend"><span><i class="sw pass"></i>Passed</span><span><i class="sw fail"></i>Failed</span><span><i class="sw skip"></i>Skipped</span><span><i class="sw notrun"></i>Not run</span></div>
+      </div>
+    <h2 class="rpt-h">Cases by result</h2>
+    <div class="case-lists">
+      <details class="cl pass"><summary><i>&#10003;</i>Passed <span class="n">(3)</span></summary>
+        <ol>
+          <li><a href="#case-NotificationTest-onceToDaily">NOT-EDT-003</a> Editing a one-time notification into a recurring one</li>
+          <li><a href="#case-NotificationTest-renamingKeepsIdentity">NOT-EDT-008</a> Editing the 繁體 Title updates the list row at once, with the same ID and Created At</li>
+          <li><a href="#case-NotificationTest-removingTheLink">NOT-EDT-013</a> Removing the Link on Edit saves, and the next delivery carries no link</li>
+        </ol>
+      </details>
+      <details class="cl notrun"><summary><i>&#9675;</i>Not run <span class="n">(10)</span></summary>
+        <ol>
+          <li><a href="#case-NotificationTest-editIsPrefilled">NOT-EDT-001</a> Edit loads every saved field correctly, including all 12 language tabs</li>
+          <li><a href="#case-NotificationTest-editOneLanguage">NOT-EDT-002</a> Changing only the English content leaves the other 11 languages untouched</li>
+          <li><a href="#case-NotificationTest-inactiveStopsFiring">NOT-EDT-004</a> Setting an Active recurring notification to Inactive stops it from firing</li>
+          <li><a href="#case-NotificationTest-historyKeepsAsSentTargets">NOT-EDT-005</a> Changing a notification's Agent/Member Group targets does not retroactively alter already-sent Record History entries</li>
+          <li><a href="#case-NotificationTest-cancelKeepsTheSavedState">NOT-EDT-006</a> Changing fields and clicking Cancel does not save them</li>
+          <li><a href="#case-NotificationTest-clearingTitleOnEditIsRefused">NOT-EDT-007</a> Clearing the required Title on Edit is refused with the same validation as Create</li>
+          <li><a href="#case-NotificationTest-dailyToWeekly">NOT-EDT-009</a> Changing Daily to Weekly on Edit shows Week day and saves it - the list reads the day and hour</li>
+          <li><a href="#case-NotificationTest-reactivatingResumesFiring">NOT-EDT-010</a> Setting an Inactive Daily notification back to Active resumes firing at its Timer</li>
+          <li><a href="#case-NotificationTest-reactivatingASentOnce">NOT-EDT-011</a> Re-activating a Once rule that has already sent either sends it once more and ends Inactive again, or leaves it unsent - never sends it repeatedly</li>
+          <li><a href="#case-NotificationTest-widenToAll">NOT-EDT-012</a> Switching both targets from Optional to Select all on Edit saves as All / All</li>
+        </ol>
+      </details>
+    </div>
+  </details>
+  </header>
+
+  <div class="nav"><a href="index.html">&larr; All suites</a></div>
+  <div class="toolbar">
+    <div class="filters" role="group" aria-label="Filter cases by status">
+      <button type="button" class="flt on" data-filter="all">All</button>
+      <button type="button" class="flt" data-filter="Pass">Passed</button>
+      <button type="button" class="flt" data-filter="Fail">Failed</button>
+      <button type="button" class="flt" data-filter="Skipped">Skipped</button>
+      <button type="button" class="flt" data-filter="Not run">Not run</button>
+    </div>
+    <input type="search" id="q" placeholder="Search id, case or message" aria-label="Search cases">
+    <button type="button" class="flt" id="expand-all">Expand all details</button>
+    <span class="count" id="shown">13 of 13 cases</span>
+  </div>
+  <section class="grp">
+  <h2 class="section">1. 3. Edit notification</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-NotificationTest-editIsPrefilled" data-status="Not run" data-search="not-edt-001 editisprefilled edit loads every saved field correctly, including all 12 language tabs creates-data">
+        <td class="id" id="NOT-EDT-001">NOT-EDT-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>editIsPrefilled</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Notification tab. An existing notification with content in multiple languages is selected for Edit.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Click the edit icon on an existing notification.</li><li>Check each of the 12 language tabs, plus Type, Schedule, Timer, Status, and target groups.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>An existing notification, e.g. &quot;VIP upgrade notification alert&quot;.</li></ul></td>
+        <td>Edit loads every saved field correctly, including all 12 language tabs</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-001</dd>
+                <dt>Method</dt><dd>NotificationTest#editIsPrefilled</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Notification tab. An existing notification with content in multiple languages is selected for Edit.</dd>
+                <dt>Expected result</dt><dd>Edit loads every saved field correctly, including all 12 language tabs</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-editOneLanguage" data-status="Not run" data-search="not-edt-002 editonelanguage changing only the english content leaves the other 11 languages untouched creates-data">
+        <td class="id" id="NOT-EDT-002">NOT-EDT-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>editOneLanguage</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Switch to the English tab and change the Content.</li><li>Save.</li><li>Reopen Edit and check the other language tabs.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Change English content only.</li></ul></td>
+        <td>Changing only the English content leaves the other 11 languages untouched</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-002</dd>
+                <dt>Method</dt><dd>NotificationTest#editOneLanguage</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification.</dd>
+                <dt>Expected result</dt><dd>Changing only the English content leaves the other 11 languages untouched</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-onceToDaily" data-status="Pass" data-search="not-edt-003 oncetodaily editing a one-time notification into a recurring one creates-data">
+        <td class="id" id="NOT-EDT-003">NOT-EDT-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>onceToDaily</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Change Schedule from Once to Daily.</li><li>Set a Timer value.</li><li>Save.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Schedule: Once -&gt; Daily; Timer = 09 AM.</li></ul><div class="src">Used in this run</div><ul class="tc-data used"><li><code>After Save = Successfully added</code></li><li><code>Created &quot;QA NOT Once To Daily&quot; = listed</code></li><li><code>API GET api/account/inbox-notification-rule/388 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1790838758,&quot;data&quot;:{&quot;id&quot;:388,&quot;channel_id&quot;:8,&quot;currency&quot;:&quot;HKD&quot;,&quot;category&quot;:1,&quot;schedule_type&quot;:1,&quot;run_at&quot;:null,&quot;timer_hour&quot;:null,&quot;week_day&quot;:null,&quot;agent_ids&quot;:[{&quot;id&quot;:&quot;30&quot;}],&quot;group_ids&quot;:[{&quot;id&quot;:&quot;9&quot;}],&quot;titles&quot;:{&quot;bn&quot;:&quot;QA NOT Once To Daily&quot;,&quot;en&quot;:&quot;QA NOT Once To Daily&quot;,&quot;es&quot;:&quot;QA NOT Once To Daily&quot;,&quot;id&quot;:&quot;QA NOT Once To Daily&quot;,&quot;ja&quot;:&quot;QA NOT Once To Daily&quot;,&quot;ms&quot;:&quot;QA NOT Once To Daily&quot;,&quot;pt&quot;:&quot;QA NOT Once To Daily&quot;,&quot;th&quot;:&quot;QA NOT Once To Daily&quot;,&quot;tl&quot;:&quot;QA NOT Once To Daily&quot;,&quot;vi&quot;:&quot;QA NOT Once To Daily&quot;,&quot;zh-CN&quot;:&quot;QA NOT Once To Daily&quot;,&quot;zh-TW&quot;:&quot;QA NOT Once To Daily&quot;},&quot;contents&quot;:{&quot;bn&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;en&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;es&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;id&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;ja&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;ms&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;pt&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;th&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;tl&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;vi&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;zh-CN&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;zh-TW&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;},&quot;link&quot;:&quot;https:\/\/system.lumen.app\/member\/promotions\/daily&quot;,&quot;status&quot;:2,&quot;next_run_at&quot;:null,&quot;last_run_at&quot;:null,&quot;created_at&quot;:&quot;2026-10-01T07:12:26.000000Z&quot;,&quot;updated_at&quot;:&quot;2026-10-01T07:12:26.000000Z&quot;,&quot;created_at_text&quot;:&quot;2026-10-01 15:12:26&quot;,&quot;updated_at_text&quot;:&quot;2026-10-01 15:12:26&quot;,&quot;run_at_text&quot;:&quot;&quot;}}</code></li><li><code>After Save = Successfully modified</code></li></ul></td>
+        <td>Editing a one-time notification into a recurring one</td>
+        <td>The application behaved as expected.<div class="secs">141 events recorded, ended on <code>https://admin-test.1083.city/tools/notification/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">56.51s</div></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.</td>
+        <td><a class="shot" href="screenshots/NotificationTest.onceToDaily.png" target="_blank" rel="noopener"><img src="screenshots/NotificationTest.onceToDaily.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-003</dd>
+                <dt>Method</dt><dd>NotificationTest#onceToDaily</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification.</dd>
+                <dt>Expected result</dt><dd>Editing a one-time notification into a recurring one</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Pass in 56.51s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Editing a one-time notification into a recurring one</dd>
+                <dt>Duration</dt><dd>56.51 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(141 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: NOT-EDT-003: Editing a one-time notification into a recurring one</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">0.02s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.06s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.14s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.31s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">0.38s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.49s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.67s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.78s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.93s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.97s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.00s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.02s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.04s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.39s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.80s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">2.04s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">3.07s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">4.34s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.85s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">8.55s</span><span class="kind">STEP</span><span class="what">Creating the fixture notification &quot;QA NOT Once To Daily&quot;.</span></li>
+              <li class="k-step"><span class="at">8.55s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">8.69s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.69s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.86s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.96s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">9.10s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">9.24s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">10.23s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">10.62s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-api"><span class="at">10.84s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">11.06s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Once.</span></li>
+              <li class="k-step"><span class="at">11.51s</span><span class="kind">STEP</span><span class="what">Setting Timer to —.</span></li>
+              <li class="k-step"><span class="at">11.95s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">12.51s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">13.02s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">13.49s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">13.56s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">14.51s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">14.64s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">14.77s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.78s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.78s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.80s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.03s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.12s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.88s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">16.21s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">16.21s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">16.22s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">16.22s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">16.22s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.24s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.31s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">16.51s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">16.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.70s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.92s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.98s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.09s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.15s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.15s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.22s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.22s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.51s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">18.01s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">18.25s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">19.26s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">20.64s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">22.04s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">24.94s</span><span class="kind">DATA</span><span class="what">Created &quot;QA NOT Once To Daily&quot; = listed</span></li>
+              <li class="k-step"><span class="at">24.94s</span><span class="kind">STEP</span><span class="what">Clicking Edit (pencil) on &quot;QA NOT Once To Daily&quot;.</span></li>
+              <li class="k-api"><span class="at">25.07s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">25.12s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">25.22s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">25.24s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule/388?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">25.28s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">25.64s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">25.76s</span><span class="kind">DATA</span><span class="what">API GET api/account/inbox-notification-rule/388 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1790838758,&quot;data&quot;:{&quot;id&quot;:388,&quot;channel_id&quot;:8,&quot;currency&quot;:&quot;HKD&quot;,&quot;category&quot;:1,&quot;schedule_type&quot;:1,&quot;run_at&quot;:null,&quot;timer_hour&quot;:null,&quot;week_day&quot;:null,&quot;agent_ids&quot;:[{&quot;id&quot;:&quot;30&quot;}],&quot;group_ids&quot;:[{&quot;id&quot;:&quot;9&quot;}],&quot;titles&quot;:{&quot;bn&quot;:&quot;QA NOT Once To Daily&quot;,&quot;en&quot;:&quot;QA NOT Once To Daily&quot;,&quot;es&quot;:&quot;QA NOT Once To Daily&quot;,&quot;id&quot;:&quot;QA NOT Once To Daily&quot;,&quot;ja&quot;:&quot;QA NOT Once To Daily&quot;,&quot;ms&quot;:&quot;QA NOT Once To Daily&quot;,&quot;pt&quot;:&quot;QA NOT Once To Daily&quot;,&quot;th&quot; ...</span></li>
+              <li class="k-step"><span class="at">25.76s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">26.18s</span><span class="kind">STEP</span><span class="what">Setting Timer to 09 AM.</span></li>
+              <li class="k-step"><span class="at">26.62s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">26.67s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm the modification?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">27.02s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">27.66s</span><span class="kind">API</span><span class="what">PUT api/account/inbox-notification-rule/388?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">27.73s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">27.73s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">27.74s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">27.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">27.78s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">27.87s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">27.93s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">27.95s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">27.96s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.15s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.28s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">29.28s</span><span class="kind">DATA</span><span class="what">After Save = Successfully modified</span></li>
+              <li class="k-step"><span class="at">29.28s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">29.29s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">29.29s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">29.29s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.31s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.38s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">29.55s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">29.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.78s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.84s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.84s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.84s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.84s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">30.00s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.07s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.24s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.25s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.29s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.30s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.32s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.68s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">31.11s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">31.40s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">32.38s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">33.62s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.13s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">38.14s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/tools/notification/</span></li>
+              <li class="k-evidence"><span class="at">38.38s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-inactiveStopsFiring" data-status="Not run" data-search="not-edt-004 inactivestopsfiring setting an active recurring notification to inactive stops it from firing creates-data">
+        <td class="id" id="NOT-EDT-004">NOT-EDT-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>inactiveStopsFiring</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Change Status to Inactive on a Daily-scheduled notification.</li><li>Save.</li><li>Check Record History after the next scheduled Timer passes.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>An Active Daily notification set to Inactive.</li></ul></td>
+        <td>Setting an Active recurring notification to Inactive stops it from firing</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-004</dd>
+                <dt>Method</dt><dd>NotificationTest#inactiveStopsFiring</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification.</dd>
+                <dt>Expected result</dt><dd>Setting an Active recurring notification to Inactive stops it from firing</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-historyKeepsAsSentTargets" data-status="Not run" data-search="not-edt-005 historykeepsassenttargets changing a notification's agent/member group targets does not retroactively alter already-sent record history entries creates-data">
+        <td class="id" id="NOT-EDT-005">NOT-EDT-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>historyKeepsAsSentTargets</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification. The notification has at least one existing Record History entry.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Note the Agent Group and Member Group shown on an existing Record History entry for this notification.</li><li>Edit the notification and change its Agent Group/Member Group targets.</li><li>Save.</li><li>Re-open the same historical Record History entry.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Change target groups after a prior send exists.</li></ul></td>
+        <td>Changing a notification's Agent/Member Group targets does not retroactively alter already-sent Record History entries</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-005</dd>
+                <dt>Method</dt><dd>NotificationTest#historyKeepsAsSentTargets</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification. The notification has at least one existing Record History entry.</dd>
+                <dt>Expected result</dt><dd>Changing a notification's Agent/Member Group targets does not retroactively alter already-sent Record History entries</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-cancelKeepsTheSavedState" data-status="Not run" data-search="not-edt-006 cancelkeepsthesavedstate changing fields and clicking cancel does not save them creates-data">
+        <td class="id" id="NOT-EDT-006">NOT-EDT-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>cancelKeepsTheSavedState</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Change the Content and the target groups.</li><li>Click Cancel.</li><li>Reopen Edit.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Any edited value.</li></ul></td>
+        <td>Changing fields and clicking Cancel does not save them</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-006</dd>
+                <dt>Method</dt><dd>NotificationTest#cancelKeepsTheSavedState</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. Editing an existing notification.</dd>
+                <dt>Expected result</dt><dd>Changing fields and clicking Cancel does not save them</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-clearingTitleOnEditIsRefused" data-status="Not run" data-search="not-edt-007 clearingtitleoneditisrefused clearing the required title on edit is refused with the same validation as create creates-data">
+        <td class="id" id="NOT-EDT-007">NOT-EDT-007</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>clearingTitleOnEditIsRefused</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. An existing rule.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Open the rule in Edit.</li><li>Clear the 繁體 Title.</li><li>Click Save.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>&quot;QA NOT Edit Clear Title&quot;.</li></ul></td>
+        <td>Clearing the required Title on Edit is refused with the same validation as Create</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-007</dd>
+                <dt>Method</dt><dd>NotificationTest#clearingTitleOnEditIsRefused</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. An existing rule.</dd>
+                <dt>Expected result</dt><dd>Clearing the required Title on Edit is refused with the same validation as Create</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-renamingKeepsIdentity" data-status="Pass" data-search="not-edt-008 renamingkeepsidentity editing the 繁體 title updates the list row at once, with the same id and created at creates-data">
+        <td class="id" id="NOT-EDT-008">NOT-EDT-008</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>renamingKeepsIdentity</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. An existing rule.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Note the rule's ID and Created At.</li><li>Open it in Edit, change the 繁體 Title, Save.</li><li>Read the list.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>&quot;QA NOT Rename Me&quot; renamed to &quot;QA NOT Renamed&quot;.</li></ul><div class="src">Used in this run</div><ul class="tc-data used"><li><code>After Save = Successfully added</code></li><li><code>Created &quot;QA NOT Rename Me&quot; = listed</code></li><li><code>API GET api/account/inbox-notification-rule/389 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1790838818,&quot;data&quot;:{&quot;id&quot;:389,&quot;channel_id&quot;:8,&quot;currency&quot;:&quot;HKD&quot;,&quot;category&quot;:1,&quot;schedule_type&quot;:2,&quot;run_at&quot;:1790784000,&quot;timer_hour&quot;:0,&quot;week_day&quot;:null,&quot;agent_ids&quot;:[{&quot;id&quot;:&quot;30&quot;}],&quot;group_ids&quot;:[{&quot;id&quot;:&quot;9&quot;}],&quot;titles&quot;:{&quot;bn&quot;:&quot;QA NOT Rename Me&quot;,&quot;en&quot;:&quot;QA NOT Rename Me&quot;,&quot;es&quot;:&quot;QA NOT Rename Me&quot;,&quot;id&quot;:&quot;QA NOT Rename Me&quot;,&quot;ja&quot;:&quot;QA NOT Rename Me&quot;,&quot;ms&quot;:&quot;QA NOT Rename Me&quot;,&quot;pt&quot;:&quot;QA NOT Rename Me&quot;,&quot;th&quot;:&quot;QA NOT Rename Me&quot;,&quot;tl&quot;:&quot;QA NOT Rename Me&quot;,&quot;vi&quot;:&quot;QA NOT Rename Me&quot;,&quot;zh-CN&quot;:&quot;QA NOT Rename Me&quot;,&quot;zh-TW&quot;:&quot;QA NOT Rename Me&quot;},&quot;contents&quot;:{&quot;bn&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;en&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;es&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;id&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;ja&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;ms&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;pt&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;th&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;tl&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;vi&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;zh-CN&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;zh-TW&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;},&quot;link&quot;:&quot;https:\/\/system.lumen.app\/member\/promotions\/daily&quot;,&quot;status&quot;:2,&quot;next_run_at&quot;:1790870400,&quot;last_run_at&quot;:null,&quot;created_at&quot;:&quot;2026-10-01T07:13:23.000000Z&quot;,&quot;updated_at&quot;:&quot;2026-10-01T07:13:23.000000Z&quot;,&quot;created_at_text&quot;:&quot;2026-10-01 15:13:23&quot;,&quot;updated_at_text&quot;:&quot;2026-10-01 15:13:23&quot;,&quot;run_at_text&quot;:&quot;2026-10-01 00:00&quot;}}</code></li><li><code>After Save = Successfully modified</code></li></ul></td>
+        <td>Editing the 繁體 Title updates the list row at once, with the same ID and Created At</td>
+        <td>The application behaved as expected.<div class="secs">140 events recorded, ended on <code>https://admin-test.1083.city/tools/notification/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">71.24s</div></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.</td>
+        <td><a class="shot" href="screenshots/NotificationTest.renamingKeepsIdentity.png" target="_blank" rel="noopener"><img src="screenshots/NotificationTest.renamingKeepsIdentity.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-008</dd>
+                <dt>Method</dt><dd>NotificationTest#renamingKeepsIdentity</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. An existing rule.</dd>
+                <dt>Expected result</dt><dd>Editing the 繁體 Title updates the list row at once, with the same ID and Created At</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Pass in 71.24s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Editing the 繁體 Title updates the list row at once, with the same ID and Created At</dd>
+                <dt>Duration</dt><dd>71.24 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(140 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: NOT-EDT-008: Editing the 繁體 Title updates the list row at once, with the same ID and Created At</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">0.03s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.05s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.15s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.32s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">0.41s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.52s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.68s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.71s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.71s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.75s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.75s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.86s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.99s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.01s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.04s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.10s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.14s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.44s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.81s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">2.09s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">3.07s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">4.42s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.26s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">8.35s</span><span class="kind">STEP</span><span class="what">Creating the fixture notification &quot;QA NOT Rename Me&quot;.</span></li>
+              <li class="k-step"><span class="at">8.35s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">8.43s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.59s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.63s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">8.83s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">9.05s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">10.04s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">10.43s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">10.86s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">11.30s</span><span class="kind">STEP</span><span class="what">Setting Timer to 12 AM.</span></li>
+              <li class="k-api"><span class="at">11.51s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">11.73s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">12.23s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">12.76s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">13.23s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">13.29s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">14.34s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">14.47s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">14.47s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.48s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.64s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.72s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.73s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.76s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.98s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.17s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">16.04s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">16.04s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">16.05s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">16.05s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">16.05s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.06s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.17s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">16.39s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">16.46s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.58s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.65s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.65s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.65s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.66s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.80s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.88s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.99s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.03s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.08s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.10s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.14s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.52s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">17.88s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">18.14s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">19.13s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">20.45s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">21.98s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">24.46s</span><span class="kind">DATA</span><span class="what">Created &quot;QA NOT Rename Me&quot; = listed</span></li>
+              <li class="k-api"><span class="at">26.90s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">28.38s</span><span class="kind">STEP</span><span class="what">Clicking Edit (pencil) on &quot;QA NOT Rename Me&quot;.</span></li>
+              <li class="k-api"><span class="at">28.50s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">28.50s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">28.63s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.71s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule/389?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.73s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.07s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">29.19s</span><span class="kind">DATA</span><span class="what">API GET api/account/inbox-notification-rule/389 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1790838818,&quot;data&quot;:{&quot;id&quot;:389,&quot;channel_id&quot;:8,&quot;currency&quot;:&quot;HKD&quot;,&quot;category&quot;:1,&quot;schedule_type&quot;:2,&quot;run_at&quot;:1790784000,&quot;timer_hour&quot;:0,&quot;week_day&quot;:null,&quot;agent_ids&quot;:[{&quot;id&quot;:&quot;30&quot;}],&quot;group_ids&quot;:[{&quot;id&quot;:&quot;9&quot;}],&quot;titles&quot;:{&quot;bn&quot;:&quot;QA NOT Rename Me&quot;,&quot;en&quot;:&quot;QA NOT Rename Me&quot;,&quot;es&quot;:&quot;QA NOT Rename Me&quot;,&quot;id&quot;:&quot;QA NOT Rename Me&quot;,&quot;ja&quot;:&quot;QA NOT Rename Me&quot;,&quot;ms&quot;:&quot;QA NOT Rename Me&quot;,&quot;pt&quot;:&quot;QA NOT Rename Me&quot;,&quot;th&quot;:&quot;QA NOT Rename Me&quot;,&quot;tl&quot;: ...</span></li>
+              <li class="k-step"><span class="at">29.51s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">29.57s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm the modification?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">30.71s</span><span class="kind">API</span><span class="what">PUT api/account/inbox-notification-rule/389?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.78s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">30.78s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">30.79s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">30.85s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">30.87s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">30.93s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.97s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.00s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.03s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.19s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.32s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.94s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">32.36s</span><span class="kind">DATA</span><span class="what">After Save = Successfully modified</span></li>
+              <li class="k-step"><span class="at">32.36s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">32.38s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">32.38s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">32.38s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.40s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.48s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">32.72s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">32.78s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.93s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.99s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">33.02s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">33.03s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">33.03s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">33.15s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.23s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.33s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.49s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.49s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.55s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.55s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">34.07s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">34.22s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">34.46s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">35.47s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">36.74s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">38.29s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">43.35s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">44.92s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/tools/notification/</span></li>
+              <li class="k-evidence"><span class="at">45.03s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-dailyToWeekly" data-status="Not run" data-search="not-edt-009 dailytoweekly changing daily to weekly on edit shows week day and saves it - the list reads the day and hour creates-data">
+        <td class="id" id="NOT-EDT-009">NOT-EDT-009</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>dailyToWeekly</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A Daily rule exists.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Open the Daily rule in Edit.</li><li>Set Schedule to Weekly, Week day Sunday, Timer 08 PM.</li><li>Save and read the list.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>&quot;QA NOT Daily To Weekly&quot;.</li></ul></td>
+        <td>Changing Daily to Weekly on Edit shows Week day and saves it - the list reads the day and hour</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-009</dd>
+                <dt>Method</dt><dd>NotificationTest#dailyToWeekly</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A Daily rule exists.</dd>
+                <dt>Expected result</dt><dd>Changing Daily to Weekly on Edit shows Week day and saves it - the list reads the day and hour</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-reactivatingResumesFiring" data-status="Not run" data-search="not-edt-010 reactivatingresumesfiring setting an inactive daily notification back to active resumes firing at its timer creates-data">
+        <td class="id" id="NOT-EDT-010">NOT-EDT-010</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>reactivatingResumesFiring</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. An Inactive Daily rule with Timer at the next hour.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Open the Inactive rule in Edit and set Status Active; Save.</li><li>Wait for its Timer hour.</li><li>Read Record History.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>&quot;QA NOT Reactivated Daily&quot;, Timer = next hour.</li></ul></td>
+        <td>Setting an Inactive Daily notification back to Active resumes firing at its Timer</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-010</dd>
+                <dt>Method</dt><dd>NotificationTest#reactivatingResumesFiring</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. An Inactive Daily rule with Timer at the next hour.</dd>
+                <dt>Expected result</dt><dd>Setting an Inactive Daily notification back to Active resumes firing at its Timer</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-reactivatingASentOnce" data-status="Not run" data-search="not-edt-011 reactivatingasentonce re-activating a once rule that has already sent either sends it once more and ends inactive again, or leaves it unsent - never sends it repeatedly creates-data">
+        <td class="id" id="NOT-EDT-011">NOT-EDT-011</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>reactivatingASentOnce</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A Once rule that has sent and set itself Inactive.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Create a Once rule with Timer — (sent on save; wait until Inactive).</li><li>Open it in Edit, set Status Active, Save.</li><li>Watch Status and Record History for two minutes.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>&quot;QA NOT Once Again&quot;.</li></ul></td>
+        <td>Re-activating a Once rule that has already sent either sends it once more and ends Inactive again, or leaves it unsent - never sends it repeatedly</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-011</dd>
+                <dt>Method</dt><dd>NotificationTest#reactivatingASentOnce</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A Once rule that has sent and set itself Inactive.</dd>
+                <dt>Expected result</dt><dd>Re-activating a Once rule that has already sent either sends it once more and ends Inactive again, or leaves it unsent - never sends it repeatedly</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-widenToAll" data-status="Not run" data-search="not-edt-012 widentoall switching both targets from optional to select all on edit saves as all / all creates-data">
+        <td class="id" id="NOT-EDT-012">NOT-EDT-012</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>widenToAll</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A targeted rule exists.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Open the rule in Edit.</li><li>Choose Select all on Agent Group and on Member group.</li><li>Save and read the list.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>&quot;QA NOT Widen To All&quot; (Inactive).</li></ul></td>
+        <td>Switching both targets from Optional to Select all on Edit saves as All / All</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-012</dd>
+                <dt>Method</dt><dd>NotificationTest#widenToAll</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A targeted rule exists.</dd>
+                <dt>Expected result</dt><dd>Switching both targets from Optional to Select all on Edit saves as All / All</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-removingTheLink" data-status="Pass" data-search="not-edt-013 removingthelink removing the link on edit saves, and the next delivery carries no link creates-data">
+        <td class="id" id="NOT-EDT-013">NOT-EDT-013</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>removingTheLink</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A rule with a Link exists.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Open the rule in Edit, clear the Link, Save.</li><li>Reopen Edit and read the Link.</li><li>Send Now and open the new Record History entry's details.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>&quot;QA NOT Drop Link&quot;.</li></ul><div class="src">Used in this run</div><ul class="tc-data used"><li><code>After Save = Successfully added</code></li><li><code>Created &quot;QA NOT Drop Link&quot; = listed</code></li><li><code>API GET api/account/inbox-notification-rule/390 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1790838885,&quot;data&quot;:{&quot;id&quot;:390,&quot;channel_id&quot;:8,&quot;currency&quot;:&quot;HKD&quot;,&quot;category&quot;:1,&quot;schedule_type&quot;:2,&quot;run_at&quot;:1790784000,&quot;timer_hour&quot;:0,&quot;week_day&quot;:null,&quot;agent_ids&quot;:[{&quot;id&quot;:&quot;30&quot;}],&quot;group_ids&quot;:[{&quot;id&quot;:&quot;9&quot;}],&quot;titles&quot;:{&quot;bn&quot;:&quot;QA NOT Drop Link&quot;,&quot;en&quot;:&quot;QA NOT Drop Link&quot;,&quot;es&quot;:&quot;QA NOT Drop Link&quot;,&quot;id&quot;:&quot;QA NOT Drop Link&quot;,&quot;ja&quot;:&quot;QA NOT Drop Link&quot;,&quot;ms&quot;:&quot;QA NOT Drop Link&quot;,&quot;pt&quot;:&quot;QA NOT Drop Link&quot;,&quot;th&quot;:&quot;QA NOT Drop Link&quot;,&quot;tl&quot;:&quot;QA NOT Drop Link&quot;,&quot;vi&quot;:&quot;QA NOT Drop Link&quot;,&quot;zh-CN&quot;:&quot;QA NOT Drop Link&quot;,&quot;zh-TW&quot;:&quot;QA NOT Drop Link&quot;},&quot;contents&quot;:{&quot;bn&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;en&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;es&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;id&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;ja&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;ms&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;pt&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;th&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;tl&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;vi&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;zh-CN&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;zh-TW&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;},&quot;link&quot;:&quot;https:\/\/system.lumen.app\/member\/promotions\/daily&quot;,&quot;status&quot;:1,&quot;next_run_at&quot;:1790870400,&quot;last_run_at&quot;:null,&quot;created_at&quot;:&quot;2026-10-01T07:14:33.000000Z&quot;,&quot;updated_at&quot;:&quot;2026-10-01T07:14:33.000000Z&quot;,&quot;created_at_text&quot;:&quot;2026-10-01 15:14:33&quot;,&quot;updated_at_text&quot;:&quot;2026-10-01 15:14:33&quot;,&quot;run_at_text&quot;:&quot;2026-10-01 00:00&quot;}}</code></li><li><code>After Save = Successfully modified</code></li><li><code>API GET api/account/inbox-notification-rule/390 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1790838893,&quot;data&quot;:{&quot;id&quot;:390,&quot;channel_id&quot;:8,&quot;currency&quot;:&quot;HKD&quot;,&quot;category&quot;:1,&quot;schedule_type&quot;:2,&quot;run_at&quot;:1790784000,&quot;timer_hour&quot;:0,&quot;week_day&quot;:null,&quot;agent_ids&quot;:[{&quot;id&quot;:&quot;30&quot;}],&quot;group_ids&quot;:[{&quot;id&quot;:&quot;9&quot;}],&quot;titles&quot;:{&quot;bn&quot;:&quot;QA NOT Drop Link&quot;,&quot;en&quot;:&quot;QA NOT Drop Link&quot;,&quot;es&quot;:&quot;QA NOT Drop Link&quot;,&quot;id&quot;:&quot;QA NOT Drop Link&quot;,&quot;ja&quot;:&quot;QA NOT Drop Link&quot;,&quot;ms&quot;:&quot;QA NOT Drop Link&quot;,&quot;pt&quot;:&quot;QA NOT Drop Link&quot;,&quot;th&quot;:&quot;QA NOT Drop Link&quot;,&quot;tl&quot;:&quot;QA NOT Drop Link&quot;,&quot;vi&quot;:&quot;QA NOT Drop Link&quot;,&quot;zh-CN&quot;:&quot;QA NOT Drop Link&quot;,&quot;zh-TW&quot;:&quot;QA NOT Drop Link&quot;},&quot;contents&quot;:{&quot;bn&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;en&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;es&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;id&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;ja&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;ms&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;pt&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;th&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;tl&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;vi&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;zh-CN&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;,&quot;zh-TW&quot;:&quot;Complete your daily missions to earn bonus rewards! Check your mission list now and start earning.&quot;},&quot;link&quot;:&quot;&quot;,&quot;status&quot;:1,&quot;next_run_at&quot;:1790870400,&quot;last_run_at&quot;:null,&quot;created_at&quot;:&quot;2026-10-01T07:14:33.000000Z&quot;,&quot;updated_at&quot;:&quot;2026-10-01T07:14:46.000000Z&quot;,&quot;created_at_text&quot;:&quot;2026-10-01 15:14:33&quot;,&quot;updated_at_text&quot;:&quot;2026-10-01 15:14:46&quot;,&quot;run_at_text&quot;:&quot;2026-10-01 00:00&quot;}}</code></li><li><code>After Send Now = Sent</code></li><li><code>Link on the delivery after removal = (none)</code></li></ul></td>
+        <td>Removing the Link on Edit saves, and the next delivery carries no link</td>
+        <td>The application behaved as expected.<div class="secs">230 events recorded, ended on <code>https://admin-test.1083.city/tools/notification-record-detail?id=298</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">71.92s</div></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.</td>
+        <td><a class="shot" href="screenshots/NotificationTest.removingTheLink.png" target="_blank" rel="noopener"><img src="screenshots/NotificationTest.removingTheLink.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-EDT-013</dd>
+                <dt>Method</dt><dd>NotificationTest#removingTheLink</dd>
+                <dt>Group</dt><dd>3. Edit notification (EditNotification)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A rule with a Link exists.</dd>
+                <dt>Expected result</dt><dd>Removing the Link on Edit saves, and the next delivery carries no link</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Pass in 71.92s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Removing the Link on Edit saves, and the next delivery carries no link</dd>
+                <dt>Duration</dt><dd>71.92 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(230 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: NOT-EDT-013: Removing the Link on Edit saves, and the next delivery carries no link</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">0.01s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.01s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.01s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.03s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.12s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.30s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">0.36s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.49s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.70s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.78s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.99s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.00s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.02s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.03s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.07s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.43s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.78s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">2.02s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">3.02s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">4.31s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.81s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">8.35s</span><span class="kind">STEP</span><span class="what">Creating the fixture notification &quot;QA NOT Drop Link&quot;.</span></li>
+              <li class="k-step"><span class="at">8.35s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">8.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.61s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.65s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">8.84s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">8.96s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">9.97s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">10.35s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">10.77s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-api"><span class="at">10.83s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">11.21s</span><span class="kind">STEP</span><span class="what">Setting Timer to 12 AM.</span></li>
+              <li class="k-step"><span class="at">11.65s</span><span class="kind">STEP</span><span class="what">Setting Status to Active.</span></li>
+              <li class="k-step"><span class="at">12.12s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">12.61s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">13.06s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">13.12s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">14.08s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.16s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.16s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">14.17s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">14.20s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.20s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.33s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.33s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.37s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.40s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.59s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.70s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">15.74s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">15.74s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">15.75s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">15.75s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">15.75s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.76s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.85s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">16.05s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">16.14s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.24s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.31s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.31s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.32s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.32s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.42s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.53s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.68s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.69s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.71s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.74s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.74s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.05s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">17.54s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">17.75s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">18.79s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">20.02s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">21.65s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">24.07s</span><span class="kind">DATA</span><span class="what">Created &quot;QA NOT Drop Link&quot; = listed</span></li>
+              <li class="k-step"><span class="at">24.07s</span><span class="kind">STEP</span><span class="what">Clicking Edit (pencil) on &quot;QA NOT Drop Link&quot;.</span></li>
+              <li class="k-api"><span class="at">24.20s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">24.20s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">24.36s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">24.42s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">24.42s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule/390?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">24.79s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">24.88s</span><span class="kind">DATA</span><span class="what">API GET api/account/inbox-notification-rule/390 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1790838885,&quot;data&quot;:{&quot;id&quot;:390,&quot;channel_id&quot;:8,&quot;currency&quot;:&quot;HKD&quot;,&quot;category&quot;:1,&quot;schedule_type&quot;:2,&quot;run_at&quot;:1790784000,&quot;timer_hour&quot;:0,&quot;week_day&quot;:null,&quot;agent_ids&quot;:[{&quot;id&quot;:&quot;30&quot;}],&quot;group_ids&quot;:[{&quot;id&quot;:&quot;9&quot;}],&quot;titles&quot;:{&quot;bn&quot;:&quot;QA NOT Drop Link&quot;,&quot;en&quot;:&quot;QA NOT Drop Link&quot;,&quot;es&quot;:&quot;QA NOT Drop Link&quot;,&quot;id&quot;:&quot;QA NOT Drop Link&quot;,&quot;ja&quot;:&quot;QA NOT Drop Link&quot;,&quot;ms&quot;:&quot;QA NOT Drop Link&quot;,&quot;pt&quot;:&quot;QA NOT Drop Link&quot;,&quot;th&quot;:&quot;QA NOT Drop Link&quot;,&quot;tl&quot;: ...</span></li>
+              <li class="k-step"><span class="at">25.21s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">25.26s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm the modification?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">26.35s</span><span class="kind">API</span><span class="what">PUT api/account/inbox-notification-rule/390?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.42s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.42s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.47s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.47s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">26.48s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">26.62s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.65s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.70s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.70s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.73s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.93s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">27.09s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">28.03s</span><span class="kind">DATA</span><span class="what">After Save = Successfully modified</span></li>
+              <li class="k-step"><span class="at">28.03s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">28.05s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">28.05s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">28.05s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.06s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.13s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">28.29s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">28.36s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">28.47s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.53s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">28.54s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">28.54s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">28.54s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">28.69s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.75s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.94s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.94s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.99s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.99s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.02s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.36s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">29.78s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">30.05s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">31.05s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">32.29s</span><span class="kind">STEP</span><span class="what">Clicking Edit (pencil) on &quot;QA NOT Drop Link&quot;.</span></li>
+              <li class="k-api"><span class="at">32.31s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.49s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.49s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.64s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.66s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule/390?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.69s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.09s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">33.10s</span><span class="kind">DATA</span><span class="what">API GET api/account/inbox-notification-rule/390 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1790838893,&quot;data&quot;:{&quot;id&quot;:390,&quot;channel_id&quot;:8,&quot;currency&quot;:&quot;HKD&quot;,&quot;category&quot;:1,&quot;schedule_type&quot;:2,&quot;run_at&quot;:1790784000,&quot;timer_hour&quot;:0,&quot;week_day&quot;:null,&quot;agent_ids&quot;:[{&quot;id&quot;:&quot;30&quot;}],&quot;group_ids&quot;:[{&quot;id&quot;:&quot;9&quot;}],&quot;titles&quot;:{&quot;bn&quot;:&quot;QA NOT Drop Link&quot;,&quot;en&quot;:&quot;QA NOT Drop Link&quot;,&quot;es&quot;:&quot;QA NOT Drop Link&quot;,&quot;id&quot;:&quot;QA NOT Drop Link&quot;,&quot;ja&quot;:&quot;QA NOT Drop Link&quot;,&quot;ms&quot;:&quot;QA NOT Drop Link&quot;,&quot;pt&quot;:&quot;QA NOT Drop Link&quot;,&quot;th&quot;:&quot;QA NOT Drop Link&quot;,&quot;tl&quot;: ...</span></li>
+              <li class="k-step"><span class="at">33.43s</span><span class="kind">STEP</span><span class="what">Clicking Cancel.</span></li>
+              <li class="k-api"><span class="at">33.54s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">33.54s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">33.79s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.81s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.83s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.88s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">33.89s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">34.30s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">34.49s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">34.50s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">34.50s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">34.50s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">34.51s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">34.59s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">34.78s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">34.84s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.06s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.12s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.12s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.12s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.13s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.24s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.45s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.47s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.59s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.63s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.66s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.66s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.98s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">36.30s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">36.54s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">37.56s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">38.79s</span><span class="kind">STEP</span><span class="what">Clicking Send Now (circular arrow) on &quot;QA NOT Drop Link&quot;.</span></li>
+              <li class="k-api"><span class="at">38.82s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">38.94s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Are you sure you want to send this notification now?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">39.93s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule/390/send-now?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">39.96s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Sent&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">40.12s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">40.33s</span><span class="kind">DATA</span><span class="what">After Send Now = Sent</span></li>
+              <li class="k-step"><span class="at">40.33s</span><span class="kind">STEP</span><span class="what">Switching to the Record History tab.</span></li>
+              <li class="k-api"><span class="at">40.48s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">40.48s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">40.48s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">40.63s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">45.32s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">45.33s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">45.33s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">45.33s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.35s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.44s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">45.68s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">45.75s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">45.88s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.95s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">45.95s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">45.95s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">45.95s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">46.09s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.20s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.39s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.44s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.46s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.51s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.51s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.89s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">47.18s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">47.44s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">48.44s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">49.69s</span><span class="kind">STEP</span><span class="what">Switching to the Record History tab.</span></li>
+              <li class="k-api"><span class="at">49.75s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">49.84s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">49.84s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">50.02s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">50.50s</span><span class="kind">STEP</span><span class="what">Setting the Record History range to 2026-10-01 .. 2026-10-01.</span></li>
+              <li class="k-api"><span class="at">50.73s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=2026-10-01&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">50.76s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=2026-10-01&amp;whereRange[sent_at][to]=2026-10-01&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">51.25s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">52.07s</span><span class="kind">STEP</span><span class="what">Opening the details of Record History entry 298.</span></li>
+              <li class="k-api"><span class="at">52.19s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">52.19s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">52.39s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record/298?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.39s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.43s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.76s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">53.00s</span><span class="kind">DATA</span><span class="what">Link on the delivery after removal = (none)</span></li>
+              <li class="k-step"><span class="at">53.00s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/tools/notification-record-detail?id=298</span></li>
+              <li class="k-evidence"><span class="at">53.11s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <h2 class="section">How to read this report</h2>
+  <div class="callout">
+    <p><b>Status</b> is what the run did, not a verdict on the application. A
+    <span class="st fail">Fail</span> on a case badged <code>known-defect</code> is the
+    expected outcome: those cases assert the behaviour the application <i>should</i>
+    have and stay red until the finding is fixed.</p>
+    <p><b>Not run</b> means the case exists in the suite but produced no result, normally
+    because it was filtered out with <code>-DexcludedGroups=creates-data</code>, which
+    keeps cases with real-world side effects - a registered account, a real SMS, a filed
+    deposit, a withdrawal hold, a staked casino bet - out of an unattended run.</p>
+    <p><b>Evidence</b> is the screenshot of the page as the case left it - captured for every
+    case that ran, passed or failed, just before teardown closed the browser. A
+    skipped case never ran, so it has none. Click an image for the full size.</p>
+    <p><b>Details</b>, on every row, opens what would not fit in the table: the case as its
+    source declares it, the diagnosis of a failure - exception, expected against actual,
+    the element that could not be resolved, the lines of this project involved, and the
+    full stack trace - and, for every row alike, the run's own record of what the browser
+    did.</p>
+    <p><b>What the run did</b> is that record. It is captured automatically while the case
+    runs: <code>NAV</code> for a page load or a new tab, <code>API</code> for a call the
+    site made of its own back end with the status it came back with, <code>NETWORK</code>
+    for one that came back 4xx or 5xx, <code>CONSOLE</code> for a console or uncaught
+    error, <code>EVIDENCE</code> for a screenshot, and <code>STEP</code>,
+    <code>CHECK</code> and <code>DATA</code> for what the case itself narrated. A passing
+    row carries one too, deliberately: a green result is a claim, and this is the working
+    behind it.</p>
+  </div>
+  <footer>Generated by <code>org.sengmean.report.HtmlReportGenerator</code> from the test sources, the run's results, its step logs and its screenshots. Rewritten at the end of every run by <code>HtmlReportListener</code>.</footer>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <img id="lightbox-img" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+  <div class="hint">Click anywhere, or press Escape, to close</div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var cap = document.getElementById('lightbox-cap');
+  function open(src, caption) {
+    img.setAttribute('src', src);
+    img.setAttribute('alt', caption || '');
+    cap.textContent = caption || '';
+    box.classList.add('open');
+  }
+  function close() {
+    box.classList.remove('open');
+    img.removeAttribute('src');
+  }
+  document.addEventListener('click', function (e) {
+    // Both the Evidence column's images and the ones shown inline against a trail
+    // line. The inline ones were left out when they were added, so they fell
+    // through to target="_blank" and every capture opened a new tab - fifty-two of
+    // them if a reader worked down the transfer walk.
+    var link = e.target.closest ? e.target.closest('a.shot, a.step-shot') : null;
+    if (link) {
+      // Only take over the plain click - a modified click still opens the file
+      // in a tab, which is what someone reaching for that expects.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+      e.preventDefault();
+      var inner = link.querySelector('img');
+      open(link.getAttribute('href'), inner ? inner.getAttribute('alt') : '');
+    } else if (box.classList.contains('open')) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { close(); }
+  });
+})();
+</script>
+<script>
+(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.case'));
+  var shown = document.getElementById('shown');
+  var search = document.getElementById('q');
+  var expandAll = document.getElementById('expand-all');
+  var filter = 'all';
+  var query = '';
+
+  function panelOf(row) {
+    var next = row.nextElementSibling;
+    return next && next.classList.contains('detail') ? next : null;
+  }
+
+  function matches(row) {
+    if (filter !== 'all' && row.getAttribute('data-status') !== filter) { return false; }
+    if (query === '') { return true; }
+    return (row.getAttribute('data-search') || '').indexOf(query) >= 0;
+  }
+
+  function apply() {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var ok = matches(row);
+      if (ok) { visible++; }
+      row.classList.toggle('hide', !ok);
+      var panel = panelOf(row);
+      if (panel) { panel.classList.toggle('hide', !ok || !row.classList.contains('open')); }
+    });
+    // A group whose every case is filtered out is hidden with its heading, so the
+    // page does not end in a run of empty tables under numbered titles.
+    Array.prototype.forEach.call(document.querySelectorAll('section.grp'), function (grp) {
+      var any = grp.querySelector('tr.case:not(.hide)');
+      grp.classList.toggle('hide', !any);
+    });
+    if (shown) {
+      shown.textContent = visible + ' of ' + rows.length + ' cases';
+    }
+  }
+
+  function open(row, wanted) {
+    var panel = panelOf(row);
+    if (!panel) { return; }
+    var isOpen = wanted === undefined ? !row.classList.contains('open') : wanted;
+    row.classList.toggle('open', isOpen);
+    panel.classList.toggle('hide', !isOpen);
+    var button = row.querySelector('button.more');
+    if (button) { button.setAttribute('aria-expanded', isOpen ? 'true' : 'false'); }
+  }
+
+  document.addEventListener('click', function (e) {
+    var more = e.target.closest ? e.target.closest('button.more') : null;
+    if (more) {
+      open(more.closest('tr.case'));
+      return;
+    }
+    var flt = e.target.closest ? e.target.closest('button.flt[data-filter]') : null;
+    if (flt) {
+      filter = flt.getAttribute('data-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('button.flt[data-filter]'),
+        function (b) { b.classList.toggle('on', b === flt); });
+      apply();
+    }
+  });
+
+  if (search) {
+    search.addEventListener('input', function () {
+      query = search.value.trim().toLowerCase();
+      apply();
+    });
+  }
+
+  if (expandAll) {
+    expandAll.addEventListener('click', function () {
+      var opening = expandAll.getAttribute('data-open') !== 'yes';
+      expandAll.setAttribute('data-open', opening ? 'yes' : 'no');
+      expandAll.textContent = opening ? 'Collapse all details' : 'Expand all details';
+      rows.forEach(function (row) { if (!row.classList.contains('hide')) { open(row, opening); } });
+    });
+  }
+
+  function openFromHash() {
+    if (!window.location.hash) { return; }
+    var target = document.getElementById(window.location.hash.slice(1));
+    if (!target) { return; }
+    // The hash may name either anchor a row carries: the internal
+    // case-<suite>-<method>, which the findings list links to, or the case
+    // id itself - "#HOME-002" - which is what the client test case sheet's
+    // per-row links use. The id sits on a <td>, so resolve upwards to the
+    // row rather than testing the target: without this the browser scrolls
+    // to the right place and leaves the details shut, which reads as a link
+    // that landed on the wrong thing.
+    var row = target.classList.contains('case')
+      ? target
+      : (target.closest ? target.closest('tr.case') : null);
+    if (row) {
+      open(row, true);
+      row.classList.add('flash');
+      row.scrollIntoView({ block: 'center' });
+    }
+  }
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();
+  apply();
+})();
+</script>
+  <div id="tip" role="tooltip"></div>
+  <script>
+  (function(){
+    var sum=document.querySelector('details.rpt-sum');
+    var KEY='admin-weibo-summary-open';
+    if(sum){
+      try{var v=localStorage.getItem(KEY);if(v!==null){sum.open=v==='1';}}catch(e){}
+      sum.addEventListener('toggle',function(){try{localStorage.setItem(KEY,sum.open?'1':'0');}catch(e){}});
+    }
+    var tip=document.getElementById('tip');
+    function show(el,x,y){tip.textContent=el.getAttribute('data-tip');tip.style.display='block';
+      var w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(x+12,window.innerWidth-w-8))+'px';tip.style.top=(y+14)+'px';}
+    function hide(){tip.style.display='none';}
+    document.addEventListener('mousemove',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){show(el,e.clientX,e.clientY);}else{hide();}});
+    document.addEventListener('focusin',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){var r=el.getBoundingClientRect();show(el,r.left,r.bottom);}});
+    document.addEventListener('focusout',hide);
+  })();
+  </script>
+</div>
+</body>
+</html>

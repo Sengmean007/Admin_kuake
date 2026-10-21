@@ -1,0 +1,45 @@
+# Fast gate for every push and pull request.
+#
+# This compiles main and test sources and stops there. It deliberately runs no tests: the
+# suites in this repository drive a live third-party environment - the admin back office -
+# and fail for reasons that have nothing to do with the change under review: the site being
+# down, a sign-in landing unauthenticated, data another team changed underneath them.
+# Gating a pull request on that trains everyone to ignore a red tick.
+#
+# The nightly job in qa-suite.yml is where the tests actually run.
+name: Build
+
+# main, master and dev are all listed because this repository has not settled on one yet.
+# Trim the lists once it has - but only to branches that are actually gone.
+#
+# The cost of getting this wrong is a workflow that gates nothing and looks fine doing it:
+# in the sibling NewWeibo_automation project the working branch was renamed to main while
+# these lists still said master and dev, so every commit went unchecked and GitHub reported
+# no failure because no run was ever queued. A workflow that does not run does not go red.
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master, dev]
+  workflow_dispatch:
+
+jobs:
+  compile:
+    name: Compile sources and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          # Caches ~/.m2 keyed on the POM, so a run that changes no dependencies is quick.
+          cache: maven
+
+      - name: Compile
+        run: ./mvnw -B -ntp test-compile

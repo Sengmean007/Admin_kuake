@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600">
+  <!-- Generated test data for the Other Category game banner rows (OC-BAN-901): a 4:3 SVG banner. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1E3A8A"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#sky)"/>
+  <circle cx="620" cy="160" r="90" fill="#FBBF24"/>
+  <path d="M0 470 L180 330 L330 440 L500 290 L800 480 L800 600 L0 600 Z" fill="#0F172A" opacity="0.85"/>
+  <text x="60" y="140" font-family="Arial, Helvetica, sans-serif" font-size="64" font-weight="700" fill="#FFFFFF">QA SVG BANNER</text>
+  <text x="60" y="200" font-family="Arial, Helvetica, sans-serif" font-size="30" fill="#E0E7FF">800 x 600 - 4:3</text>
+</svg>

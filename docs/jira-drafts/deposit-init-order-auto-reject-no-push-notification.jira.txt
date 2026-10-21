@@ -1,0 +1,20 @@
+h3. Description
+When a deposit transaction sitting in *init order* status is automatically rejected after 5 minutes, no push notification is sent to the client informing them of the rejection. The transaction's own status changes/auto-rejects as expected, but the client is never notified on their device.
+
+*Environment:* Test Environment (QA)
+*Module / Feature:* Notification Pushing (Notifications / Deposit / Backend API)
+*QA Owner:* Si
+
+h3. Steps to reproduce
+# Initiate a deposit transaction so that it sits in *init order* status.
+# Wait 5 minutes, until the system automatically rejects the transaction.
+# Check the client's device for a push notification about the rejection.
+
+h3. Expected result
+Once the 5-minute timeout elapses and the deposit is auto-rejected, a push notification informing the client of the rejection should be sent to their device.
+
+h3. Actual result
+The transaction's status changes to rejected as expected, but no push notification is delivered to the client - they have no on-device indication that their deposit was rejected.
+
+h3. Impact
+A member whose deposit times out and auto-rejects gets no notification at all, unlike (presumably) a deposit rejected by an operator. They would only discover the rejection by checking their transaction history themselves, which is a silent failure from the client's point of view.

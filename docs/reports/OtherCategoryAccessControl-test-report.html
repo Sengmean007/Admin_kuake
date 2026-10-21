@@ -1,0 +1,1389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Other Category - Access control - test case report</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2230; --muted:#5b6676;
+    --line:#e2e7ef; --head:#26314a; --headink:#ffffff;
+    --pass:#137a43; --pass-bg:#e6f5ec;
+    --fail:#b02525; --fail-bg:#fdecec;
+    --partial:#9a6a00; --partial-bg:#fdf3dd;
+    --info:#1f6a9c; --info-bg:#e6f1f9;
+    --accent:#c79a2f;                  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:32px 18px}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.rpt{background:var(--head);color:var(--headink);border-radius:14px;padding:26px 30px;
+    box-shadow:0 6px 20px rgba(20,30,50,.12)}
+  header.rpt h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header.rpt .sub{opacity:.85;font-size:14px}
+  header.rpt code{background:rgba(255,255,255,.14);color:inherit}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px;font-size:13.5px}
+  .meta b{color:var(--accent)}
+  .tally{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:14px;font-weight:600}
+  /* The run at a glance. Proportional segments, so the shape of a result is
+     readable before any of the five numbers above it has been read. */
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:12px;
+    background:rgba(255,255,255,.16)}
+  .bar .seg{display:block;height:100%}
+  .bar .seg.pass{background:#3ddc84}
+  .bar .seg.fail{background:#ff6b6b}
+  .bar .seg.skip{background:#ffcc66}
+  .bar .seg.notrun{background:#8fa3bf}
+  .rate{margin-top:8px;font-size:12.5px;opacity:.85}
+  /* The same bar in a table cell, where the ground is white rather than the
+     header's navy, so the empty track has to be redrawn to stay visible. */
+  .bar.mini{width:150px;height:8px;margin:0;background:var(--line)}
+  td.minibar{width:170px}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 4px}
+  .toolbar .filters{display:flex;flex-wrap:wrap;gap:6px}
+  button.flt{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+  button.flt:hover{color:var(--ink);border-color:var(--muted)}
+  button.flt.on{background:var(--head);border-color:var(--head);color:#fff}
+  .toolbar input[type=search]{font:inherit;font-size:13px;padding:7px 12px;flex:1 1 220px;
+    min-width:180px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    color:var(--ink)}
+  .toolbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hide{display:none !important}
+  .callout.bad{border-left-color:var(--fail)}
+  ol.findings{margin:0;padding-left:20px}
+  ol.findings li{margin-bottom:10px}
+  ol.findings a{color:var(--fail);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;text-decoration:none}
+  ol.findings a:hover{text-decoration:underline}
+  .tag.known{background:var(--fail-bg);color:var(--fail)}
+  /* The detail panel under a row. It is a second <tr> rather than a nested table
+     so the seven columns stay aligned across every group on the page. */
+  button.more{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;margin-right:7px;
+    border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);cursor:pointer;vertical-align:middle}
+  button.more:hover{color:var(--ink);border-color:var(--muted)}
+  button.more::before{content:"\25B8 "}
+  tr.case.open button.more::before{content:"\25BE "}
+  tr.case.open>td{background:#f2f6fd}
+  tr.case.flash>td{animation:flash 1.4s ease-out}
+  @keyframes flash{from{background:#fdf3dd}to{background:transparent}}
+  tr.detail>td{background:#f7f9fc;border-top:0;padding:0 13px 18px}
+  .panels{display:flex;flex-wrap:wrap;gap:14px}
+  .panel{flex:1 1 340px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.wide{flex-basis:100%;margin-top:14px}
+  .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .panel dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+  .panel dt{color:var(--muted);font-weight:600}
+  .panel dd{margin:0;word-break:break-word}
+  .panel p{font-size:13px;margin:10px 0 0}
+  .cmp{display:grid;gap:6px}
+  .cmp>div{display:flex;gap:8px;align-items:baseline}
+  .cmp span{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);min-width:58px}
+  .cmp code{white-space:pre-wrap;word-break:break-word}
+  .cmp>div:first-child code{background:var(--pass-bg);color:var(--pass)}
+  .cmp>div:last-child code{background:var(--fail-bg);color:var(--fail)}
+  .frames{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  details.trace{margin-top:12px;font-size:12.5px}
+  details.trace>summary{cursor:pointer;color:var(--muted)}
+  details.trace pre{margin:8px 0 0;padding:12px;background:#f4f6fa;border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.45;max-height:340px}
+  /* The step trail. Kinds are badges rather than prose because they are what makes
+     it scannable - red for the network and console lines a failure hangs off. */
+  ol.steps{margin:0;padding:0;list-style:none;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  ol.steps li{display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line);
+    align-items:baseline}
+  ol.steps li:first-child{border-top:0}
+  ol.steps .at{color:var(--muted);min-width:52px;text-align:right;font-size:11.5px}
+  ol.steps .kind{min-width:74px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    padding:2px 7px;border-radius:4px;text-align:center;background:#eef1f6;color:var(--muted)}
+  ol.steps .what{flex:1;word-break:break-word;white-space:pre-wrap}
+  /* A capture shown against the trail line that describes it. Kept small so a
+     case with fifty-two of them still scrolls as a trail rather than a gallery,
+     and clickable so the full-size image is one click away. align-self:flex-start
+     stops a tall thumbnail stretching a short line's row. */
+  ol.steps .step-shot{flex:0 0 auto;align-self:flex-start;line-height:0;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  ol.steps .step-shot img{display:block;width:180px;height:auto}
+  ol.steps li.k-evidence{align-items:flex-start}
+  @media (max-width:900px){ol.steps .step-shot img{width:120px}}
+  ol.steps li.k-step .kind{background:var(--info-bg);color:var(--info)}
+  ol.steps li.k-check .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-data .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-network .kind,ol.steps li.k-console .kind{background:var(--fail-bg);color:var(--fail)}
+  ol.steps li.k-network .what,ol.steps li.k-console .what{color:var(--fail)}
+  /* A line the case declared FAIL. Tinted across the whole row rather than only
+     the text, so it is findable while scrolling a trail of a hundred lines, and
+     given a left rule so it still reads as failed without relying on colour. */
+  ol.steps li.failed{background:var(--fail-bg);
+    box-shadow:inset 3px 0 0 var(--fail);padding-left:7px}
+  ol.steps li.failed .what{color:var(--fail);font-weight:600}
+  ol.steps li.failed .kind{background:var(--fail);color:#fff}
+  ol.steps li.k-evidence .kind{background:var(--partial-bg);color:var(--partial)}
+  .nav{margin:18px 0 0;font-size:13.5px}
+  .nav a{color:var(--info);text-decoration:none}
+  .nav a:hover{text-decoration:underline}
+  .callout{background:var(--card);border-left:5px solid var(--accent);border-radius:10px;
+    padding:16px 20px;margin:22px 0;box-shadow:0 2px 8px rgba(20,30,50,.06);font-size:14px}
+  .callout h2{margin:0 0 8px;font-size:16px}
+  .callout p{margin:0 0 10px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--partial)}
+  h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  /* The index's package sections: heading, the package name beside it, then its tally. */
+  h2.section .pkg-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    font-weight:500;color:var(--muted);margin-left:8px}
+  .pkg-tally{display:flex;align-items:center;gap:12px;margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+  .pkg-tally .bar.mini{width:160px;flex:0 0 160px}
+  h3.pkg-findings{font-size:14px;margin:14px 0 4px}
+  h3.pkg-findings a{color:inherit}
+  .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
+  thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
+    font-weight:600;white-space:nowrap}
+  tbody td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;
+    overflow-wrap:break-word}
+  /* Fixed column widths on the case tables, because automatic layout shares the
+     width out by content and one long cell then starves the rest: a remark
+     carrying a two-sentence reading of a failure took 792 of 1565 pixels and left
+     the Actual result column at 103, wrapping its message one word per line. It
+     also stops the full-width detail row from widening the whole table, which was
+     pushing the failure panel off the right of the page. */
+  table.cases{table-layout:fixed;min-width:1600px}
+  table.cases th:nth-child(1),table.cases td:nth-child(1){width:6%}
+  table.cases th:nth-child(2),table.cases td:nth-child(2){width:10%}
+  table.cases th:nth-child(3),table.cases td:nth-child(3){width:12%}
+  table.cases th:nth-child(4),table.cases td:nth-child(4){width:14%}
+  table.cases th:nth-child(5),table.cases td:nth-child(5){width:10%}
+  table.cases th:nth-child(6),table.cases td:nth-child(6){width:11%}
+  table.cases th:nth-child(7),table.cases td:nth-child(7){width:11%}
+  table.cases th:nth-child(8),table.cases td:nth-child(8){width:6%}
+  table.cases th:nth-child(9),table.cases td:nth-child(9){width:10%}
+  table.cases th:nth-child(10),table.cases td:nth-child(10){width:10%}
+  table.cases tr.detail>td{width:auto}
+  /* Pre-condition, Test steps and Test data: the client workbook's own wording, with the values
+     the run actually used listed under the sheet's. */
+  .tc-pre{font-size:12.5px;white-space:pre-wrap}
+  ol.tc-steps{margin:0;padding-left:18px;font-size:12.5px}
+  ol.tc-steps li{margin:0 0 3px}
+  ul.tc-data{margin:0;padding-left:16px;font-size:12.5px}
+  ul.tc-data li{margin:0 0 3px;overflow-wrap:anywhere}
+  ul.tc-data.used code{font-size:11.5px;white-space:normal}
+  td.tsteps .src,td.tdata .src{margin:6px 0 3px;font-size:10.5px;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  /* The sheet ids run from HOME-001 to HKDWITHDRAWAL-012, and a fixed column
+     clips what it cannot fit: the longer ones were cut mid-word with no sign
+     that anything was missing. They wrap here rather than truncate. */
+  table.cases td.id{white-space:normal;overflow-wrap:anywhere}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td.tc{font-weight:600}
+  td.tc a{color:var(--ink)}
+  td.id{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);
+    font-size:12.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .why{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--fail);
+    white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted)}
+  .secs{margin-top:6px;font-size:11.5px;color:var(--muted)}
+  .tag{display:inline-block;margin-top:6px;margin-right:4px;padding:1px 7px;border-radius:4px;
+    background:#eef1f6;color:var(--muted);font-size:11px;font-weight:600;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .st{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;
+    white-space:nowrap}
+  .st.pass{color:var(--pass);background:var(--pass-bg)}
+  .st.fail{color:var(--fail);background:var(--fail-bg)}
+  .st.partial{color:var(--partial);background:var(--partial-bg)}
+  .st.info{color:var(--info);background:var(--info-bg)}
+  details.shots{max-width:100%}
+  details.shots>summary{cursor:pointer;font-size:12.5px;color:var(--muted);
+    padding:5px 9px;border:1px solid var(--line);border-radius:999px;
+    display:inline-block;list-style:none;user-select:none}
+  details.shots>summary::-webkit-details-marker{display:none}
+  details.shots>summary::before{content:"\25B8 ";color:var(--muted)}
+  details.shots[open]>summary::before{content:"\25BE "}
+  details.shots>summary:hover{color:var(--ink);border-color:var(--muted)}
+  details.shots[open]>summary{margin-bottom:8px}
+  a.shot{display:inline-block;margin:0 6px 6px 0;position:relative;cursor:zoom-in}
+  a.shot img{width:100%;max-width:260px;border:1px solid var(--line);border-radius:8px;display:block;
+    box-shadow:0 2px 6px rgba(20,30,50,.10);transition:transform .12s,box-shadow .12s}
+  a.shot:hover img{transform:scale(1.03);box-shadow:0 6px 18px rgba(20,30,50,.22)}
+  a.shot::after{content:"\2315";position:absolute;right:8px;bottom:8px;
+    background:rgba(15,25,45,.72);color:#fff;font-size:13px;line-height:1;
+    padding:5px 7px;border-radius:6px;opacity:0;transition:opacity .12s}
+  a.shot:hover::after{opacity:1}
+  /* Click-to-zoom overlay. A 260px thumbnail of a 1920x1080 capture is a
+     smudge - readable enough to say a picture exists, not enough to read the
+     page in it - so the full image opens over the report rather than in a
+     separate tab the reader then has to navigate back from. */
+  #lightbox{position:fixed;inset:0;background:rgba(10,16,28,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:999;
+    padding:24px;cursor:zoom-out}
+  #lightbox.open{display:flex}
+  #lightbox img{max-width:96vw;max-height:86vh;border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff}
+  #lightbox .cap{color:#e8eef8;font-size:13px;margin-top:12px;text-align:center;
+    max-width:80vw}
+  #lightbox .hint{color:#93a4bd;font-size:12px;margin-top:6px}
+  /* A suite page's header is its statistics summary, and collapses to its first
+     lines: title, counts and bar stay; run details, tiles, chart and the cases by
+     result fold away. Drawn on the header's navy, so the status colours are the
+     same bright steps as the header bar, each paired with an icon and a label. */
+  details.rpt-sum>summary{list-style:none;cursor:pointer;user-select:none}
+  details.rpt-sum>summary::-webkit-details-marker{display:none}
+  details.rpt-sum>summary:focus-visible{outline:2px solid #9cc9ff;outline-offset:6px;border-radius:6px}
+  .rpt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rpt-line{flex-wrap:nowrap}
+  .rpt-line h1{margin:0;flex:1 1 auto;min-width:0}
+  details.rpt-sum>.sub{margin-top:14px}
+  header.rpt .sub code{overflow-wrap:anywhere}
+  .chev::before{content:"\25B8";display:inline-block;opacity:.8;transition:transform .15s}
+  details[open]>summary .chev::before{transform:rotate(90deg)}
+  .rpt-toggle-hint{margin-left:auto;font-size:12px;opacity:.6}
+  .rpt-counts{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:14px;
+    font-weight:600;font-variant-numeric:tabular-nums}
+  .cnt i,.tile i,details.cl>summary i{font-style:normal;margin-right:5px}
+  .cnt.pass i,.tile.pass i,details.cl.pass>summary i{color:#3ddc84}
+  .cnt.fail i,.tile.fail i,details.cl.fail>summary i{color:#ff6b6b}
+  .cnt.skip i,.tile.skip i,details.cl.skip>summary i{color:#ffcc66}
+  .cnt.notrun i,.tile.notrun i,details.cl.notrun>summary i{color:#b8c4d6}
+  .cnt.zero{opacity:.55}
+  .rpt-h{font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;opacity:.75;
+    margin:20px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .tile{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:10px 12px}
+  .tile b{display:block;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+  .tile span{font-size:12px;opacity:.75}
+  .chart{margin:16px 0 0}
+  .stack{display:flex;gap:2px;height:28px}
+  .stack .seg{display:flex;align-items:center;justify-content:center;flex-basis:0;
+    min-width:4px;overflow:hidden}
+  .stack .seg:first-child{border-radius:4px 0 0 4px}
+  .stack .seg:last-child{border-radius:0 4px 4px 0}
+  .stack .seg:only-child{border-radius:4px}
+  .stack .seg.pass{background:#3ddc84}
+  .stack .seg.fail{background:#ff6b6b}
+  .stack .seg.skip{background:#ffcc66}
+  .stack .seg.notrun{background:#8fa3bf}
+  .stack .seg:focus-visible{outline:2px solid #fff;outline-offset:1px}
+  .stack em{font-style:normal;font-size:12px;font-weight:700;color:#14203a}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;opacity:.85}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .sw.pass{background:#3ddc84}
+  .sw.fail{background:#ff6b6b}
+  .sw.skip{background:#ffcc66}
+  .sw.notrun{background:#8fa3bf}
+  .case-lists{display:flex;flex-direction:column;gap:8px}
+  details.cl{border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:0 14px;
+    background:rgba(255,255,255,.04)}
+  details.cl>summary{cursor:pointer;padding:9px 0;font-weight:600;font-size:13.5px}
+  details.cl .n{opacity:.7;font-weight:400}
+  details.cl ol{margin:0 0 12px;padding-left:22px;font-size:13px;max-height:280px;overflow:auto}
+  details.cl li{margin:5px 0}
+  details.cl li a{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+    text-decoration:none;color:#9cc9ff}
+  details.cl.fail li a{color:#ff9d9d}
+  details.cl li a:hover{text-decoration:underline}
+  header.rpt .why{color:#ffb3b3}
+  #tip{position:fixed;display:none;z-index:1000;background:#0e1524;color:#fff;font-size:12px;
+    padding:6px 9px;border-radius:6px;pointer-events:none;max-width:320px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  @media (max-width:640px){.rpt-toggle-hint{display:none}}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rpt">
+  <details class="rpt-sum" open>
+    <summary>
+      <span class="rpt-line"><span class="chev" aria-hidden="true"></span><h1>Other Category - Access control</h1><span class="rpt-toggle-hint">click to minimise / expand</span></span>
+      <span class="rpt-counts"><span class="cnt pass"><i>&#10003;</i>3 passed</span><span class="cnt fail"><i>&#10007;</i>1 failed</span><span class="cnt skip"><i>&#8856;</i>1 skipped</span><span class="cnt notrun zero"><i>&#9675;</i>0 not run</span><span class="cnt">5 cases</span></span>
+<span class="bar">      <span class="seg pass" style="width:60.0000%" title="3 passed"></span>
+      <span class="seg fail" style="width:20.0000%" title="1 failed"></span>
+      <span class="seg skip" style="width:20.0000%" title="1 skipped"></span>
+</span>
+    </summary>
+    <div class="sub">Test case report &mdash; <code>org.sengmean.suites.product.OtherCategoryAccessControlSuite</code></div>
+    <div class="meta">
+      <div><b>Target:</b> https://admin-test.1083.city/</div>
+      <div><b>Account:</b> qa0001</div>
+      <div><b>Run:</b> 2026-10-15 17:58</div>
+      <div><b>Elapsed:</b> 4773.8s</div>
+      <div><b>Scope:</b> 10 of 39 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headed)</div>
+      <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
+      <div><b>Machine:</b> Windows 11 10.0</div>
+    </div>
+    <h2 class="rpt-h">Statistics</h2>
+    <div class="tiles">
+        <div class="tile "><b>5</b><span>cases</span></div>
+        <div class="tile pass"><b><i>&#10003;</i>3</b><span>passed</span></div>
+        <div class="tile fail"><b><i>&#10007;</i>1</b><span>failed</span></div>
+        <div class="tile skip"><b><i>&#8856;</i>1</b><span>skipped</span></div>
+        <div class="tile notrun"><b><i>&#9675;</i>0</b><span>not run</span></div>
+        <div class="tile"><b>60%</b><span>pass rate of the cases that ran</span></div>
+        <div class="tile"><b>214.9s</b><span>browser time</span></div>
+    </div>
+      <div class="chart" role="img" aria-label="Other Category - Access control: 3 passed, 1 failed, 1 skipped, 0 not run">
+        <div class="stack big"><span class="seg pass" style="flex-grow:3" tabindex="0" data-tip="Other Category - Access control - 3 passed (60%)"><em>3</em></span><span class="seg fail" style="flex-grow:1" tabindex="0" data-tip="Other Category - Access control - 1 failed (20%)"><em>1</em></span><span class="seg skip" style="flex-grow:1" tabindex="0" data-tip="Other Category - Access control - 1 skipped (20%)"><em>1</em></span></div>
+        <div class="chart-legend"><span><i class="sw pass"></i>Passed</span><span><i class="sw fail"></i>Failed</span><span><i class="sw skip"></i>Skipped</span><span><i class="sw notrun"></i>Not run</span></div>
+      </div>
+    <h2 class="rpt-h">Cases by result</h2>
+    <div class="case-lists">
+      <details class="cl fail" open><summary><i>&#10007;</i>Failed <span class="n">(1)</span></summary>
+        <ol>
+          <li><a href="#case-OtherCategoryTest-agentIsKeptOut">OC-ACC-003</a> Agent role cannot access Other Category management<div class="why">Going directly to https://admin-test.1083.city/product/other-category as Agent should be redirected or refused, but it rendered the Other Category list at https://admin-test.1083.city/product/other-category/ ==&gt; expected: &lt;false&gt; but was: &lt; ...</div></li>
+        </ol>
+      </details>
+      <details class="cl pass"><summary><i>&#10003;</i>Passed <span class="n">(3)</span></summary>
+        <ol>
+          <li><a href="#case-OtherCategoryTest-superAdminHasEveryAction">OC-ACC-001</a> Super Admin can Create, Edit, Delete categories and manage games/banners</li>
+          <li><a href="#case-OtherCategoryTest-adminRoleParity">OC-ACC-002</a> Admin attempts the same actions as Super Admin</li>
+          <li><a href="#case-OtherCategoryTest-ordinaryUserIsKeptOut">OC-ACC-004</a> Ordinary user cannot access Other Category management</li>
+        </ol>
+      </details>
+      <details class="cl skip"><summary><i>&#8856;</i>Skipped <span class="n">(1)</span></summary>
+        <ol>
+          <li><a href="#case-OtherCategoryTest-deepLinksAreRefused">OC-ACC-005</a> Direct deep-link to Create/Edit/Manage Games URLs without the proper role</li>
+        </ol>
+      </details>
+    </div>
+  </details>
+  </header>
+
+  <div class="nav"><a href="index.html">&larr; All suites</a></div>
+  <div class="callout bad">
+    <h2>1 case needs attention</h2>
+    <ol class="findings">
+      <li><a href="#case-OtherCategoryTest-agentIsKeptOut">OC-ACC-003</a> Agent role cannot access Other Category management<div class="why">Going directly to https://admin-test.1083.city/product/other-category as Agent should be redirected or refused, but it rendered the Other Category list at https://admin-test.1083.city/product/other-category/ ==&gt; expected ...</div></li>
+    </ol>
+    <p>A case tagged <code>known-defect</code> is red on purpose: it asserts the behaviour the application <i>should</i> have and stays red until the finding is fixed. The rest are this run's news.</p>
+  </div>
+  <div class="toolbar">
+    <div class="filters" role="group" aria-label="Filter cases by status">
+      <button type="button" class="flt on" data-filter="all">All</button>
+      <button type="button" class="flt" data-filter="Pass">Passed</button>
+      <button type="button" class="flt" data-filter="Fail">Failed</button>
+      <button type="button" class="flt" data-filter="Skipped">Skipped</button>
+      <button type="button" class="flt" data-filter="Not run">Not run</button>
+    </div>
+    <input type="search" id="q" placeholder="Search id, case or message" aria-label="Search cases">
+    <button type="button" class="flt" id="expand-all">Expand all details</button>
+    <span class="count" id="shown">5 of 5 cases</span>
+  </div>
+  <section class="grp">
+  <h2 class="section">1. 7. Access control</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-OtherCategoryTest-superAdminHasEveryAction" data-status="Pass" data-search="oc-acc-001 superadminhaseveryaction super admin can create, edit, delete categories and manage games/banners creates-data">
+        <td class="id" id="OC-ACC-001">OC-ACC-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>superAdminHasEveryAction</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in as a Super Admin test account.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Navigate to Product &gt; Other Category.</li><li>Attempt Create, Edit, Delete, Manage games, and Upload banner.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Super Admin test account.</li></ul><div class="src">Used in this run</div><ul class="tc-data used"><li><code>API POST api/account/uploadImage answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057196,&quot;data&quot;:{&quot;filelink&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/e40958e8db57124a9d597741a692cf27.png&quot;}}</code></li><li><code>API POST api/account/game-category-features answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057200,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:434,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Access Check&quot;,&quot;en&quot;:&quot;QA OC Access Check&quot;,&quot;es&quot;:&quot;QA OC Access Check&quot;,&quot;id&quot;:&quot;QA OC Access Check&quot;,&quot;ja&quot;:&quot;QA OC Access Check&quot;,&quot;ms&quot;:&quot;QA OC Access Check&quot;,&quot;pt&quot;:&quot;QA OC Access Check&quot;,&quot;th&quot;:&quot;QA OC Access Check&quot;,&quot;tl&quot;:&quot;QA OC Access Check&quot;,&quot;vi&quot;:&quot;QA OC Access Check&quot;,&quot;zh-CN&quot;:&quot;QA OC Access Check&quot;,&quot;zh-TW&quot;:&quot;QA OC Access Check&quot;},&quot;icon&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/e40958e8db57124a9d597741a692cf27.png&quot;,&quot;channelId&quot;:1,&quot;sort&quot;:90,&quot;isActive&quot;:true,&quot;createdAt&quot;:&quot;2026-10-15T09:39:59.502Z&quot;,&quot;updatedAt&quot;:null,&quot;deletedAt&quot;:null}}}</code></li><li><code>Game used = JILI (none of the workbook's examples [Horse Racing, Lucky Pick 3, Live Sports, Boxing Yes / No] was available in that state)</code></li><li><code>API PUT api/account/game-category-features/434 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057226,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:434,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Access Check&quot;,&quot;en&quot;:&quot;QA OC Access Check&quot;,&quot;es&quot;:&quot;QA OC Access Check&quot;,&quot;id&quot;:&quot;QA OC Access Check&quot;,&quot;ja&quot;:&quot;QA OC Access Check&quot;,&quot;ms&quot;:&quot;QA OC Access Check&quot;,&quot;pt&quot;:&quot;QA OC Access Check&quot;,&quot;th&quot;:&quot;QA OC Access Check&quot;,&quot;tl&quot;:&quot;QA OC Access Check&quot;,&quot;vi&quot;:&quot;QA OC Access Check&quot;,&quot;zh-CN&quot;:&quot;QA OC Access Check&quot;,&quot;zh-TW&quot;:&quot;QA OC Access Check&quot;},&quot;icon&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/e40958e8db57124a9d597741a692cf27.png&quot;,&quot;channelId&quot;:1,&quot;sort&quot;:91,&quot;isActive&quot;:true,&quot;createdAt&quot;:&quot;2026-10-15T09:39:59.502Z&quot;,&quot;updatedAt&quot;:null,&quot;deletedAt&quot;:null}}}</code></li><li><code>Account under test = qa0001</code></li></ul></td>
+        <td>Super Admin can Create, Edit, Delete categories and manage games/banners</td>
+        <td>The application behaved as expected.<div class="secs">190 events recorded, ended on <code>https://admin-test.1083.city/product/other-category/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">66.78s</div></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.</td>
+        <td><a class="shot" href="screenshots/OtherCategoryTest.superAdminHasEveryAction.png" target="_blank" rel="noopener"><img src="screenshots/OtherCategoryTest.superAdminHasEveryAction.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>OC-ACC-001</dd>
+                <dt>Method</dt><dd>OtherCategoryTest#superAdminHasEveryAction</dd>
+                <dt>Group</dt><dd>7. Access control (AccessControl)</dd>
+                <dt>Pre-condition</dt><dd>Logged in as a Super Admin test account.</dd>
+                <dt>Expected result</dt><dd>Super Admin can Create, Edit, Delete categories and manage games/banners</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Pass in 66.78s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Super Admin can Create, Edit, Delete categories and manage games/banners</dd>
+                <dt>Duration</dt><dd>66.78 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(190 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: OC-ACC-001: Super Admin can Create, Edit, Delete categories and manage games/banners</span></li>
+              <li class="k-step"><span class="at">0.02s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">0.07s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.07s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 307</span></li>
+              <li class="k-api"><span class="at">0.07s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.11s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.21s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.54s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">0.60s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.76s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.82s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.82s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.87s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.87s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.98s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.18s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.22s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.46s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.48s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">2.45s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">3.54s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">4.78s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.29s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">6.63s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">6.65s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">6.96s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">6.96s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.99s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.05s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">7.49s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">7.57s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">7.74s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.02s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.02s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.02s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.03s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.14s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.57s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.57s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.65s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.74s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">9.41s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">10.57s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-step"><span class="at">11.75s</span><span class="kind">STEP</span><span class="what">Clicking Add category.</span></li>
+              <li class="k-api"><span class="at">12.00s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">12.12s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">12.18s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">12.32s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">12.60s</span><span class="kind">STEP</span><span class="what">Naming the category &quot;QA OC Access Check&quot; on 繁體 and ticking Override to: All languages.</span></li>
+              <li class="k-step"><span class="at">13.30s</span><span class="kind">STEP</span><span class="what">Uploading avatar.png as the category icon.</span></li>
+              <li class="k-api"><span class="at">13.38s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">13.53s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">15.98s</span><span class="kind">DATA</span><span class="what">API POST api/account/uploadImage answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057196,&quot;data&quot;:{&quot;filelink&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/e40958e8db57124a9d597741a692cf27.png&quot;}}</span></li>
+              <li class="k-step"><span class="at">16.29s</span><span class="kind">STEP</span><span class="what">Setting Status to Active (&quot;Do you want to display&quot; ticked).</span></li>
+              <li class="k-step"><span class="at">16.37s</span><span class="kind">STEP</span><span class="what">Setting Display order to &quot;90&quot;.</span></li>
+              <li class="k-step"><span class="at">16.45s</span><span class="kind">STEP</span><span class="what">Clicking Save &amp; manage games.</span></li>
+              <li class="k-step"><span class="at">16.55s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">17.64s</span><span class="kind">API</span><span class="what">POST api/account/game-category-features?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.70s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">17.70s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">17.79s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">17.92s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features/434?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.96s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features/434/games?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.97s</span><span class="kind">API</span><span class="what">GET api/account/game?paginate=20&amp;page=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-console"><span class="at">17.98s</span><span class="kind">CONSOLE</span><span class="what">Uncaught page error: TypeError: data.map is not a function TypeError: data.map is not a function     at https://admin-test.1083.city/_nuxt/5be5134.js:1:8175</span></li>
+              <li class="k-api"><span class="at">18.00s</span><span class="kind">API</span><span class="what">GET api/account/game_business?paginate=100&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">18.17s</span><span class="kind">DATA</span><span class="what">API POST api/account/game-category-features answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057200,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:434,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Access Check&quot;,&quot;en&quot;:&quot;QA OC Access Check&quot;,&quot;es&quot;:&quot;QA OC Access Check&quot;,&quot;id&quot;:&quot;QA OC Access Check&quot;,&quot;ja&quot;:&quot;QA OC Access Check&quot;,&quot;ms&quot;:&quot;QA OC Access Check&quot;,&quot;pt&quot;:&quot;QA OC Access Check&quot;,&quot;th&quot;:&quot;QA OC Access Check&quot;,&quot;tl&quot;:&quot;QA OC Access Check&quot;,&quot;vi&quot;:&quot;QA OC Access Check&quot;,&quot;zh-CN&quot;:&quot;QA OC Access Check&quot;,&quot;zh-TW&quot;:&quot;QA OC Access Check&quot;},&quot;icon&quot;:&quot;https://storage.go ...</span></li>
+              <li class="k-api"><span class="at">18.32s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">20.65s</span><span class="kind">DATA</span><span class="what">Game used = JILI (none of the workbook's examples [Horse Racing, Lucky Pick 3, Live Sports, Boxing Yes / No] was available in that state)</span></li>
+              <li class="k-step"><span class="at">20.72s</span><span class="kind">STEP</span><span class="what">Ticking &quot;JILI&quot; to select it.</span></li>
+              <li class="k-step"><span class="at">21.21s</span><span class="kind">STEP</span><span class="what">Opening Upload Game Banner for &quot;JILI&quot;.</span></li>
+              <li class="k-step"><span class="at">21.29s</span><span class="kind">STEP</span><span class="what">Choosing dog-4x3.jpg in Upload Game Banner.</span></li>
+              <li class="k-api"><span class="at">21.88s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">23.46s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">24.41s</span><span class="kind">STEP</span><span class="what">Clicking Save banner.</span></li>
+              <li class="k-step"><span class="at">26.52s</span><span class="kind">STEP</span><span class="what">Clicking Save assignments.</span></li>
+              <li class="k-api"><span class="at">26.87s</span><span class="kind">API</span><span class="what">PUT api/account/game-category-features/434/games?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.94s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.94s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">27.03s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">27.13s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.37s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">28.69s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">28.74s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">28.74s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">28.74s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.76s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">28.90s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">29.16s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">29.23s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.35s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.40s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.40s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.40s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.40s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.60s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.65s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.79s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.88s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.95s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">30.71s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">31.75s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">32.99s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">34.80s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">34.90s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">34.92s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">34.93s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">34.93s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">34.96s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.01s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">35.25s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">35.33s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.41s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.48s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.48s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.48s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.49s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">35.63s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.80s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.87s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.87s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">35.89s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">36.73s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">37.80s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">39.05s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">40.92s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">41.18s</span><span class="kind">STEP</span><span class="what">Clicking Modify on &quot;QA OC Access Check&quot;.</span></li>
+              <li class="k-api"><span class="at">41.50s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">41.50s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">41.70s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">41.83s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features/434?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">42.28s</span><span class="kind">STEP</span><span class="what">Setting Display order to &quot;91&quot;.</span></li>
+              <li class="k-step"><span class="at">42.33s</span><span class="kind">STEP</span><span class="what">Clicking Save changes.</span></li>
+              <li class="k-step"><span class="at">42.41s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to modify?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">43.51s</span><span class="kind">API</span><span class="what">PUT api/account/game-category-features/434?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">43.62s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">43.69s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">43.69s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">43.89s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">43.97s</span><span class="kind">DATA</span><span class="what">API PUT api/account/game-category-features/434 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057226,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:434,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Access Check&quot;,&quot;en&quot;:&quot;QA OC Access Check&quot;,&quot;es&quot;:&quot;QA OC Access Check&quot;,&quot;id&quot;:&quot;QA OC Access Check&quot;,&quot;ja&quot;:&quot;QA OC Access Check&quot;,&quot;ms&quot;:&quot;QA OC Access Check&quot;,&quot;pt&quot;:&quot;QA OC Access Check&quot;,&quot;th&quot;:&quot;QA OC Access Check&quot;,&quot;tl&quot;:&quot;QA OC Access Check&quot;,&quot;vi&quot;:&quot;QA OC Access Check&quot;,&quot;zh-CN&quot;:&quot;QA OC Access Check&quot;,&quot;zh-TW&quot;:&quot;QA OC Access Check&quot;},&quot;icon&quot;:&quot;https://storage ...</span></li>
+              <li class="k-step"><span class="at">45.48s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">45.50s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">45.50s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">45.50s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.52s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.66s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">45.90s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">45.97s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">46.09s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.19s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">46.19s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">46.19s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">46.19s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">46.30s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.54s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.54s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.60s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">46.64s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">47.38s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">48.41s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">49.69s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">50.89s</span><span class="kind">STEP</span><span class="what">Clicking Delete on &quot;QA OC Access Check&quot;.</span></li>
+              <li class="k-step"><span class="at">51.03s</span><span class="kind">STEP</span><span class="what">Clicking Confirm in the delete confirmation.</span></li>
+              <li class="k-api"><span class="at">51.76s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">51.97s</span><span class="kind">API</span><span class="what">DELETE api/account/game-category-features/434?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.13s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">52.57s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">52.59s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">52.59s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">52.60s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.61s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.69s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">52.88s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">52.93s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">53.04s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">53.11s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">53.11s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">53.11s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">53.11s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">53.22s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">53.37s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">53.42s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">53.45s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">53.48s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">53.86s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">54.89s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">56.17s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">57.27s</span><span class="kind">DATA</span><span class="what">Account under test = qa0001</span></li>
+              <li class="k-step"><span class="at">57.28s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/product/other-category/</span></li>
+              <li class="k-evidence"><span class="at">57.48s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-OtherCategoryTest-adminRoleParity" data-status="Pass" data-search="oc-acc-002 adminroleparity admin attempts the same actions as super admin creates-data">
+        <td class="id" id="OC-ACC-002">OC-ACC-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>adminRoleParity</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in as an Admin test account.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Navigate to Product &gt; Other Category.</li><li>Attempt the same Create/Edit/Delete/Manage games actions as Super Admin.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Admin test account.</li></ul><div class="src">Used in this run</div><ul class="tc-data used"><li><code>API POST api/account/uploadImage answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057260,&quot;data&quot;:{&quot;filelink&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/6d190672cc02c9cbec71eed00297b13b.png&quot;}}</code></li><li><code>API POST api/account/game-category-features answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057264,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:435,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Admin Access Check&quot;,&quot;en&quot;:&quot;QA OC Admin Access Check&quot;,&quot;es&quot;:&quot;QA OC Admin Access Check&quot;,&quot;id&quot;:&quot;QA OC Admin Access Check&quot;,&quot;ja&quot;:&quot;QA OC Admin Access Check&quot;,&quot;ms&quot;:&quot;QA OC Admin Access Check&quot;,&quot;pt&quot;:&quot;QA OC Admin Access Check&quot;,&quot;th&quot;:&quot;QA OC Admin Access Check&quot;,&quot;tl&quot;:&quot;QA OC Admin Access Check&quot;,&quot;vi&quot;:&quot;QA OC Admin Access Check&quot;,&quot;zh-CN&quot;:&quot;QA OC Admin Access Check&quot;,&quot;zh-TW&quot;:&quot;QA OC Admin Access Check&quot;},&quot;icon&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/6d190672cc02c9cbec71eed00297b13b.png&quot;,&quot;channelId&quot;:1,&quot;sort&quot;:90,&quot;isActive&quot;:true,&quot;createdAt&quot;:&quot;2026-10-15T09:41:03.764Z&quot;,&quot;updatedAt&quot;:null,&quot;deletedAt&quot;:null}}}</code></li><li><code>Game used = JILI (none of the workbook's examples [Horse Racing, Lucky Pick 3, Live Sports, Boxing Yes / No] was available in that state)</code></li><li><code>API PUT api/account/game-category-features/435 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057288,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:435,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Admin Access Check&quot;,&quot;en&quot;:&quot;QA OC Admin Access Check&quot;,&quot;es&quot;:&quot;QA OC Admin Access Check&quot;,&quot;id&quot;:&quot;QA OC Admin Access Check&quot;,&quot;ja&quot;:&quot;QA OC Admin Access Check&quot;,&quot;ms&quot;:&quot;QA OC Admin Access Check&quot;,&quot;pt&quot;:&quot;QA OC Admin Access Check&quot;,&quot;th&quot;:&quot;QA OC Admin Access Check&quot;,&quot;tl&quot;:&quot;QA OC Admin Access Check&quot;,&quot;vi&quot;:&quot;QA OC Admin Access Check&quot;,&quot;zh-CN&quot;:&quot;QA OC Admin Access Check&quot;,&quot;zh-TW&quot;:&quot;QA OC Admin Access Check&quot;},&quot;icon&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/6d190672cc02c9cbec71eed00297b13b.png&quot;,&quot;channelId&quot;:1,&quot;sort&quot;:91,&quot;isActive&quot;:true,&quot;createdAt&quot;:&quot;2026-10-15T09:41:03.764Z&quot;,&quot;updatedAt&quot;:null,&quot;deletedAt&quot;:null}}}</code></li><li><code>Account under test = qa0001</code></li></ul></td>
+        <td>Admin attempts the same actions as Super Admin</td>
+        <td>The application behaved as expected.<div class="secs">188 events recorded, ended on <code>https://admin-test.1083.city/product/other-category/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">62.98s</div></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.</td>
+        <td><a class="shot" href="screenshots/OtherCategoryTest.adminRoleParity.png" target="_blank" rel="noopener"><img src="screenshots/OtherCategoryTest.adminRoleParity.png" alt="OC-ACC-002 - Admin attempts the same actions as Super Admin" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>OC-ACC-002</dd>
+                <dt>Method</dt><dd>OtherCategoryTest#adminRoleParity</dd>
+                <dt>Group</dt><dd>7. Access control (AccessControl)</dd>
+                <dt>Pre-condition</dt><dd>Logged in as an Admin test account.</dd>
+                <dt>Expected result</dt><dd>Admin attempts the same actions as Super Admin</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Pass in 62.98s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Admin attempts the same actions as Super Admin</dd>
+                <dt>Duration</dt><dd>62.98 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(188 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: OC-ACC-002: Admin attempts the same actions as Super Admin</span></li>
+              <li class="k-evidence"><span class="at">0.00s</span><span class="kind">EVIDENCE</span><span class="what">test.admin.username is the operator account itself (qa0001), so this row ran in the operator session and proves the account, not the Admin role. Configure a distinct Admin account in Config/.</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">0.02s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.02s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.02s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.11s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.29s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">0.40s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.46s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.50s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.64s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.72s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.84s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.89s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.90s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.79s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">2.83s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">4.06s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">5.22s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">5.23s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">5.24s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">5.24s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.26s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.31s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">5.49s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">5.55s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">5.67s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.73s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">5.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">5.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">5.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">5.86s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.99s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.17s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.17s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.27s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">6.95s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">7.99s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-step"><span class="at">9.06s</span><span class="kind">STEP</span><span class="what">Clicking Add category.</span></li>
+              <li class="k-api"><span class="at">9.53s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">10.20s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">10.20s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">10.28s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">10.45s</span><span class="kind">STEP</span><span class="what">Naming the category &quot;QA OC Admin Access Check&quot; on 繁體 and ticking Override to: All languages.</span></li>
+              <li class="k-api"><span class="at">11.00s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">11.02s</span><span class="kind">STEP</span><span class="what">Uploading avatar.png as the category icon.</span></li>
+              <li class="k-api"><span class="at">11.32s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">13.61s</span><span class="kind">DATA</span><span class="what">API POST api/account/uploadImage answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057260,&quot;data&quot;:{&quot;filelink&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/6d190672cc02c9cbec71eed00297b13b.png&quot;}}</span></li>
+              <li class="k-step"><span class="at">13.92s</span><span class="kind">STEP</span><span class="what">Setting Status to Active (&quot;Do you want to display&quot; ticked).</span></li>
+              <li class="k-step"><span class="at">13.94s</span><span class="kind">STEP</span><span class="what">Setting Display order to &quot;90&quot;.</span></li>
+              <li class="k-step"><span class="at">14.00s</span><span class="kind">STEP</span><span class="what">Clicking Save &amp; manage games.</span></li>
+              <li class="k-step"><span class="at">14.07s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">15.11s</span><span class="kind">API</span><span class="what">POST api/account/game-category-features?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">15.15s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">15.24s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">15.24s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">15.40s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features/435/games?currency=HKD -&gt; 200</span></li>
+              <li class="k-console"><span class="at">15.40s</span><span class="kind">CONSOLE</span><span class="what">Uncaught page error: TypeError: data.map is not a function TypeError: data.map is not a function     at https://admin-test.1083.city/_nuxt/5be5134.js:1:8175</span></li>
+              <li class="k-api"><span class="at">15.44s</span><span class="kind">API</span><span class="what">GET api/account/game_business?paginate=100&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.49s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features/435?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.50s</span><span class="kind">API</span><span class="what">GET api/account/game?paginate=20&amp;page=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">15.51s</span><span class="kind">DATA</span><span class="what">API POST api/account/game-category-features answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057264,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:435,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Admin Access Check&quot;,&quot;en&quot;:&quot;QA OC Admin Access Check&quot;,&quot;es&quot;:&quot;QA OC Admin Access Check&quot;,&quot;id&quot;:&quot;QA OC Admin Access Check&quot;,&quot;ja&quot;:&quot;QA OC Admin Access Check&quot;,&quot;ms&quot;:&quot;QA OC Admin Access Check&quot;,&quot;pt&quot;:&quot;QA OC Admin Access Check&quot;,&quot;th&quot;:&quot;QA OC Admin Access Check&quot;,&quot;tl&quot;:&quot;QA OC Admin Access Check&quot;,&quot;vi&quot;:&quot;QA OC Admin Access Check&quot;,&quot;zh-CN&quot;:&quot;QA OC Admin Acce ...</span></li>
+              <li class="k-api"><span class="at">16.22s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">17.92s</span><span class="kind">DATA</span><span class="what">Game used = JILI (none of the workbook's examples [Horse Racing, Lucky Pick 3, Live Sports, Boxing Yes / No] was available in that state)</span></li>
+              <li class="k-step"><span class="at">17.93s</span><span class="kind">STEP</span><span class="what">Ticking &quot;JILI&quot; to select it.</span></li>
+              <li class="k-step"><span class="at">18.35s</span><span class="kind">STEP</span><span class="what">Opening Upload Game Banner for &quot;JILI&quot;.</span></li>
+              <li class="k-step"><span class="at">18.40s</span><span class="kind">STEP</span><span class="what">Choosing dog-4x3.jpg in Upload Game Banner.</span></li>
+              <li class="k-api"><span class="at">18.78s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">21.04s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">21.36s</span><span class="kind">STEP</span><span class="what">Clicking Save banner.</span></li>
+              <li class="k-step"><span class="at">23.55s</span><span class="kind">STEP</span><span class="what">Clicking Save assignments.</span></li>
+              <li class="k-api"><span class="at">23.84s</span><span class="kind">API</span><span class="what">PUT api/account/game-category-features/435/games?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">23.89s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">23.89s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">23.94s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">24.13s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">25.49s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">25.51s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">25.51s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">25.51s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">25.53s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">25.61s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">25.88s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">26.05s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.17s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.31s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.31s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.31s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.31s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">26.45s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.52s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.64s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.68s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">26.73s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">27.36s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">28.39s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">29.68s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">30.79s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">30.80s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">30.80s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">30.80s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.83s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.92s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">31.14s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">31.19s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">31.33s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.39s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">31.40s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">31.42s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">31.43s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">31.65s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.67s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.02s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.04s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.06s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">32.73s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">33.77s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">35.00s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">36.16s</span><span class="kind">STEP</span><span class="what">Clicking Modify on &quot;QA OC Admin Access Check&quot;.</span></li>
+              <li class="k-api"><span class="at">36.33s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">36.33s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">36.96s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">37.23s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features/435?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">37.36s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">38.07s</span><span class="kind">STEP</span><span class="what">Setting Display order to &quot;91&quot;.</span></li>
+              <li class="k-step"><span class="at">38.12s</span><span class="kind">STEP</span><span class="what">Clicking Save changes.</span></li>
+              <li class="k-step"><span class="at">38.17s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to modify?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">39.18s</span><span class="kind">API</span><span class="what">PUT api/account/game-category-features/435?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">39.23s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">39.23s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">39.33s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">39.40s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">39.69s</span><span class="kind">DATA</span><span class="what">API PUT api/account/game-category-features/435 answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057288,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:435,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Admin Access Check&quot;,&quot;en&quot;:&quot;QA OC Admin Access Check&quot;,&quot;es&quot;:&quot;QA OC Admin Access Check&quot;,&quot;id&quot;:&quot;QA OC Admin Access Check&quot;,&quot;ja&quot;:&quot;QA OC Admin Access Check&quot;,&quot;ms&quot;:&quot;QA OC Admin Access Check&quot;,&quot;pt&quot;:&quot;QA OC Admin Access Check&quot;,&quot;th&quot;:&quot;QA OC Admin Access Check&quot;,&quot;tl&quot;:&quot;QA OC Admin Access Check&quot;,&quot;vi&quot;:&quot;QA OC Admin Access Check&quot;,&quot;zh-CN&quot;:&quot;QA OC Admin A ...</span></li>
+              <li class="k-step"><span class="at">41.19s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">41.21s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">41.21s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">41.21s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">41.23s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">41.32s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">41.74s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">41.94s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.09s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.15s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.15s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.15s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.15s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.35s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.51s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.70s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.74s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.76s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">43.23s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">44.28s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">45.51s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">46.78s</span><span class="kind">STEP</span><span class="what">Clicking Delete on &quot;QA OC Admin Access Check&quot;.</span></li>
+              <li class="k-step"><span class="at">47.01s</span><span class="kind">STEP</span><span class="what">Clicking Confirm in the delete confirmation.</span></li>
+              <li class="k-api"><span class="at">47.53s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">47.92s</span><span class="kind">API</span><span class="what">DELETE api/account/game-category-features/435?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">48.10s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">48.57s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">48.59s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">48.59s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">48.59s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">48.61s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">48.68s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">48.85s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">48.90s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">49.01s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">49.05s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">49.05s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">49.05s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">49.09s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">49.21s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">49.28s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">49.44s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">49.50s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">49.52s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">50.32s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">51.35s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">52.61s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">53.73s</span><span class="kind">DATA</span><span class="what">Account under test = qa0001</span></li>
+              <li class="k-step"><span class="at">53.73s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/product/other-category/</span></li>
+              <li class="k-evidence"><span class="at">53.87s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-OtherCategoryTest-agentIsKeptOut" data-status="Fail" data-search="oc-acc-003 agentiskeptout agent role cannot access other category management going directly to https://admin-test.1083.city/product/other-category as agent should be redirected or refused, but it rendered the other category list at https://admin-test.1083.city/product/other-category/ ==&gt; expected: &lt;false&gt; but was: &lt;true&gt;">
+        <td class="id" id="OC-ACC-003">OC-ACC-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>agentIsKeptOut</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in as an Agent test account.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Check the side navigation for Product &gt; Other Category.</li><li>Attempt to navigate directly to the Other Category URL.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Agent test account.</li></ul><div class="src">Used in this run</div><ul class="tc-data used"><li><code>Account = qatest</code></li><li><code>Role under test = Agent (qatest)</code></li><li><code>Agent at https://admin-test.1083.city/product/other-category = landed on https://admin-test.1083.city/product/other-category/</code></li></ul></td>
+        <td>Agent role cannot access Other Category management</td>
+        <td><div class="why">Going directly to https://admin-test.1083.city/product/other-category as Agent should be redirected or refused, but it rendered the Other Category list at https://admin-test.1083.city/product/other-category/ ==&gt; expected: &lt;false&gt; but was: &lt;true&gt;</div></td>
+        <td><span class="st fail">Fail</span><div class="secs">12.62s</div></td>
+        <td><b>Cause:</b> The application produced a different result from the one the case asserts.<br><code>org.sengmean.tests.product.OtherCategoryTest.assertOutOfReach(OtherCategoryTest.java:524)</code></td>
+        <td><a class="shot" href="screenshots/OtherCategoryTest.agentIsKeptOut.png" target="_blank" rel="noopener"><img src="screenshots/OtherCategoryTest.agentIsKeptOut.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Fail">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>OC-ACC-003</dd>
+                <dt>Method</dt><dd>OtherCategoryTest#agentIsKeptOut</dd>
+                <dt>Group</dt><dd>7. Access control (AccessControl)</dd>
+                <dt>Pre-condition</dt><dd>Logged in as an Agent test account.</dd>
+                <dt>Expected result</dt><dd>Agent role cannot access Other Category management</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Fail in 12.62s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The failure</h3>
+              <dl>
+                <dt>Exception</dt><dd>org.opentest4j.AssertionFailedError</dd>
+                <dt>Message</dt><dd>Going directly to https://admin-test.1083.city/product/other-category as Agent should be redirected or refused, but it rendered the Other Category list at https://admin-test.1083.city/product/other-category/ ==&gt; expected: &lt;false&gt; but was: &lt;true&gt;</dd>
+                <dt>Asserted</dt><dd><div class="cmp"><div><span>expected</span><code>false</code></div><div><span>actual</span><code>true</code></div></div></dd>
+                <dt>Where in this project</dt><dd><div class="frames"><code>org.sengmean.tests.product.OtherCategoryTest.assertOutOfReach(OtherCategoryTest.java:524)</code><code>org.sengmean.tests.product.OtherCategoryTest$AccessControl.agentIsKeptOut(OtherCategoryTest.java:608)</code></div></dd>
+                <dt>Reading</dt><dd>The application produced a different result from the one the case asserts.</dd>
+              </dl>
+              <details class="trace"><summary>Full stack trace</summary><pre>org.opentest4j.AssertionFailedError: Going directly to https://admin-test.1083.city/product/other-category as Agent should be redirected or refused, but it rendered the Other Category list at https://admin-test.1083.city/product/other-category/ ==&gt; expected: &lt;false&gt; but was: &lt;true&gt;
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertFalse.failNotFalse(AssertFalse.java:63)
+	at org.junit.jupiter.api.AssertFalse.assertFalse(AssertFalse.java:36)
+	at org.junit.jupiter.api.Assertions.assertFalse(Assertions.java:239)
+	at org.sengmean.tests.product.OtherCategoryTest.assertOutOfReach(OtherCategoryTest.java:524)
+	at org.sengmean.tests.product.OtherCategoryTest$AccessControl.agentIsKeptOut(OtherCategoryTest.java:608)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:565)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1604)
+</pre></details>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(65 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: OC-ACC-003: Agent role cannot access Other Category management</span></li>
+              <li class="k-api"><span class="at">0.24s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.32s</span><span class="kind">NAV</span><span class="what">Tab opened: about:blank</span></li>
+              <li class="k-step"><span class="at">0.32s</span><span class="kind">STEP</span><span class="what">Signing in to the back office at https://admin-test.1083.city/</span></li>
+              <li class="k-api"><span class="at">0.62s</span><span class="kind">API</span><span class="what">GET login -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.63s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/login/ -&gt; 307</span></li>
+              <li class="k-api"><span class="at">0.74s</span><span class="kind">API</span><span class="what">GET login/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.05s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.10s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.46s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.46s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.46s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.46s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-nav"><span class="at">1.57s</span><span class="kind">NAV</span><span class="what">Loaded login/</span></li>
+              <li class="k-api"><span class="at">1.67s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.93s</span><span class="kind">API</span><span class="what">GET api/captcha?currency= -&gt; 200</span></li>
+              <li class="k-api"><span class="at">2.02s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">2.44s</span><span class="kind">DATA</span><span class="what">Account = qatest</span></li>
+              <li class="k-step"><span class="at">2.48s</span><span class="kind">STEP</span><span class="what">Submitting the back office sign-in form.</span></li>
+              <li class="k-api"><span class="at">2.96s</span><span class="kind">API</span><span class="what">POST api/account/login -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.17s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.22s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">3.22s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">3.31s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency= -&gt; 200</span></li>
+              <li class="k-check"><span class="at">3.36s</span><span class="kind">CHECK</span><span class="what">Signed in: the header names qatest.</span></li>
+              <li class="k-api"><span class="at">3.45s</span><span class="kind">API</span><span class="what">GET api/account/check-work-status?op=login -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.52s</span><span class="kind">API</span><span class="what">GET api/app-info?currency= -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.55s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency= -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.70s</span><span class="kind">API</span><span class="what">GET api/account/user-profile?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.72s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency= -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.73s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=memberTotal&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.91s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=todayAdjustInValue&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.94s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=todayDeposit&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.95s</span><span class="kind">API</span><span class="what">GET api/account/home/win_lose_report_chart?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.95s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=todayRegisterUser&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.96s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=loginUser&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.97s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=systemQuota&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.00s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=todayActiveTotal&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.01s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=todayWithdraw&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.01s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=todayAdjustOutValue&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.07s</span><span class="kind">API</span><span class="what">GET api/account/home/transaction_report_chart?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.07s</span><span class="kind">API</span><span class="what">GET api/captcha?currency= -&gt; 200</span></li>
+              <li class="k-data"><span class="at">6.37s</span><span class="kind">DATA</span><span class="what">Role under test = Agent (qatest)</span></li>
+              <li class="k-check"><span class="at">6.37s</span><span class="kind">CHECK</span><span class="what">Other Category in the menu for Agent: false</span></li>
+              <li class="k-api"><span class="at">6.46s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">6.47s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 307</span></li>
+              <li class="k-api"><span class="at">6.57s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.58s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.64s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">6.84s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">6.89s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">7.00s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.03s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">7.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">7.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">7.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">7.18s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.26s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.34s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.35s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.38s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-data"><span class="at">8.38s</span><span class="kind">DATA</span><span class="what">Agent at https://admin-test.1083.city/product/other-category = landed on https://admin-test.1083.city/product/other-category/</span></li>
+              <li class="k-step"><span class="at">8.40s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/product/other-category/</span></li>
+              <li class="k-evidence"><span class="at">8.52s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-OtherCategoryTest-ordinaryUserIsKeptOut" data-status="Pass" data-search="oc-acc-004 ordinaryuseriskeptout ordinary user cannot access other category management">
+        <td class="id" id="OC-ACC-004">OC-ACC-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>ordinaryUserIsKeptOut</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in as an ordinary user test account.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Repeat OC-ACC-003's steps for the user role.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>User test account.</li></ul><div class="src">Used in this run</div><ul class="tc-data used"><li><code>Account = qa000092</code></li><li><code>Ordinary user (qa000092) at sign-in = The back office refused the sign-in: &quot;Wrong password for more than 3 times, please contact Customer Service&quot;</code></li></ul></td>
+        <td>Ordinary user cannot access Other Category management</td>
+        <td>The application behaved as expected.<div class="secs">23 events recorded, ended on <code>https://admin-test.1083.city/product/other-category/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">7.67s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/OtherCategoryTest.ordinaryUserIsKeptOut.png" target="_blank" rel="noopener"><img src="screenshots/OtherCategoryTest.ordinaryUserIsKeptOut.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>OC-ACC-004</dd>
+                <dt>Method</dt><dd>OtherCategoryTest#ordinaryUserIsKeptOut</dd>
+                <dt>Group</dt><dd>7. Access control (AccessControl)</dd>
+                <dt>Pre-condition</dt><dd>Logged in as an ordinary user test account.</dd>
+                <dt>Expected result</dt><dd>Ordinary user cannot access Other Category management</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 7.67s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Ordinary user cannot access Other Category management</dd>
+                <dt>Duration</dt><dd>7.67 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(23 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: OC-ACC-004: Ordinary user cannot access Other Category management</span></li>
+              <li class="k-nav"><span class="at">0.19s</span><span class="kind">NAV</span><span class="what">Tab opened: about:blank</span></li>
+              <li class="k-step"><span class="at">0.19s</span><span class="kind">STEP</span><span class="what">Signing in to the back office at https://admin-test.1083.city/</span></li>
+              <li class="k-api"><span class="at">0.41s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.67s</span><span class="kind">API</span><span class="what">GET login -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.69s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/login/ -&gt; 307</span></li>
+              <li class="k-api"><span class="at">0.81s</span><span class="kind">API</span><span class="what">GET login/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.18s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.41s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.87s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.99s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.99s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.99s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.99s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-nav"><span class="at">2.21s</span><span class="kind">NAV</span><span class="what">Loaded login/</span></li>
+              <li class="k-api"><span class="at">2.29s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">2.62s</span><span class="kind">API</span><span class="what">GET api/captcha?currency= -&gt; 200</span></li>
+              <li class="k-data"><span class="at">3.12s</span><span class="kind">DATA</span><span class="what">Account = qa000092</span></li>
+              <li class="k-step"><span class="at">3.16s</span><span class="kind">STEP</span><span class="what">Submitting the back office sign-in form.</span></li>
+              <li class="k-api"><span class="at">3.39s</span><span class="kind">API</span><span class="what">POST api/account/login -&gt; 200</span></li>
+              <li class="k-data"><span class="at">3.48s</span><span class="kind">DATA</span><span class="what">Ordinary user (qa000092) at sign-in = The back office refused the sign-in: &quot;Wrong password for more than 3 times, please contact Customer Service&quot;</span></li>
+              <li class="k-step"><span class="at">3.48s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/product/other-category/</span></li>
+              <li class="k-evidence"><span class="at">3.61s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-OtherCategoryTest-deepLinksAreRefused" data-status="Skipped" data-search="oc-acc-005 deeplinksarerefused direct deep-link to create/edit/manage games urls without the proper role the fixture category &quot;qa oc popular games&quot; could not be created, so this row has nothing to act on. run oc-crt-001 on its own - it drives the same form and reports why create refused.">
+        <td class="id" id="OC-ACC-005">OC-ACC-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>deepLinksAreRefused</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in as a role without Other Category admin rights.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Obtain the Create, Edit, or Manage Games screen's URL from a Super Admin session.</li><li>Paste it directly into a browser logged in as a lower-privileged role.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Direct URL to the Create Other Category screen.</li></ul><div class="src">Used in this run</div><ul class="tc-data used"><li><code>API POST api/account/uploadImage answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057372,&quot;data&quot;:{&quot;filelink&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/980109ae7e97968cac22a96db6c2390f.png&quot;}}</code></li><li><code>API POST api/account/game-category-features answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057381,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:436,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Popular Games [Bengali]&quot;,&quot;en&quot;:&quot;QA OC Popular Games&quot;,&quot;es&quot;:&quot;QA OC Juegos populares&quot;,&quot;id&quot;:&quot;QA OC Popular Games [Indonesia]&quot;,&quot;ja&quot;:&quot;QA OC Popular Games [日語]&quot;,&quot;ms&quot;:&quot;QA OC Popular Games [Malaysia]&quot;,&quot;pt&quot;:&quot;QA OC Popular Games [Portuguese]&quot;,&quot;th&quot;:&quot;QA OC Popular Games [ภาษาไทย]&quot;,&quot;tl&quot;:&quot;QA OC Popular Games [Filipino]&quot;,&quot;vi&quot;:&quot;QA OC Popular Games [Vietnam]&quot;,&quot;zh-CN&quot;:&quot;QA OC Popular Games [简体]&quot;,&quot;zh-TW&quot;:&quot;QA OC 熱門遊戲&quot;},&quot;icon&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/980109ae7e97968cac22a96db6c2390f.png&quot;,&quot;channelId&quot;:1,&quot;sort&quot;:5,&quot;isActive&quot;:true,&quot;createdAt&quot;:&quot;2026-10-15T09:43:00.866Z&quot;,&quot;updatedAt&quot;:null,&quot;deletedAt&quot;:null}}}</code></li></ul></td>
+        <td>Direct deep-link to Create/Edit/Manage Games URLs without the proper role</td>
+        <td>The fixture category &quot;QA OC Popular Games&quot; could not be created, so this row has nothing to act on. Run OC-CRT-001 on its own - it drives the same form and reports why Create refused.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">64.82s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>OC-ACC-005</dd>
+                <dt>Method</dt><dd>OtherCategoryTest#deepLinksAreRefused</dd>
+                <dt>Group</dt><dd>7. Access control (AccessControl)</dd>
+                <dt>Pre-condition</dt><dd>Logged in as a role without Other Category admin rights.</dd>
+                <dt>Expected result</dt><dd>Direct deep-link to Create/Edit/Manage Games URLs without the proper role</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 64.82s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>The fixture category &quot;QA OC Popular Games&quot; could not be created, so this row has nothing to act on. Run OC-CRT-001 on its own - it drives the same form and reports why Create refused.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(101 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: OC-ACC-005: Direct deep-link to Create/Edit/Manage Games URLs without the proper role</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Clicking Add category.</span></li>
+              <li class="k-api"><span class="at">0.18s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.38s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.38s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.46s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">0.75s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">0.76s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.77s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.77s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.79s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.84s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">1.03s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">1.09s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.20s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.25s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.25s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.25s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.25s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">1.40s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.47s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.64s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.64s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.68s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">2.52s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">3.56s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">5.21s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">6.01s</span><span class="kind">STEP</span><span class="what">Creating the fixture category &quot;QA OC Popular Games&quot;.</span></li>
+              <li class="k-step"><span class="at">6.01s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">6.02s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">6.02s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">6.02s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.04s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.10s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">6.30s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">6.49s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">6.57s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">6.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">6.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">6.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">6.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">7.00s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.11s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.29s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.33s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">7.39s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">7.75s</span><span class="kind">STEP</span><span class="what">Setting the list's language filter to English.</span></li>
+              <li class="k-step"><span class="at">8.80s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">10.17s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">11.89s</span><span class="kind">STEP</span><span class="what">Clicking Add category.</span></li>
+              <li class="k-api"><span class="at">13.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">13.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.39s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">15.67s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">16.31s</span><span class="kind">STEP</span><span class="what">Filling the category name on every language tab.</span></li>
+              <li class="k-api"><span class="at">17.84s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">23.05s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">27.26s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.10s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">37.48s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">39.79s</span><span class="kind">STEP</span><span class="what">Uploading avatar.png as the category icon.</span></li>
+              <li class="k-api"><span class="at">40.11s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.24s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">43.42s</span><span class="kind">DATA</span><span class="what">API POST api/account/uploadImage answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057372,&quot;data&quot;:{&quot;filelink&quot;:&quot;https://storage.googleapis.com/umpay-singapore/game-listing/images/980109ae7e97968cac22a96db6c2390f.png&quot;}}</span></li>
+              <li class="k-step"><span class="at">43.72s</span><span class="kind">STEP</span><span class="what">Setting Status to Active (&quot;Do you want to display&quot; ticked).</span></li>
+              <li class="k-step"><span class="at">43.75s</span><span class="kind">STEP</span><span class="what">Setting Display order to &quot;05&quot;.</span></li>
+              <li class="k-step"><span class="at">43.80s</span><span class="kind">STEP</span><span class="what">Clicking Save &amp; manage games.</span></li>
+              <li class="k-step"><span class="at">45.55s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">47.14s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">49.06s</span><span class="kind">API</span><span class="what">POST api/account/game-category-features?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">49.08s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">49.10s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">49.10s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">50.75s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features/436/games?currency=HKD -&gt; 200</span></li>
+              <li class="k-console"><span class="at">50.75s</span><span class="kind">CONSOLE</span><span class="what">Uncaught page error: TypeError: data.map is not a function TypeError: data.map is not a function     at https://admin-test.1083.city/_nuxt/5be5134.js:1:8175</span></li>
+              <li class="k-data"><span class="at">50.87s</span><span class="kind">DATA</span><span class="what">API POST api/account/game-category-features answered = {&quot;status&quot;:200,&quot;message&quot;:&quot;OK&quot;,&quot;timestamp&quot;:1792057381,&quot;data&quot;:{&quot;gameCategoryFeature&quot;:{&quot;id&quot;:436,&quot;name&quot;:{&quot;bn&quot;:&quot;QA OC Popular Games [Bengali]&quot;,&quot;en&quot;:&quot;QA OC Popular Games&quot;,&quot;es&quot;:&quot;QA OC Juegos populares&quot;,&quot;id&quot;:&quot;QA OC Popular Games [Indonesia]&quot;,&quot;ja&quot;:&quot;QA OC Popular Games [日語]&quot;,&quot;ms&quot;:&quot;QA OC Popular Games [Malaysia]&quot;,&quot;pt&quot;:&quot;QA OC Popular Games [Portuguese]&quot;,&quot;th&quot;:&quot;QA OC Popular Games [ภาษาไทย]&quot;,&quot;tl&quot;:&quot;QA OC Popular Games [Filipino]&quot;,&quot;vi&quot;:&quot;QA OC Popular Games [ ...</span></li>
+              <li class="k-api"><span class="at">50.98s</span><span class="kind">API</span><span class="what">GET api/account/game?paginate=20&amp;page=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">51.12s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features/436?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">51.13s</span><span class="kind">API</span><span class="what">GET api/account/game_business?paginate=100&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.51s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">53.20s</span><span class="kind">STEP</span><span class="what">Opening Product &gt; Other Category.</span></li>
+              <li class="k-api"><span class="at">53.22s</span><span class="kind">API</span><span class="what">GET product/other-category -&gt; 301</span></li>
+              <li class="k-api"><span class="at">53.22s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/product/other-category/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">53.23s</span><span class="kind">API</span><span class="what">GET product/other-category/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">53.24s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v4bc70e2c01a94c73b74392e4234840661791215815920 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">53.50s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">54.30s</span><span class="kind">NAV</span><span class="what">Loaded product/other-category/</span></li>
+              <li class="k-api"><span class="at">54.54s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">54.56s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">56.02s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">56.24s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">56.24s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">56.24s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">56.84s</span><span class="kind">STEP</span><span class="what">Setting the list to 200 per page.</span></li>
+              <li class="k-api"><span class="at">57.07s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">57.07s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">57.17s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">57.54s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">57.92s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">58.14s</span><span class="kind">API</span><span class="what">GET api/account/game-category-features?page=1&amp;pageSize=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">60.88s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <h2 class="section">How to read this report</h2>
+  <div class="callout">
+    <p><b>Status</b> is what the run did, not a verdict on the application. A
+    <span class="st fail">Fail</span> on a case badged <code>known-defect</code> is the
+    expected outcome: those cases assert the behaviour the application <i>should</i>
+    have and stay red until the finding is fixed.</p>
+    <p><b>Not run</b> means the case exists in the suite but produced no result, normally
+    because it was filtered out with <code>-DexcludedGroups=creates-data</code>, which
+    keeps cases with real-world side effects - a registered account, a real SMS, a filed
+    deposit, a withdrawal hold, a staked casino bet - out of an unattended run.</p>
+    <p><b>Evidence</b> is the screenshot of the page as the case left it - captured for every
+    case that ran, passed or failed, just before teardown closed the browser. A
+    skipped case never ran, so it has none. Click an image for the full size.</p>
+    <p><b>Details</b>, on every row, opens what would not fit in the table: the case as its
+    source declares it, the diagnosis of a failure - exception, expected against actual,
+    the element that could not be resolved, the lines of this project involved, and the
+    full stack trace - and, for every row alike, the run's own record of what the browser
+    did.</p>
+    <p><b>What the run did</b> is that record. It is captured automatically while the case
+    runs: <code>NAV</code> for a page load or a new tab, <code>API</code> for a call the
+    site made of its own back end with the status it came back with, <code>NETWORK</code>
+    for one that came back 4xx or 5xx, <code>CONSOLE</code> for a console or uncaught
+    error, <code>EVIDENCE</code> for a screenshot, and <code>STEP</code>,
+    <code>CHECK</code> and <code>DATA</code> for what the case itself narrated. A passing
+    row carries one too, deliberately: a green result is a claim, and this is the working
+    behind it.</p>
+  </div>
+  <footer>Generated by <code>org.sengmean.report.HtmlReportGenerator</code> from the test sources, the run's results, its step logs and its screenshots. Rewritten at the end of every run by <code>HtmlReportListener</code>.</footer>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <img id="lightbox-img" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+  <div class="hint">Click anywhere, or press Escape, to close</div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var cap = document.getElementById('lightbox-cap');
+  function open(src, caption) {
+    img.setAttribute('src', src);
+    img.setAttribute('alt', caption || '');
+    cap.textContent = caption || '';
+    box.classList.add('open');
+  }
+  function close() {
+    box.classList.remove('open');
+    img.removeAttribute('src');
+  }
+  document.addEventListener('click', function (e) {
+    // Both the Evidence column's images and the ones shown inline against a trail
+    // line. The inline ones were left out when they were added, so they fell
+    // through to target="_blank" and every capture opened a new tab - fifty-two of
+    // them if a reader worked down the transfer walk.
+    var link = e.target.closest ? e.target.closest('a.shot, a.step-shot') : null;
+    if (link) {
+      // Only take over the plain click - a modified click still opens the file
+      // in a tab, which is what someone reaching for that expects.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+      e.preventDefault();
+      var inner = link.querySelector('img');
+      open(link.getAttribute('href'), inner ? inner.getAttribute('alt') : '');
+    } else if (box.classList.contains('open')) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { close(); }
+  });
+})();
+</script>
+<script>
+(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.case'));
+  var shown = document.getElementById('shown');
+  var search = document.getElementById('q');
+  var expandAll = document.getElementById('expand-all');
+  var filter = 'all';
+  var query = '';
+
+  function panelOf(row) {
+    var next = row.nextElementSibling;
+    return next && next.classList.contains('detail') ? next : null;
+  }
+
+  function matches(row) {
+    if (filter !== 'all' && row.getAttribute('data-status') !== filter) { return false; }
+    if (query === '') { return true; }
+    return (row.getAttribute('data-search') || '').indexOf(query) >= 0;
+  }
+
+  function apply() {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var ok = matches(row);
+      if (ok) { visible++; }
+      row.classList.toggle('hide', !ok);
+      var panel = panelOf(row);
+      if (panel) { panel.classList.toggle('hide', !ok || !row.classList.contains('open')); }
+    });
+    // A group whose every case is filtered out is hidden with its heading, so the
+    // page does not end in a run of empty tables under numbered titles.
+    Array.prototype.forEach.call(document.querySelectorAll('section.grp'), function (grp) {
+      var any = grp.querySelector('tr.case:not(.hide)');
+      grp.classList.toggle('hide', !any);
+    });
+    if (shown) {
+      shown.textContent = visible + ' of ' + rows.length + ' cases';
+    }
+  }
+
+  function open(row, wanted) {
+    var panel = panelOf(row);
+    if (!panel) { return; }
+    var isOpen = wanted === undefined ? !row.classList.contains('open') : wanted;
+    row.classList.toggle('open', isOpen);
+    panel.classList.toggle('hide', !isOpen);
+    var button = row.querySelector('button.more');
+    if (button) { button.setAttribute('aria-expanded', isOpen ? 'true' : 'false'); }
+  }
+
+  document.addEventListener('click', function (e) {
+    var more = e.target.closest ? e.target.closest('button.more') : null;
+    if (more) {
+      open(more.closest('tr.case'));
+      return;
+    }
+    var flt = e.target.closest ? e.target.closest('button.flt[data-filter]') : null;
+    if (flt) {
+      filter = flt.getAttribute('data-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('button.flt[data-filter]'),
+        function (b) { b.classList.toggle('on', b === flt); });
+      apply();
+    }
+  });
+
+  if (search) {
+    search.addEventListener('input', function () {
+      query = search.value.trim().toLowerCase();
+      apply();
+    });
+  }
+
+  if (expandAll) {
+    expandAll.addEventListener('click', function () {
+      var opening = expandAll.getAttribute('data-open') !== 'yes';
+      expandAll.setAttribute('data-open', opening ? 'yes' : 'no');
+      expandAll.textContent = opening ? 'Collapse all details' : 'Expand all details';
+      rows.forEach(function (row) { if (!row.classList.contains('hide')) { open(row, opening); } });
+    });
+  }
+
+  function openFromHash() {
+    if (!window.location.hash) { return; }
+    var target = document.getElementById(window.location.hash.slice(1));
+    if (!target) { return; }
+    // The hash may name either anchor a row carries: the internal
+    // case-<suite>-<method>, which the findings list links to, or the case
+    // id itself - "#HOME-002" - which is what the client test case sheet's
+    // per-row links use. The id sits on a <td>, so resolve upwards to the
+    // row rather than testing the target: without this the browser scrolls
+    // to the right place and leaves the details shut, which reads as a link
+    // that landed on the wrong thing.
+    var row = target.classList.contains('case')
+      ? target
+      : (target.closest ? target.closest('tr.case') : null);
+    if (row) {
+      open(row, true);
+      row.classList.add('flash');
+      row.scrollIntoView({ block: 'center' });
+    }
+  }
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();
+  apply();
+})();
+</script>
+  <div id="tip" role="tooltip"></div>
+  <script>
+  (function(){
+    var sum=document.querySelector('details.rpt-sum');
+    var KEY='admin-weibo-summary-open';
+    if(sum){
+      try{var v=localStorage.getItem(KEY);if(v!==null){sum.open=v==='1';}}catch(e){}
+      sum.addEventListener('toggle',function(){try{localStorage.setItem(KEY,sum.open?'1':'0');}catch(e){}});
+    }
+    var tip=document.getElementById('tip');
+    function show(el,x,y){tip.textContent=el.getAttribute('data-tip');tip.style.display='block';
+      var w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(x+12,window.innerWidth-w-8))+'px';tip.style.top=(y+14)+'px';}
+    function hide(){tip.style.display='none';}
+    document.addEventListener('mousemove',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){show(el,e.clientX,e.clientY);}else{hide();}});
+    document.addEventListener('focusin',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){var r=el.getBoundingClientRect();show(el,r.left,r.bottom);}});
+    document.addEventListener('focusout',hide);
+  })();
+  </script>
+</div>
+</body>
+</html>

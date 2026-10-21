@@ -1,0 +1,1311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notification - seed data - test case report</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2230; --muted:#5b6676;
+    --line:#e2e7ef; --head:#26314a; --headink:#ffffff;
+    --pass:#137a43; --pass-bg:#e6f5ec;
+    --fail:#b02525; --fail-bg:#fdecec;
+    --partial:#9a6a00; --partial-bg:#fdf3dd;
+    --info:#1f6a9c; --info-bg:#e6f1f9;
+    --accent:#c79a2f;                  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:32px 18px}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.rpt{background:var(--head);color:var(--headink);border-radius:14px;padding:26px 30px;
+    box-shadow:0 6px 20px rgba(20,30,50,.12)}
+  header.rpt h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header.rpt .sub{opacity:.85;font-size:14px}
+  header.rpt code{background:rgba(255,255,255,.14);color:inherit}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px;font-size:13.5px}
+  .meta b{color:var(--accent)}
+  .tally{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:14px;font-weight:600}
+  /* The run at a glance. Proportional segments, so the shape of a result is
+     readable before any of the five numbers above it has been read. */
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:12px;
+    background:rgba(255,255,255,.16)}
+  .bar .seg{display:block;height:100%}
+  .bar .seg.pass{background:#3ddc84}
+  .bar .seg.fail{background:#ff6b6b}
+  .bar .seg.skip{background:#ffcc66}
+  .bar .seg.notrun{background:#8fa3bf}
+  .rate{margin-top:8px;font-size:12.5px;opacity:.85}
+  /* The same bar in a table cell, where the ground is white rather than the
+     header's navy, so the empty track has to be redrawn to stay visible. */
+  .bar.mini{width:150px;height:8px;margin:0;background:var(--line)}
+  td.minibar{width:170px}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 4px}
+  .toolbar .filters{display:flex;flex-wrap:wrap;gap:6px}
+  button.flt{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+  button.flt:hover{color:var(--ink);border-color:var(--muted)}
+  button.flt.on{background:var(--head);border-color:var(--head);color:#fff}
+  .toolbar input[type=search]{font:inherit;font-size:13px;padding:7px 12px;flex:1 1 220px;
+    min-width:180px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    color:var(--ink)}
+  .toolbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hide{display:none !important}
+  .callout.bad{border-left-color:var(--fail)}
+  ol.findings{margin:0;padding-left:20px}
+  ol.findings li{margin-bottom:10px}
+  ol.findings a{color:var(--fail);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;text-decoration:none}
+  ol.findings a:hover{text-decoration:underline}
+  .tag.known{background:var(--fail-bg);color:var(--fail)}
+  /* The detail panel under a row. It is a second <tr> rather than a nested table
+     so the seven columns stay aligned across every group on the page. */
+  button.more{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;margin-right:7px;
+    border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);cursor:pointer;vertical-align:middle}
+  button.more:hover{color:var(--ink);border-color:var(--muted)}
+  button.more::before{content:"\25B8 "}
+  tr.case.open button.more::before{content:"\25BE "}
+  tr.case.open>td{background:#f2f6fd}
+  tr.case.flash>td{animation:flash 1.4s ease-out}
+  @keyframes flash{from{background:#fdf3dd}to{background:transparent}}
+  tr.detail>td{background:#f7f9fc;border-top:0;padding:0 13px 18px}
+  .panels{display:flex;flex-wrap:wrap;gap:14px}
+  .panel{flex:1 1 340px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.wide{flex-basis:100%;margin-top:14px}
+  .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .panel dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+  .panel dt{color:var(--muted);font-weight:600}
+  .panel dd{margin:0;word-break:break-word}
+  .panel p{font-size:13px;margin:10px 0 0}
+  .cmp{display:grid;gap:6px}
+  .cmp>div{display:flex;gap:8px;align-items:baseline}
+  .cmp span{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);min-width:58px}
+  .cmp code{white-space:pre-wrap;word-break:break-word}
+  .cmp>div:first-child code{background:var(--pass-bg);color:var(--pass)}
+  .cmp>div:last-child code{background:var(--fail-bg);color:var(--fail)}
+  .frames{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  details.trace{margin-top:12px;font-size:12.5px}
+  details.trace>summary{cursor:pointer;color:var(--muted)}
+  details.trace pre{margin:8px 0 0;padding:12px;background:#f4f6fa;border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.45;max-height:340px}
+  /* The step trail. Kinds are badges rather than prose because they are what makes
+     it scannable - red for the network and console lines a failure hangs off. */
+  ol.steps{margin:0;padding:0;list-style:none;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  ol.steps li{display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line);
+    align-items:baseline}
+  ol.steps li:first-child{border-top:0}
+  ol.steps .at{color:var(--muted);min-width:52px;text-align:right;font-size:11.5px}
+  ol.steps .kind{min-width:74px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    padding:2px 7px;border-radius:4px;text-align:center;background:#eef1f6;color:var(--muted)}
+  ol.steps .what{flex:1;word-break:break-word;white-space:pre-wrap}
+  /* A capture shown against the trail line that describes it. Kept small so a
+     case with fifty-two of them still scrolls as a trail rather than a gallery,
+     and clickable so the full-size image is one click away. align-self:flex-start
+     stops a tall thumbnail stretching a short line's row. */
+  ol.steps .step-shot{flex:0 0 auto;align-self:flex-start;line-height:0;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  ol.steps .step-shot img{display:block;width:180px;height:auto}
+  ol.steps li.k-evidence{align-items:flex-start}
+  @media (max-width:900px){ol.steps .step-shot img{width:120px}}
+  ol.steps li.k-step .kind{background:var(--info-bg);color:var(--info)}
+  ol.steps li.k-check .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-data .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-network .kind,ol.steps li.k-console .kind{background:var(--fail-bg);color:var(--fail)}
+  ol.steps li.k-network .what,ol.steps li.k-console .what{color:var(--fail)}
+  /* A line the case declared FAIL. Tinted across the whole row rather than only
+     the text, so it is findable while scrolling a trail of a hundred lines, and
+     given a left rule so it still reads as failed without relying on colour. */
+  ol.steps li.failed{background:var(--fail-bg);
+    box-shadow:inset 3px 0 0 var(--fail);padding-left:7px}
+  ol.steps li.failed .what{color:var(--fail);font-weight:600}
+  ol.steps li.failed .kind{background:var(--fail);color:#fff}
+  ol.steps li.k-evidence .kind{background:var(--partial-bg);color:var(--partial)}
+  .nav{margin:18px 0 0;font-size:13.5px}
+  .nav a{color:var(--info);text-decoration:none}
+  .nav a:hover{text-decoration:underline}
+  .callout{background:var(--card);border-left:5px solid var(--accent);border-radius:10px;
+    padding:16px 20px;margin:22px 0;box-shadow:0 2px 8px rgba(20,30,50,.06);font-size:14px}
+  .callout h2{margin:0 0 8px;font-size:16px}
+  .callout p{margin:0 0 10px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--partial)}
+  h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  /* The index's package sections: heading, the package name beside it, then its tally. */
+  h2.section .pkg-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    font-weight:500;color:var(--muted);margin-left:8px}
+  .pkg-tally{display:flex;align-items:center;gap:12px;margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+  .pkg-tally .bar.mini{width:160px;flex:0 0 160px}
+  h3.pkg-findings{font-size:14px;margin:14px 0 4px}
+  h3.pkg-findings a{color:inherit}
+  .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
+  thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
+    font-weight:600;white-space:nowrap}
+  tbody td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;
+    overflow-wrap:break-word}
+  /* Fixed column widths on the case tables, because automatic layout shares the
+     width out by content and one long cell then starves the rest: a remark
+     carrying a two-sentence reading of a failure took 792 of 1565 pixels and left
+     the Actual result column at 103, wrapping its message one word per line. It
+     also stops the full-width detail row from widening the whole table, which was
+     pushing the failure panel off the right of the page. */
+  table.cases{table-layout:fixed;min-width:1600px}
+  table.cases th:nth-child(1),table.cases td:nth-child(1){width:6%}
+  table.cases th:nth-child(2),table.cases td:nth-child(2){width:10%}
+  table.cases th:nth-child(3),table.cases td:nth-child(3){width:12%}
+  table.cases th:nth-child(4),table.cases td:nth-child(4){width:14%}
+  table.cases th:nth-child(5),table.cases td:nth-child(5){width:10%}
+  table.cases th:nth-child(6),table.cases td:nth-child(6){width:11%}
+  table.cases th:nth-child(7),table.cases td:nth-child(7){width:11%}
+  table.cases th:nth-child(8),table.cases td:nth-child(8){width:6%}
+  table.cases th:nth-child(9),table.cases td:nth-child(9){width:10%}
+  table.cases th:nth-child(10),table.cases td:nth-child(10){width:10%}
+  table.cases tr.detail>td{width:auto}
+  /* Pre-condition, Test steps and Test data: the client workbook's own wording, with the values
+     the run actually used listed under the sheet's. */
+  .tc-pre{font-size:12.5px;white-space:pre-wrap}
+  ol.tc-steps{margin:0;padding-left:18px;font-size:12.5px}
+  ol.tc-steps li{margin:0 0 3px}
+  ul.tc-data{margin:0;padding-left:16px;font-size:12.5px}
+  ul.tc-data li{margin:0 0 3px;overflow-wrap:anywhere}
+  ul.tc-data.used code{font-size:11.5px;white-space:normal}
+  td.tsteps .src,td.tdata .src{margin:6px 0 3px;font-size:10.5px;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  /* The sheet ids run from HOME-001 to HKDWITHDRAWAL-012, and a fixed column
+     clips what it cannot fit: the longer ones were cut mid-word with no sign
+     that anything was missing. They wrap here rather than truncate. */
+  table.cases td.id{white-space:normal;overflow-wrap:anywhere}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td.tc{font-weight:600}
+  td.tc a{color:var(--ink)}
+  td.id{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);
+    font-size:12.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .why{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--fail);
+    white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted)}
+  .secs{margin-top:6px;font-size:11.5px;color:var(--muted)}
+  .tag{display:inline-block;margin-top:6px;margin-right:4px;padding:1px 7px;border-radius:4px;
+    background:#eef1f6;color:var(--muted);font-size:11px;font-weight:600;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .st{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;
+    white-space:nowrap}
+  .st.pass{color:var(--pass);background:var(--pass-bg)}
+  .st.fail{color:var(--fail);background:var(--fail-bg)}
+  .st.partial{color:var(--partial);background:var(--partial-bg)}
+  .st.info{color:var(--info);background:var(--info-bg)}
+  details.shots{max-width:100%}
+  details.shots>summary{cursor:pointer;font-size:12.5px;color:var(--muted);
+    padding:5px 9px;border:1px solid var(--line);border-radius:999px;
+    display:inline-block;list-style:none;user-select:none}
+  details.shots>summary::-webkit-details-marker{display:none}
+  details.shots>summary::before{content:"\25B8 ";color:var(--muted)}
+  details.shots[open]>summary::before{content:"\25BE "}
+  details.shots>summary:hover{color:var(--ink);border-color:var(--muted)}
+  details.shots[open]>summary{margin-bottom:8px}
+  a.shot{display:inline-block;margin:0 6px 6px 0;position:relative;cursor:zoom-in}
+  a.shot img{width:100%;max-width:260px;border:1px solid var(--line);border-radius:8px;display:block;
+    box-shadow:0 2px 6px rgba(20,30,50,.10);transition:transform .12s,box-shadow .12s}
+  a.shot:hover img{transform:scale(1.03);box-shadow:0 6px 18px rgba(20,30,50,.22)}
+  a.shot::after{content:"\2315";position:absolute;right:8px;bottom:8px;
+    background:rgba(15,25,45,.72);color:#fff;font-size:13px;line-height:1;
+    padding:5px 7px;border-radius:6px;opacity:0;transition:opacity .12s}
+  a.shot:hover::after{opacity:1}
+  /* Click-to-zoom overlay. A 260px thumbnail of a 1920x1080 capture is a
+     smudge - readable enough to say a picture exists, not enough to read the
+     page in it - so the full image opens over the report rather than in a
+     separate tab the reader then has to navigate back from. */
+  #lightbox{position:fixed;inset:0;background:rgba(10,16,28,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:999;
+    padding:24px;cursor:zoom-out}
+  #lightbox.open{display:flex}
+  #lightbox img{max-width:96vw;max-height:86vh;border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff}
+  #lightbox .cap{color:#e8eef8;font-size:13px;margin-top:12px;text-align:center;
+    max-width:80vw}
+  #lightbox .hint{color:#93a4bd;font-size:12px;margin-top:6px}
+  /* A suite page's header is its statistics summary, and collapses to its first
+     lines: title, counts and bar stay; run details, tiles, chart and the cases by
+     result fold away. Drawn on the header's navy, so the status colours are the
+     same bright steps as the header bar, each paired with an icon and a label. */
+  details.rpt-sum>summary{list-style:none;cursor:pointer;user-select:none}
+  details.rpt-sum>summary::-webkit-details-marker{display:none}
+  details.rpt-sum>summary:focus-visible{outline:2px solid #9cc9ff;outline-offset:6px;border-radius:6px}
+  .rpt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rpt-line{flex-wrap:nowrap}
+  .rpt-line h1{margin:0;flex:1 1 auto;min-width:0}
+  details.rpt-sum>.sub{margin-top:14px}
+  header.rpt .sub code{overflow-wrap:anywhere}
+  .chev::before{content:"\25B8";display:inline-block;opacity:.8;transition:transform .15s}
+  details[open]>summary .chev::before{transform:rotate(90deg)}
+  .rpt-toggle-hint{margin-left:auto;font-size:12px;opacity:.6}
+  .rpt-counts{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:14px;
+    font-weight:600;font-variant-numeric:tabular-nums}
+  .cnt i,.tile i,details.cl>summary i{font-style:normal;margin-right:5px}
+  .cnt.pass i,.tile.pass i,details.cl.pass>summary i{color:#3ddc84}
+  .cnt.fail i,.tile.fail i,details.cl.fail>summary i{color:#ff6b6b}
+  .cnt.skip i,.tile.skip i,details.cl.skip>summary i{color:#ffcc66}
+  .cnt.notrun i,.tile.notrun i,details.cl.notrun>summary i{color:#b8c4d6}
+  .cnt.zero{opacity:.55}
+  .rpt-h{font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;opacity:.75;
+    margin:20px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .tile{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:10px 12px}
+  .tile b{display:block;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+  .tile span{font-size:12px;opacity:.75}
+  .chart{margin:16px 0 0}
+  .stack{display:flex;gap:2px;height:28px}
+  .stack .seg{display:flex;align-items:center;justify-content:center;flex-basis:0;
+    min-width:4px;overflow:hidden}
+  .stack .seg:first-child{border-radius:4px 0 0 4px}
+  .stack .seg:last-child{border-radius:0 4px 4px 0}
+  .stack .seg:only-child{border-radius:4px}
+  .stack .seg.pass{background:#3ddc84}
+  .stack .seg.fail{background:#ff6b6b}
+  .stack .seg.skip{background:#ffcc66}
+  .stack .seg.notrun{background:#8fa3bf}
+  .stack .seg:focus-visible{outline:2px solid #fff;outline-offset:1px}
+  .stack em{font-style:normal;font-size:12px;font-weight:700;color:#14203a}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;opacity:.85}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .sw.pass{background:#3ddc84}
+  .sw.fail{background:#ff6b6b}
+  .sw.skip{background:#ffcc66}
+  .sw.notrun{background:#8fa3bf}
+  .case-lists{display:flex;flex-direction:column;gap:8px}
+  details.cl{border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:0 14px;
+    background:rgba(255,255,255,.04)}
+  details.cl>summary{cursor:pointer;padding:9px 0;font-weight:600;font-size:13.5px}
+  details.cl .n{opacity:.7;font-weight:400}
+  details.cl ol{margin:0 0 12px;padding-left:22px;font-size:13px;max-height:280px;overflow:auto}
+  details.cl li{margin:5px 0}
+  details.cl li a{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+    text-decoration:none;color:#9cc9ff}
+  details.cl.fail li a{color:#ff9d9d}
+  details.cl li a:hover{text-decoration:underline}
+  header.rpt .why{color:#ffb3b3}
+  #tip{position:fixed;display:none;z-index:1000;background:#0e1524;color:#fff;font-size:12px;
+    padding:6px 9px;border-radius:6px;pointer-events:none;max-width:320px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  @media (max-width:640px){.rpt-toggle-hint{display:none}}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rpt">
+  <details class="rpt-sum" open>
+    <summary>
+      <span class="rpt-line"><span class="chev" aria-hidden="true"></span><h1>Notification - seed data</h1><span class="rpt-toggle-hint">click to minimise / expand</span></span>
+      <span class="rpt-counts"><span class="cnt pass"><i>&#10003;</i>1 passed</span><span class="cnt fail zero"><i>&#10007;</i>0 failed</span><span class="cnt skip zero"><i>&#8856;</i>0 skipped</span><span class="cnt notrun zero"><i>&#9675;</i>0 not run</span><span class="cnt">1 cases</span></span>
+<span class="bar">      <span class="seg pass" style="width:100.0000%" title="1 passed"></span>
+</span>
+    </summary>
+    <div class="sub">Test case report &mdash; <code>org.sengmean.suites.tool.NotificationSeedSuite</code></div>
+    <div class="meta">
+      <div><b>Target:</b> https://admin-test.1083.city/</div>
+      <div><b>Account:</b> qa0001</div>
+      <div><b>Run:</b> 2026-10-01 17:28</div>
+      <div><b>Elapsed:</b> 562.5s</div>
+      <div><b>Scope:</b> 1 of 34 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headless)</div>
+      <div><b>Runner:</b> JUnit 5 on Java 17.0.18</div>
+      <div><b>Machine:</b> Windows 11 10.0</div>
+    </div>
+    <h2 class="rpt-h">Statistics</h2>
+    <div class="tiles">
+        <div class="tile "><b>1</b><span>cases</span></div>
+        <div class="tile pass"><b><i>&#10003;</i>1</b><span>passed</span></div>
+        <div class="tile fail"><b><i>&#10007;</i>0</b><span>failed</span></div>
+        <div class="tile skip"><b><i>&#8856;</i>0</b><span>skipped</span></div>
+        <div class="tile notrun"><b><i>&#9675;</i>0</b><span>not run</span></div>
+        <div class="tile"><b>100%</b><span>pass rate of the cases that ran</span></div>
+        <div class="tile"><b>522.1s</b><span>browser time</span></div>
+    </div>
+      <div class="chart" role="img" aria-label="Notification - seed data: 1 passed, 0 failed, 0 skipped, 0 not run">
+        <div class="stack big"><span class="seg pass" style="flex-grow:1" tabindex="0" data-tip="Notification - seed data - 1 passed (100%)"><em>1</em></span></div>
+        <div class="chart-legend"><span><i class="sw pass"></i>Passed</span><span><i class="sw fail"></i>Failed</span><span><i class="sw skip"></i>Skipped</span><span><i class="sw notrun"></i>Not run</span></div>
+      </div>
+    <h2 class="rpt-h">Cases by result</h2>
+    <div class="case-lists">
+      <details class="cl pass"><summary><i>&#10003;</i>Passed <span class="n">(1)</span></summary>
+        <ol>
+          <li><a href="#case-NotificationSeedData-seedNotifications">NOT-CRT-901</a> Seed 50 Inactive notifications in one shot, kept for the paging rows</li>
+        </ol>
+      </details>
+    </div>
+  </details>
+  </header>
+
+  <div class="nav"><a href="index.html">&larr; All suites</a></div>
+  <div class="toolbar">
+    <div class="filters" role="group" aria-label="Filter cases by status">
+      <button type="button" class="flt on" data-filter="all">All</button>
+      <button type="button" class="flt" data-filter="Pass">Passed</button>
+      <button type="button" class="flt" data-filter="Fail">Failed</button>
+      <button type="button" class="flt" data-filter="Skipped">Skipped</button>
+      <button type="button" class="flt" data-filter="Not run">Not run</button>
+    </div>
+    <input type="search" id="q" placeholder="Search id, case or message" aria-label="Search cases">
+    <button type="button" class="flt" id="expand-all">Expand all details</button>
+    <span class="count" id="shown">1 of 1 cases</span>
+  </div>
+  <section class="grp">
+  <h2 class="section">1. Test cases</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-NotificationSeedData-seedNotifications" data-status="Pass" data-search="not-crt-901 seednotifications seed 50 inactive notifications in one shot, kept for the paging rows creates-data">
+        <td class="id" id="NOT-CRT-901">NOT-CRT-901</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>seedNotifications</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Opening Tool &gt; Notification.</li><li>Showing 200 entries per page.</li><li>Clicking + Add notification.</li><li>Filling Title, Content and Link on the 繁體 tab.</li><li>Ticking Override above contents to: All languages.</li><li>Setting Type to System.</li><li>Setting Schedule to Daily.</li><li>Setting Timer to 03 AM.</li><li>Setting Status to Inactive.</li><li>Moving agents001 into the Agent Group's Selected column.</li><li>Moving Default 00 into the Member Group's Selected column.</li><li>Clicking Save Notification.</li><li>The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</li><li>The page said: &quot;Successfully added&quot; - pressing OK.</li><li>The browser's own traffic stopped being recorded after 300 entries; the case's own steps continue.</li></ol><div class="src">From the run's step trail</div></td>
+        <td class="tdata"><div class="src">Used in this run</div><ul class="tc-data used"><li><code>After Save = Successfully added</code></li></ul></td>
+        <td>Seed 50 Inactive notifications in one shot, kept for the paging rows</td>
+        <td>The application behaved as expected.<div class="secs">700 events recorded</div></td>
+        <td><span class="st pass">Pass</span><div class="secs">522.10s</div></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.</td>
+        <td><a class="shot" href="screenshots/NotificationSeedData.seedNotifications.png" target="_blank" rel="noopener"><img src="screenshots/NotificationSeedData.seedNotifications.png" alt="NOT-CRT-901 - Seed 50 Inactive notifications in one shot, kept for the paging rows" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-CRT-901</dd>
+                <dt>Method</dt><dd>NotificationSeedData#seedNotifications</dd>
+                <dt>Expected result</dt><dd>Seed 50 Inactive notifications in one shot, kept for the paging rows</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Pass in 522.10s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Seed 50 Inactive notifications in one shot, kept for the paging rows</dd>
+                <dt>Duration</dt><dd>522.10 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(700 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: NOT-CRT-901: Seed 50 Inactive notifications in one shot, kept for the paging rows</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">0.13s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.19s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.29s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.30s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.37s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.59s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">0.66s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.76s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.82s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.83s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.83s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.83s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.98s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.02s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.19s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.19s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.23s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.25s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.25s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.54s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">2.12s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">3.34s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">3.64s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">3.74s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">3.74s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">3.89s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.93s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">4.15s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">4.28s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">5.06s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">5.50s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">5.93s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-api"><span class="at">6.16s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">6.37s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">6.81s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">7.29s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">7.80s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">8.28s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">8.34s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">9.28s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.33s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">9.33s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">9.34s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">9.38s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">9.38s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">9.62s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.63s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.65s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.66s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.82s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">10.16s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-data"><span class="at">10.91s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">10.91s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">10.93s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">10.93s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">10.93s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">10.94s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">11.01s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">11.21s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">11.28s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">11.38s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">11.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">11.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">11.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">11.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">11.55s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">11.64s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">11.81s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">11.82s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">11.87s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">11.87s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">11.88s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">12.22s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">12.70s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">13.94s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">13.94s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">14.05s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.05s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">14.21s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.23s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">14.46s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">14.56s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">15.24s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">15.62s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">16.05s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">16.48s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-api"><span class="at">16.72s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">16.91s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">17.42s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">17.95s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">18.41s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">18.45s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">19.44s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">19.47s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">19.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">19.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">19.63s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">19.63s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">19.87s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">20.00s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">20.01s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">20.02s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">20.22s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">20.43s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-data"><span class="at">21.08s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">21.11s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">21.15s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">21.15s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">21.15s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">21.16s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">21.23s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">21.42s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">21.48s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">21.59s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">21.65s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">21.65s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">21.65s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">21.65s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">21.82s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">21.86s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">22.05s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">22.12s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">22.14s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">22.15s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">22.16s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">22.54s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">22.92s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">24.18s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">24.19s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">24.30s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">24.30s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">24.47s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">24.49s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">24.70s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">24.90s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">25.60s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">25.97s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">26.42s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">26.86s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-api"><span class="at">27.12s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">27.29s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">27.81s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">28.31s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">28.79s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">28.86s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">29.77s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">29.83s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.83s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.86s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">29.87s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">29.88s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">30.01s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.04s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.05s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.09s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.20s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.47s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-data"><span class="at">31.45s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">31.45s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">31.46s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">31.46s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">31.47s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.49s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.57s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">31.82s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">31.89s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.02s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.08s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.08s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.09s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.09s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.21s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.29s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.50s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.54s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.54s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.55s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.57s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.87s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">33.32s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">34.53s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">34.56s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">34.69s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">34.69s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">34.85s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">34.87s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">35.09s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">35.19s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">35.87s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">36.27s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">36.70s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">37.14s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-api"><span class="at">37.35s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">37.58s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">38.07s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">38.59s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">39.05s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">39.10s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">40.01s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">40.07s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">40.08s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">40.12s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">40.12s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">40.13s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">40.24s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">40.25s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">40.27s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">40.29s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">40.45s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">40.65s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-data"><span class="at">41.70s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">41.70s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">41.72s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">41.72s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">41.72s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">41.74s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">41.81s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">42.09s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">42.16s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.26s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.32s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.32s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.32s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.32s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">42.46s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.52s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.68s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.68s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.70s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.71s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">42.72s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">43.06s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">43.16s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">44.40s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">44.40s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">44.52s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">44.52s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">44.68s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">44.69s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">44.91s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">45.01s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">45.72s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">46.10s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">46.54s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">46.98s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">47.40s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-api"><span class="at">47.61s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">47.91s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">48.43s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">48.90s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">48.94s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">49.91s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">50.00s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">50.00s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">50.00s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">50.02s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">50.02s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">50.19s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">50.19s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">50.20s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">50.21s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">50.39s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">50.62s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-data"><span class="at">51.58s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">51.59s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">51.60s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">51.60s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">51.60s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">51.61s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">51.77s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">51.96s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">52.03s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">52.16s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.22s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">52.22s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">52.23s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">52.23s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">52.41s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.77s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.77s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.77s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.78s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.78s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">52.79s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">53.15s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">53.44s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">54.67s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">54.68s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">54.80s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">54.80s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">54.95s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">54.97s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">55.20s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">55.34s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">55.95s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">56.31s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">56.74s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">57.18s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">57.62s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-api"><span class="at">57.63s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">58.13s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">58.65s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">59.12s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">59.17s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">60.08s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">60.15s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">60.15s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">60.18s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">60.18s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">60.19s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">60.31s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">60.33s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">60.34s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">60.34s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">60.47s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">60.72s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-data"><span class="at">61.76s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">61.76s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">61.77s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">61.77s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">61.77s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">61.79s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">61.86s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">62.04s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">62.11s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">62.20s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">62.27s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">62.27s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">62.28s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">62.28s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">62.41s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">62.47s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">62.58s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">62.62s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">62.64s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">62.64s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">62.64s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">62.97s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">63.53s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">64.75s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">64.75s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">64.87s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">64.87s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">65.02s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">65.03s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">65.27s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">65.40s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">66.13s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">66.50s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">66.92s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">67.36s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-api"><span class="at">67.60s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">67.81s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">68.30s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">68.82s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">69.27s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">69.33s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">70.31s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">70.37s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">70.38s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">70.38s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">70.42s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">70.43s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">70.56s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">70.57s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">70.57s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">70.59s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">70.86s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">71.02s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-data"><span class="at">71.94s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">71.94s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">71.95s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">71.95s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">71.95s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">71.97s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.06s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">72.24s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">72.30s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">72.43s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">72.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">72.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">72.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">72.62s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.70s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.86s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.89s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.93s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.93s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.94s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">73.26s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">73.75s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">74.98s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">74.98s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-api"><span class="at">75.10s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">75.10s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">75.29s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">75.32s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">75.50s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-api"><span class="at">75.66s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">76.40s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">76.77s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">77.21s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">77.65s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-api"><span class="at">78.07s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">78.09s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">78.64s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">79.17s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">79.63s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">79.67s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">80.60s</span><span class="kind">API</span><span class="what">POST api/account/inbox-notification-rule?currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">80.67s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">80.67s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">80.71s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">80.72s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">80.75s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">80.86s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=THB -&gt; 200</span></li>
+              <li class="k-api"><span class="at">80.87s</span><span class="kind">API</span><span class="what">GET api/lang?currency=THB -&gt; 200</span></li>
+              <li class="k-step"><span class="at">80.89s</span><span class="kind">STEP</span><span class="what">The browser's own traffic stopped being recorded after 300 entries; the case's own steps continue.</span></li>
+              <li class="k-data"><span class="at">82.31s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">82.31s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">84.06s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">85.29s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">85.83s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">86.73s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">87.09s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">87.51s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">87.95s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">88.38s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">88.89s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">89.38s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">89.85s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">89.91s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">90.98s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">92.55s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">92.55s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">94.31s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">95.55s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">96.04s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">96.74s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">97.13s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">97.55s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">97.98s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">98.43s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">98.92s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">99.47s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">99.96s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">100.01s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">101.05s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">102.61s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">102.61s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">103.91s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">105.15s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">105.68s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">106.42s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">106.80s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">107.24s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">107.67s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">108.11s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">108.60s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">109.12s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">109.58s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">109.62s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">110.66s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">112.24s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">112.24s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">113.98s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">115.21s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">115.80s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">116.73s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">117.10s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">117.53s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">117.97s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">118.42s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">118.92s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">119.44s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">119.89s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">119.94s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">121.04s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">122.65s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">122.65s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">124.43s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">125.67s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">126.20s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">127.09s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">127.46s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">127.90s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">128.35s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">128.79s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">129.33s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">129.85s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">130.37s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">130.41s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">131.44s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">133.00s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">133.01s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">134.77s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">136.00s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">136.53s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">137.29s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">137.66s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">138.11s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">138.55s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">139.00s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">139.48s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">140.00s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">140.46s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">140.53s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">141.59s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">143.15s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">143.16s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">144.92s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">146.16s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">146.68s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">147.45s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">147.83s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">148.27s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">148.69s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">149.13s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">149.63s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">150.15s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">150.61s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">150.67s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">151.67s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">153.24s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">153.24s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">154.74s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">155.99s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">156.51s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">157.22s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">157.60s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">158.04s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">158.49s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">158.92s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">159.42s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">159.93s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">160.39s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">160.44s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">161.46s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">163.01s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">163.02s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">164.29s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">165.53s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">166.05s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">166.90s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">167.28s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">167.70s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">168.14s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">168.58s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">169.10s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">169.62s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">170.08s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">170.12s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">171.13s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">172.68s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">172.68s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">174.52s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">175.80s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">176.30s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">177.09s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">177.47s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">177.90s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">178.34s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">178.76s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">179.29s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">179.82s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">180.32s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">180.39s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">181.48s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">183.06s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">183.06s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">184.36s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">185.62s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">186.17s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">187.01s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">187.39s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">187.81s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">188.25s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">188.69s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">189.17s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">189.67s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">190.15s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">190.19s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">191.21s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">192.77s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">192.77s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">194.54s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">195.77s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">196.33s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">197.11s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">197.50s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">197.93s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">198.38s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">198.82s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">199.31s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">199.82s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">200.27s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">200.33s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">201.41s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">202.98s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">202.98s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">204.76s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">205.99s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">206.52s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">207.30s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">207.68s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">208.12s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">208.56s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">209.01s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">209.50s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">210.00s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">210.47s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">210.50s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">211.51s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">213.08s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">213.08s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">214.57s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">215.79s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">216.32s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">217.05s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">217.42s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">217.86s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">218.29s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">218.74s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">219.25s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">219.89s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">220.36s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">220.44s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">221.45s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">223.04s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">223.05s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">224.79s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">226.02s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">226.54s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">227.41s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">227.79s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">228.22s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">228.66s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">229.12s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">229.60s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">230.12s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">230.57s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">230.62s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">231.70s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">233.26s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">233.26s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">235.01s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">236.25s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">236.75s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">237.47s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">237.84s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">238.28s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">238.74s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">239.20s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">239.70s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">240.21s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">240.67s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">240.72s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">241.73s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">243.31s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">243.31s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">245.22s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">246.49s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">247.03s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">247.80s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">248.17s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">248.61s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">249.05s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">249.51s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">249.98s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">250.66s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">251.15s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">251.19s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">252.20s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">253.77s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">253.78s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">255.53s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">256.77s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">257.28s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">258.06s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">258.44s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">258.88s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">259.32s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+              <li class="k-step"><span class="at">259.89s</span><span class="kind">STEP</span><span class="what">Setting Status to Inactive.</span></li>
+              <li class="k-step"><span class="at">260.38s</span><span class="kind">STEP</span><span class="what">Moving agents001 into the Agent Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">260.87s</span><span class="kind">STEP</span><span class="what">Moving Default 00 into the Member Group's Selected column.</span></li>
+              <li class="k-step"><span class="at">261.33s</span><span class="kind">STEP</span><span class="what">Clicking Save Notification.</span></li>
+              <li class="k-step"><span class="at">261.39s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">262.41s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully added&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">263.98s</span><span class="kind">DATA</span><span class="what">After Save = Successfully added</span></li>
+              <li class="k-step"><span class="at">263.99s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-step"><span class="at">265.72s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-step"><span class="at">266.97s</span><span class="kind">STEP</span><span class="what">Clicking + Add notification.</span></li>
+              <li class="k-step"><span class="at">267.48s</span><span class="kind">STEP</span><span class="what">Filling Title, Content and Link on the 繁體 tab.</span></li>
+              <li class="k-step"><span class="at">268.26s</span><span class="kind">STEP</span><span class="what">Ticking Override above contents to: All languages.</span></li>
+              <li class="k-step"><span class="at">268.67s</span><span class="kind">STEP</span><span class="what">Setting Type to System.</span></li>
+              <li class="k-step"><span class="at">269.17s</span><span class="kind">STEP</span><span class="what">Setting Schedule to Daily.</span></li>
+              <li class="k-step"><span class="at">269.61s</span><span class="kind">STEP</span><span class="what">Setting Timer to 03 AM.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <h2 class="section">How to read this report</h2>
+  <div class="callout">
+    <p><b>Status</b> is what the run did, not a verdict on the application. A
+    <span class="st fail">Fail</span> on a case badged <code>known-defect</code> is the
+    expected outcome: those cases assert the behaviour the application <i>should</i>
+    have and stay red until the finding is fixed.</p>
+    <p><b>Not run</b> means the case exists in the suite but produced no result, normally
+    because it was filtered out with <code>-DexcludedGroups=creates-data</code>, which
+    keeps cases with real-world side effects - a registered account, a real SMS, a filed
+    deposit, a withdrawal hold, a staked casino bet - out of an unattended run.</p>
+    <p><b>Evidence</b> is the screenshot of the page as the case left it - captured for every
+    case that ran, passed or failed, just before teardown closed the browser. A
+    skipped case never ran, so it has none. Click an image for the full size.</p>
+    <p><b>Details</b>, on every row, opens what would not fit in the table: the case as its
+    source declares it, the diagnosis of a failure - exception, expected against actual,
+    the element that could not be resolved, the lines of this project involved, and the
+    full stack trace - and, for every row alike, the run's own record of what the browser
+    did.</p>
+    <p><b>What the run did</b> is that record. It is captured automatically while the case
+    runs: <code>NAV</code> for a page load or a new tab, <code>API</code> for a call the
+    site made of its own back end with the status it came back with, <code>NETWORK</code>
+    for one that came back 4xx or 5xx, <code>CONSOLE</code> for a console or uncaught
+    error, <code>EVIDENCE</code> for a screenshot, and <code>STEP</code>,
+    <code>CHECK</code> and <code>DATA</code> for what the case itself narrated. A passing
+    row carries one too, deliberately: a green result is a claim, and this is the working
+    behind it.</p>
+  </div>
+  <footer>Generated by <code>org.sengmean.report.HtmlReportGenerator</code> from the test sources, the run's results, its step logs and its screenshots. Rewritten at the end of every run by <code>HtmlReportListener</code>.</footer>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <img id="lightbox-img" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+  <div class="hint">Click anywhere, or press Escape, to close</div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var cap = document.getElementById('lightbox-cap');
+  function open(src, caption) {
+    img.setAttribute('src', src);
+    img.setAttribute('alt', caption || '');
+    cap.textContent = caption || '';
+    box.classList.add('open');
+  }
+  function close() {
+    box.classList.remove('open');
+    img.removeAttribute('src');
+  }
+  document.addEventListener('click', function (e) {
+    // Both the Evidence column's images and the ones shown inline against a trail
+    // line. The inline ones were left out when they were added, so they fell
+    // through to target="_blank" and every capture opened a new tab - fifty-two of
+    // them if a reader worked down the transfer walk.
+    var link = e.target.closest ? e.target.closest('a.shot, a.step-shot') : null;
+    if (link) {
+      // Only take over the plain click - a modified click still opens the file
+      // in a tab, which is what someone reaching for that expects.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+      e.preventDefault();
+      var inner = link.querySelector('img');
+      open(link.getAttribute('href'), inner ? inner.getAttribute('alt') : '');
+    } else if (box.classList.contains('open')) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { close(); }
+  });
+})();
+</script>
+<script>
+(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.case'));
+  var shown = document.getElementById('shown');
+  var search = document.getElementById('q');
+  var expandAll = document.getElementById('expand-all');
+  var filter = 'all';
+  var query = '';
+
+  function panelOf(row) {
+    var next = row.nextElementSibling;
+    return next && next.classList.contains('detail') ? next : null;
+  }
+
+  function matches(row) {
+    if (filter !== 'all' && row.getAttribute('data-status') !== filter) { return false; }
+    if (query === '') { return true; }
+    return (row.getAttribute('data-search') || '').indexOf(query) >= 0;
+  }
+
+  function apply() {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var ok = matches(row);
+      if (ok) { visible++; }
+      row.classList.toggle('hide', !ok);
+      var panel = panelOf(row);
+      if (panel) { panel.classList.toggle('hide', !ok || !row.classList.contains('open')); }
+    });
+    // A group whose every case is filtered out is hidden with its heading, so the
+    // page does not end in a run of empty tables under numbered titles.
+    Array.prototype.forEach.call(document.querySelectorAll('section.grp'), function (grp) {
+      var any = grp.querySelector('tr.case:not(.hide)');
+      grp.classList.toggle('hide', !any);
+    });
+    if (shown) {
+      shown.textContent = visible + ' of ' + rows.length + ' cases';
+    }
+  }
+
+  function open(row, wanted) {
+    var panel = panelOf(row);
+    if (!panel) { return; }
+    var isOpen = wanted === undefined ? !row.classList.contains('open') : wanted;
+    row.classList.toggle('open', isOpen);
+    panel.classList.toggle('hide', !isOpen);
+    var button = row.querySelector('button.more');
+    if (button) { button.setAttribute('aria-expanded', isOpen ? 'true' : 'false'); }
+  }
+
+  document.addEventListener('click', function (e) {
+    var more = e.target.closest ? e.target.closest('button.more') : null;
+    if (more) {
+      open(more.closest('tr.case'));
+      return;
+    }
+    var flt = e.target.closest ? e.target.closest('button.flt[data-filter]') : null;
+    if (flt) {
+      filter = flt.getAttribute('data-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('button.flt[data-filter]'),
+        function (b) { b.classList.toggle('on', b === flt); });
+      apply();
+    }
+  });
+
+  if (search) {
+    search.addEventListener('input', function () {
+      query = search.value.trim().toLowerCase();
+      apply();
+    });
+  }
+
+  if (expandAll) {
+    expandAll.addEventListener('click', function () {
+      var opening = expandAll.getAttribute('data-open') !== 'yes';
+      expandAll.setAttribute('data-open', opening ? 'yes' : 'no');
+      expandAll.textContent = opening ? 'Collapse all details' : 'Expand all details';
+      rows.forEach(function (row) { if (!row.classList.contains('hide')) { open(row, opening); } });
+    });
+  }
+
+  function openFromHash() {
+    if (!window.location.hash) { return; }
+    var target = document.getElementById(window.location.hash.slice(1));
+    if (!target) { return; }
+    // The hash may name either anchor a row carries: the internal
+    // case-<suite>-<method>, which the findings list links to, or the case
+    // id itself - "#HOME-002" - which is what the client test case sheet's
+    // per-row links use. The id sits on a <td>, so resolve upwards to the
+    // row rather than testing the target: without this the browser scrolls
+    // to the right place and leaves the details shut, which reads as a link
+    // that landed on the wrong thing.
+    var row = target.classList.contains('case')
+      ? target
+      : (target.closest ? target.closest('tr.case') : null);
+    if (row) {
+      open(row, true);
+      row.classList.add('flash');
+      row.scrollIntoView({ block: 'center' });
+    }
+  }
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();
+  apply();
+})();
+</script>
+  <div id="tip" role="tooltip"></div>
+  <script>
+  (function(){
+    var sum=document.querySelector('details.rpt-sum');
+    var KEY='admin-weibo-summary-open';
+    if(sum){
+      try{var v=localStorage.getItem(KEY);if(v!==null){sum.open=v==='1';}}catch(e){}
+      sum.addEventListener('toggle',function(){try{localStorage.setItem(KEY,sum.open?'1':'0');}catch(e){}});
+    }
+    var tip=document.getElementById('tip');
+    function show(el,x,y){tip.textContent=el.getAttribute('data-tip');tip.style.display='block';
+      var w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(x+12,window.innerWidth-w-8))+'px';tip.style.top=(y+14)+'px';}
+    function hide(){tip.style.display='none';}
+    document.addEventListener('mousemove',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){show(el,e.clientX,e.clientY);}else{hide();}});
+    document.addEventListener('focusin',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){var r=el.getBoundingClientRect();show(el,r.left,r.bottom);}});
+    document.addEventListener('focusout',hide);
+  })();
+  </script>
+</div>
+</body>
+</html>

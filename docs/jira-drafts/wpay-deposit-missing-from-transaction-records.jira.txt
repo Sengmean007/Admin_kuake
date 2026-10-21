@@ -1,0 +1,31 @@
+h3. Description
+When a user completes a deposit using the *WPay* payment option, the transaction processes successfully on the client side - but the resulting deposit record fails to appear in the Transaction Records list on the Admin Portal, causing a discrepancy between the client's updated balance and what admin reporting shows.
+
+*Environment:* Test Environment (QA)
+*Module / Feature:* Deposit / WPay / Admin Portal (Transaction Records)
+*Affects Version/s:* Platform V5.0.0
+*QA Owner:* Si
+
+h3. Steps to reproduce
+# Navigate to the deposit section on the client app/web.
+# Select *WPay* as the payment method and initiate a deposit order.
+# Complete the payment flow until the order returns a *Success* status.
+# Log in to the Admin Portal and open *Transaction Records*.
+# Search for the corresponding deposit transaction (by User ID, Transaction ID, or date range).
+
+h3. Expected result
+The successful WPay deposit transaction should be listed in the Admin Portal's Transaction Records with accurate details (status, amount, user info, payment gateway).
+
+h3. Actual result
+The transaction is completely missing from the Admin Portal's Transaction Records page, even though the client side shows the deposit as successful.
+
+h3. Impact
+A deposit the client believes succeeded (and whose balance already reflects it) is invisible to admin reporting - operators have no record to reconcile, confirm, or investigate against, and filters (Transaction ID, User ID, Date Range) cannot surface a transaction that was never logged at all.
+
+h3. Acceptance criteria
+* Any deposit completed successfully via WPay must be logged and visible in the Admin Portal under Transaction Records.
+* Filters (Transaction ID, User ID, Date Range) on the admin page must accurately display WPay deposit records.
+
+h3. Suggested fields (for whoever files this)
+Priority: High / Medium
+Labels: deposit, wpay, admin-portal, transaction-record, backend-api

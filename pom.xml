@@ -1,0 +1,521 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>org.sengmean</groupId>
+    <artifactId>Admin_kuake</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <!--
+        Declared rather than left to Maven's default, which is jar anyway. Stated explicitly
+        because the spring-boot-maven-plugin below could plausibly make this a Boot fat jar,
+        and a reader checking what `mvn package` produces should find the answer in the POM
+        rather than have to know the default. The sibling AppiumUMPay suite states it too.
+    -->
+    <packaging>jar</packaging>
+
+    <name>Admin kuake</name>
+    <description>
+        Playwright/JUnit 5 UI test suites for the Weibo Empire admin back office, the page
+        objects they drive, and the generators that turn a run into the Excel and HTML test
+        case reports under docs/. The framework is the sibling NewWeibo_automation project's,
+        which covers the member site; keep the two in step.
+    </description>
+
+    <properties>
+        <!--
+            release rather than the source/target pair: source/target will happily compile
+            against a newer JDK's APIs and still emit 17 bytecode, so the mistake surfaces as
+            a NoSuchMethodError at runtime instead of an error at compile time. That is a live
+            risk here, where the machine has JDK 25 installed alongside the 17 in JAVA_HOME.
+        -->
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <!-- Plugin versions, pinned so a build cannot change behaviour under us. -->
+        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
+        <exec-maven-plugin.version>3.2.0</exec-maven-plugin.version>
+
+        <!-- Dependency versions -->
+        <spring-boot.version>3.4.1</spring-boot.version>
+        <springdoc.version>2.8.3</springdoc.version>
+        <playwright.version>1.58.0</playwright.version>
+        <!-- One version for the whole JUnit family; the junit-bom import below spreads it. -->
+        <junit.version>5.11.4</junit.version>
+        <poi.version>5.2.5</poi.version>
+        <!--
+            5.1.1 rather than the newer 5.1.2, to match the sibling AppiumUMPay suite. That POM
+            states the convention for its own jakarta.mail and poi entries - "same version the
+            UMPay web suite uses, so one local repository serves both" - and it is worth keeping:
+            two projects on one machine that pin different versions of the same library each pull
+            their own copy into ~/.m2 and can behave differently for no reason anyone recorded.
+            poi is already aligned at 5.2.5 for exactly this reason.
+        -->
+        <extentreports.version>5.1.1</extentreports.version>
+
+        <!-- Emailing the run's report; see org.sengmean.report.ReportMailer. -->
+        <jakarta.mail.version>2.0.1</jakarta.mail.version>
+        <jakarta.activation.version>2.0.1</jakarta.activation.version>
+
+        <!--
+            Which classes a run scans. The default is every *Test class, i.e. the whole
+            project; override it with -Dsuite=MemberSuite to run one area. See the Surefire
+            includes block below for why a suite cannot be selected with -Dtest.
+        -->
+        <suite>*Test</suite>
+
+        <!--
+            Which cases within that scan actually run, by client case id:
+            -Dcase=ADMLOGIN-002. Empty means no filtering, so an ordinary run is untouched. Read by
+            org.sengmean.support.CaseIdFilter; it has to be declared here and passed through
+            Surefire's systemPropertyVariables below, because the filter runs in the forked test
+            JVM and would otherwise be reading a property that only exists in Maven's.
+        -->
+        <case></case>
+
+        <!--
+            Test run defaults, overridable per run with -D. These must be POM properties and
+            be referenced as ${...} in the Surefire configuration below: a literal value there
+            is planted straight into the forked test JVM and cannot be overridden from the
+            command line, which is what made -Dheadless=false do nothing at all and what kept
+            BaseTest.HEADLESS from ever seeing its own default.
+
+            They must also stay defined rather than commented out. Surefire plants ${headless}
+            and ${slowMo} into the forked JVM whether or not they resolve, and an undefined
+            property arrives as an empty string rather than being left out - which made
+            BaseTest's static initializer die on Double.parseDouble("") and errored every
+            suite before a single case ran.
+
+            headless defaults to false so an ordinary `mvn test` shows the browser, which is
+            what a tester watching a run wants. CI passes -Dheadless=true explicitly, because
+            a runner has no display for a headed browser to open on.
+        -->
+<!--        <headless>false</headless>-->
+<!--        <slowMo>0</slowMo>-->
+    </properties>
+
+    <!--
+        Spring Boot's BOM is imported rather than made the parent POM on purpose. Taking
+        spring-boot-starter-parent would also inherit its plugin management and overwrite
+        the Surefire configuration below, which carries the test environment settings.
+    -->
+    <dependencyManagement>
+        <dependencies>
+            <!--
+                The JUnit BOM, imported FIRST so that it wins - the first import to manage an
+                artifact is the one that governs it.
+
+                Without this the project ran on a genuinely mixed JUnit classpath, and had
+                done for some time without anyone noticing. The direct declarations below
+                pinned junit-jupiter 5.10.2 and junit-platform-launcher 1.10.2, while Spring
+                Boot's BOM was quietly managing every transitive of theirs up to 5.11.4 and
+                1.11.4: junit-jupiter-api, -params and -engine, junit-platform-engine and
+                junit-platform-commons. So the aggregator poms said one release and the code
+                that actually ran was another.
+
+                It stayed invisible because those releases are binary compatible for what the
+                suites use. Adding the per-module suites in org.sengmean.suites is what broke
+                it: junit-platform-suite-commons arrived at 1.11.4 and referenced
+                ConfigurationParametersResource, a class that does not exist in the 1.10.2
+                suite-api the direct declaration pinned, and every run died with
+                "TestEngine with ID 'junit-platform-suite' failed to discover tests" and a
+                NoClassDefFoundError three causes down.
+
+                One BOM, one coherent set. The junit dependencies below therefore carry no
+                version of their own - adding one back would reopen exactly this gap.
+            -->
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <dependencies>
+
+        <!-- Serves the Swagger UI documentation app; see org.sengmean.api.ApiDocsApplication -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>${springdoc.version}</version>
+        </dependency>
+
+        <!--
+            Puts HTTP Basic in front of the whole docs app; see
+            org.sengmean.api.ApiDocsSecurityConfig. Only the Swagger UI app is affected -
+            `mvn test` never starts a Spring context, so the Playwright suites are untouched.
+        -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.microsoft.playwright</groupId>
+            <artifactId>playwright</artifactId>
+            <version>${playwright.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Compile-time home of TestExecutionListener, which org.sengmean.report.HtmlReportListener
+            implements so the HTML reports are rewritten at the end of every run. Surefire
+            already puts the launcher on the runtime classpath; this declaration is what lets
+            the listener compile against it. Its version comes from the junit-bom import above.
+        -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-launcher</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Runs the per-area suites in org.sengmean.suites, which are @Suite classes rather
+            than test classes and need an engine of their own. Both halves are needed and
+            for different reasons: the -api artifact is what @Suite and @SelectClasses compile
+            against, and the -engine artifact is what actually executes one at run time. With
+            only the api on the classpath a suite compiles, Surefire finds the class, and the
+            run reports "0 tests" with no error at all, because no engine claimed it.
+        -->
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--
+            Writes the .xlsx test report from the Surefire XML results.
+
+            Both artifacts are declared, as the sibling AppiumUMPay suite declares them, because
+            ExcelReportGenerator imports from both: org.apache.poi.ss.usermodel and
+            org.apache.poi.ss.util come from poi, XSSFWorkbook from poi-ooxml. poi-ooxml does
+            pull poi in transitively, so declaring only the one compiles today - but a direct
+            import resting on a transitive is a build that breaks on someone else's upgrade,
+            with an error that points at this project rather than at the change that caused it.
+        -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${poi.version}</version>
+        </dependency>
+        <!--
+            The Extent Spark report, written by org.sengmean.report.ExtentReportListener.
+
+            test scope, unlike poi above, and the difference is deliberate. The Excel generator
+            lives in src/main because `mvn exec:java` runs it as an ordinary program, so it has
+            to be on the compile classpath. The Extent report is only ever produced from inside
+            a run, by a listener under src/test, so nothing in the shipped sources should be able
+            to reference this.
+        -->
+        <dependency>
+            <groupId>com.aventstack</groupId>
+            <artifactId>extentreports</artifactId>
+            <version>${extentreports.version}</version>
+            <scope>test</scope>
+            <exclusions>
+                <!--
+                    ExtentReports leaks Lombok as a transitive dependency - 1.18.36 at this
+                    version. Lombok is a compile-time annotation processor, ExtentReports' own
+                    generated code is already baked into its jar, and no source in this project
+                    uses it, so nothing here needs it at either compile time or run time.
+
+                    Left in place it is actively harmful on this machine. Lombok reaches into
+                    javac internals, and a release only handles the JDKs that existed when it
+                    shipped; IntelliJ runs annotation processing itself, so it dies where Maven
+                    does not with
+
+                        java: java.lang.ExceptionInInitializerError
+                        com.sun.tools.javac.code.TypeTag :: UNKNOWN
+
+                    This project builds on the JDK 17 in JAVA_HOME while the machine also has
+                    JDK 25 installed, which is exactly the split that hides the problem from
+                    `./mvnw test` and shows it only in the IDE. The sibling AppiumUMPay suite hit
+                    this for real and excludes it for the same reason. Dropping the processor
+                    fixes it for every JDK rather than for one of them.
+                -->
+                <exclusion>
+                    <groupId>org.projectlombok</groupId>
+                    <artifactId>lombok</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!--
+            Emailing the run's result when it finishes; see org.sengmean.report.ReportMailer.
+
+            Compiled in unconditionally even though the feature is off by default, because the
+            alternative - reflection, or a separate profile - trades a dependency the build
+            resolves once for a failure that only appears on the machine that first switches
+            mail.enabled on, which is the machine least able to diagnose it.
+
+            Three artifacts rather than one: jakarta.mail is the API and the SMTP provider,
+            jakarta.activation-api is the DataHandler interface an attachment goes through, and
+            com.sun.activation is the implementation behind it. The API without the
+            implementation compiles perfectly and then throws at the first attachment, which is
+            why both halves are named here. Versions pinned to the same ones the sibling UMPay
+            suite uses, so a mail problem means the same thing in both projects.
+        -->
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>jakarta.mail</artifactId>
+            <version>${jakarta.mail.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>jakarta.activation</groupId>
+            <artifactId>jakarta.activation-api</artifactId>
+            <version>${jakarta.activation.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.activation</groupId>
+            <artifactId>jakarta.activation</artifactId>
+            <version>${jakarta.activation.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <version>7.10.2</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>${maven-compiler-plugin.version}</version>
+            </plugin>
+            <!--
+                Runs the Swagger UI app: mvn spring-boot:run
+                Declared without <executions> deliberately - that keeps the repackage goal
+                off the package phase, so `mvn package` still produces the ordinary jar this
+                test project expects rather than a Boot fat jar. mainClass is pinned because
+                the module also contains org.sengmean.Main.
+            -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
+                <configuration>
+                    <mainClass>org.sengmean.api.ApiDocsApplication</mainClass>
+                </configuration>
+            </plugin>
+            <!--
+                Builds the reports from target/surefire-reports:
+                  mvn exec:java              -> the Excel workbook
+                  mvn exec:java@html-report  -> the per-suite HTML test case reports in docs/reports
+
+                The HTML generator has to be an <execution> with its own <configuration> rather
+                than a -Dexec.mainClass override: a plugin-level <configuration> beats the command
+                line, so -Dexec.mainClass=org.sengmean.report.HtmlReportGenerator silently runs the Excel
+                generator instead. The id is what `exec:java@html-report` selects.
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>${exec-maven-plugin.version}</version>
+                <configuration>
+                    <mainClass>org.sengmean.report.ExcelReportGenerator</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>html-report</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.sengmean.report.HtmlReportGenerator</mainClass>
+                        </configuration>
+                    </execution>
+                    <!--
+                        mvn exec:java@case-page - docs/test-cases/index.html, the client's own
+                        rows with a Run link on the ones a test answers. Written at the end of
+                        every test run too; this is for rebuilding it after re-exporting the
+                        workbook, without waiting for a suite.
+                    -->
+                    <!--
+                        mvn exec:java@case-results - docs/reports/client_testcase-results.xlsx,
+                        the client's own workbook with a clickable Run link on every row a test
+                        answers, and the last run's results in its STATUS and ACTUAL RESULT
+                        columns. Written at the end of every test run too; this rebuilds the
+                        links on their own, which is what you want after a re-import.
+                    -->
+                    <!--
+                        mvn exec:java@split-cases - one workbook per feature under
+                        src/test/resources/testdata/features, cut from the single client export.
+                        Run it after re-exporting the client's sheet.
+                    -->
+                    <execution>
+                        <id>split-cases</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.sengmean.report.CaseSheetSplitter</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>case-results</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.sengmean.report.CaseSheetResults</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>case-page</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.sengmean.report.CaseSheetPage</mainClass>
+                        </configuration>
+                    </execution>
+                    <!--
+                        mvn exec:java@case-runners - one double-clickable .cmd per case under
+                        TestCase/run, plus the README that indexes them. Written at the end of
+                        every test run too; this is for rebuilding them after adding or renaming
+                        cases, without waiting for a suite.
+                    -->
+                    <!--
+                        mvn exec:java@trim-cases - removes every out-of-scope row from the imported
+                        client workbook, in place, matching on an id prefix. Run it right after
+                        re-exporting the client's sheet and BEFORE split-cases: those rows are still
+                        in the original, so a fresh export brings every one of them back silently.
+                        Safe to run twice. It is still tuned to the member workbook's TC_TP_ prefix -
+                        point it at the admin sheet's equivalent, or leave it unused.
+                    -->
+                    <execution>
+                        <id>trim-cases</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.sengmean.testcase.CaseSheetTrimmer</mainClass>
+                        </configuration>
+                    </execution>
+                    <!--
+                        mvn exec:java@append-cases - writes the project-added rows kept in
+                        src/test/resources/testdata/added-cases/<feature>.tsv into the client workbook,
+                        each at the end of its section. Safe to run twice. Pass another workbook as
+                        -Dexec.args="C:/path/copy.xlsx" to bring a copy of the same tab up to date.
+                        Follow it with split-cases and case-page.
+                    -->
+                    <execution>
+                        <id>append-cases</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.sengmean.testcase.CaseSheetAppender</mainClass>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>case-runners</id>
+                        <goals>
+                            <goal>java</goal>
+                        </goals>
+                        <configuration>
+                            <mainClass>org.sengmean.testcase.CaseRunnerGenerator</mainClass>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Required for Surefire to discover and run the JUnit 5 tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven-surefire-plugin.version}</version>
+                <configuration>
+                    <!--
+                        Which classes Surefire scans, and the whole reason the per-module
+                        suites in org.sengmean.suites are runnable at all.
+
+                        `-Dtest=MemberSuite` does NOT work for a @Suite, and fails in the most
+                        misleading way available: Surefire turns -Dtest into a *method* filter
+                        applied to everything discovered, so the suite is found, its member
+                        classes are resolved, and then every one of their cases is filtered
+                        out for not being called MemberSuite. The run reports success with
+                        "Tests run: 0" and the member classes listed as skipped, which reads
+                        as a suite that selected nothing.
+
+                        An include pattern is applied at scanning instead, so the suite engine
+                        is left to resolve the suite's children itself. Hence -Dsuite:
+
+                            ./mvnw test                       - every *Test class, as before
+                            ./mvnw test -Dsuite=MemberSuite   - one area
+                            ./mvnw test -Dtest=AdminLoginTest - one class, still works
+
+                        Do not "simplify" this back to -Dtest for the suites.
+
+                        To run a single case by its client case id rather than by Java method
+                        name, use -Dcase, which org.sengmean.support.CaseIdFilter reads:
+
+                            ./mvnw test -Dcase=ADMLOGIN-002                     one case, anywhere
+                            ./mvnw test -Dcase=ADMLOGIN-002,ADMLOGIN-003        several
+                            ./mvnw test -Dsuite=MemberSuite -Dcase=ADMLOGIN-002 scan one area first
+
+                        -Dtest cannot do this: the case id is in the @DisplayName, and -Dtest
+                        matches method names, so it would select nothing and say so as
+                        "Tests run: 0".
+                    -->
+                    <includes>
+                        <include>**/${suite}.java</include>
+                    </includes>
+                    <!--
+                        The environment, the accounts, the captcha, the browser window and the
+                        settle timeouts USED TO BE LITERALS HERE. They are in
+                        Config/config.properties now, read by org.sengmean.config.ConfigDataProvider.
+
+                        Not a tidy-up: as literals they were unoverridable, and silently so.
+                        Surefire plants systemPropertyVariables into the forked JVM after Maven
+                        has parsed the command line, so the literal won and
+                        `./mvnw test -Dtest.username=someone` ran as qa000092 without a word.
+                        Pointing a run at another account meant editing this file. Command-line
+                        -D properties do reach the fork on their own, so with the literals gone
+                        the override works, and the file supplies the default instead.
+
+                        Do not re-add a setting here. If it needs a default, it belongs in
+                        Config/config.properties where a tester can read it.
+
+                        `case` stays, because it is not a setting: it is how -Dcase reaches
+                        org.sengmean.support.CaseIdFilter inside the fork, and ${case} is
+                        declared in <properties> above so an unset one arrives as blank rather
+                        than as the literal text "${case}".
+                    -->
+                    <systemPropertyVariables>
+                        <case>${case}</case>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

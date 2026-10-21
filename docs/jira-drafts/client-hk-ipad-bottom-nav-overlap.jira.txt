@@ -1,0 +1,39 @@
+Description:
+- Detail of issue (Actual result):
+  [iPad][UI] On the home page, the fixed bottom tab bar (Home / Message /
+  WeLive / Support / Me) permanently covers the bottom of the page's last
+  content section, and the page cannot be scrolled any further to reveal
+  it. document.documentElement.scrollHeight already equals the maximum
+  scroll position (scrollY + innerHeight = 1522 at this width), so this
+  is not a timing issue - the covered area is unreachable by any amount
+  of scrolling. Visible effect: the lower ~70-90px of the "USDT Deposit
+  Bonus" promo banner (its graphics and the bottom of its text) sits
+  underneath the tab bar. Reproduces both as a visitor and as a signed-in
+  member (qa00002).
+
+- Pre-condition:
+  1. Environment: https://test-v2.138hk.vip, New UI chosen
+  2. Viewport 820x1180 (iPad)
+  3. Reproduces logged out and logged in (qa00002)
+
+- Test Steps:
+  1. Open https://test-v2.138hk.vip/en/ in a browser sized to 820x1180
+  2. Scroll to the bottom of the home page
+  3. Compare the last section ("USDT Deposit Bonus") against the fixed
+     bottom tab bar - its lower edge is covered, not just approached
+
+- Screenshot of issue:
+  ipad-home-bottom-nav-overlap-full.jpg - full page at max scroll
+  ipad-home-bottom-nav-overlap-closeup.png - close-up on the overlap
+
+- Expected result:
+  The page reserves bottom padding equal to the fixed tab bar's height,
+  so every section - including the lowest one's bottom edge - can be
+  scrolled fully clear of the tab bar and read in full.
+
+Note: measured 2026-10-08 by a manual check at 820x1180, not by the
+Admin_weibo automation. The tab bar's own class
+(`lg:hidden fixed bottom-2 left-1/2 -translate-x-1/2 z-[1000]`) shows
+it is meant for narrower, non-desktop widths, so this most likely
+affects every width below the `lg` breakpoint (phone included), not
+iPad alone - not yet checked on phone widths this session.

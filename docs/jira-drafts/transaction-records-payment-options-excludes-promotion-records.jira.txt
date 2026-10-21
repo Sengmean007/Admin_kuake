@@ -1,0 +1,60 @@
+Environment Details
+Environment: Test Environment (QA) - https://admin-test.1083.city
+QA Owner: Si
+
+
+Module / Feature: Trade > Transaction Records (Discount / System Promotion)
+
+Issue Type: Bug
+
+Summary / Title: [Admin Back Office] Trade > Transaction Records search excludes System Promotion / System Live Promotion records once Payment Options' "Select all" is clicked
+
+Description:
+
+Component: [Admin Back Office / Trade / Transaction Records]
+
+Summary:
+On Trade > Transaction Records, clicking the "Select all" link above the Payment Options checkbox
+group makes every System Promotion and System Live Promotion record disappear from the search
+results - even though every Payment Options checkbox still displays as checked, every Transaction
+type is selected, and the records are confirmed to exist. Both of these transaction types carry no
+Payment Option value at all (the column renders blank for them in the results table), and the
+search behaves as if it now applies an explicit payment-channel filter that a channel-less record
+can never match. The page's own untouched default (nothing clicked at all) does not exclude them -
+only clicking "Select all" does, which is visually a no-op since those boxes were already checked.
+
+Steps to Reproduce:
+1. Sign in to the admin back office (e.g. https://admin-test.1083.city/) as an operator, currency HKD.
+2. Confirm at least one System Promotion or System Live Promotion record exists for a member
+   account (raised automatically by a qualifying deposit while Discount > System Promotion Setup
+   has Wallet Promotion or Live Promotion Active).
+3. Open Trade > Transaction Records.
+4. Enter that member's username into the Account field and clear the date range. Leave every other
+   filter exactly as the page loaded it - do not click anything else.
+5. Press Search. The System Promotion / System Live Promotion rows for that account appear
+   correctly, alongside their Deposit rows.
+6. Reload Trade > Transaction Records, re-enter the same Account, and this time click "Select all"
+   above the Payment Options checkbox group (every box was already checked; the click changes
+   nothing visible).
+7. Clear the date range again and press Search.
+
+Expected Result:
+The System Promotion and System Live Promotion rows for the account should still appear, identical
+to step 5 - clicking "Select all" on a group that is already fully checked should not change the
+result set at all.
+
+Actual Result:
+Every System Promotion and System Live Promotion row for the account disappears from the results
+the moment Payment Options' "Select all" is clicked, and stays gone on every subsequent search in
+that session. Ordinary Deposit/Withdraw rows for the same account, same filters, are unaffected.
+The Payment Options checkboxes continue to display as fully checked throughout, giving no visual
+indication that the result set has changed.
+
+Note:
+Isolated by re-building the search filter one click at a time against a known set of rows:
+Transaction type's own "Select all" alone - no effect. Adding Status's "Select all" - no effect.
+Adding Member group's "Select all" - no effect. Adding Payment Options' "Select all" - both
+promotion types vanish immediately. This points at the payment-channel-code filter specifically:
+once submitted explicitly (rather than omitted, which is what the untouched default appears to do),
+it seems to require a record's payment channel to be in the submitted list, which a System
+Promotion / System Live Promotion record - having no payment channel at all - can never satisfy.

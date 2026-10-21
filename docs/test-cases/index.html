@@ -1,0 +1,59 @@
+<!doctype html><meta charset="utf-8">
+<title>Client test cases</title>
+<style>
+ :root{--bg:#fbfbfd;--fg:#1d2027;--muted:#6b7280;--line:#e3e5ea;--card:#fff;
+       --link:#2f6feb;--warn:#9a6b00;--target:#fff3cd}
+ @media (prefers-color-scheme:dark){:root{--bg:#12141a;--fg:#e6e8ee;--muted:#98a0b0;
+       --line:#272b35;--card:#1a1d25;--link:#7aa7ff;--warn:#d6a634;--target:#33302099}}
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--bg);color:var(--fg);
+      font:14px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+ header{padding:2rem 2rem 1rem;border-bottom:1px solid var(--line)}
+ h1{margin:0 0 .3rem;font-size:1.35rem}
+ .sub{color:var(--muted)}
+ main{padding:1.5rem 2rem 4rem}
+ h2{font-size:1rem;margin:2rem 0 .6rem;padding-bottom:.35rem;
+    border-bottom:1px solid var(--line)}
+ .wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);
+       border-radius:8px}
+ table{border-collapse:collapse;width:100%;min-width:52rem}
+ th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--line);
+       vertical-align:top}
+ th{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--muted);font-weight:600}
+ tr:last-child td{border-bottom:0}
+ td.id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
+ /* The row a RUN link from the results workbook has jumped to. Without this the
+    browser scrolls to the right place and the reader still has to work out which of
+    the rows on screen was meant. scroll-margin keeps it clear of the sticky header. */
+ tr:target{scroll-margin-top:4rem}
+ tr:target td{background:var(--target,#fff6d5)}
+ tr:target td.id{font-weight:700}
+ td.run{white-space:nowrap}
+ a.run{display:inline-block;padding:.15rem .6rem;border:1px solid var(--link);
+       border-radius:5px;color:var(--link);text-decoration:none;font-weight:600}
+ a.run:hover{background:var(--link);color:#fff}
+ .none{color:var(--muted)}
+ .warn{color:var(--warn)}
+ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+ .note{max-width:60rem;color:var(--muted);margin:.8rem 0 0}
+ .back{display:inline-block;margin:0 0 .2rem;color:var(--link);text-decoration:none}
+ .back:hover{text-decoration:underline}
+ .cards{display:grid;gap:.8rem;
+        grid-template-columns:repeat(auto-fill,minmax(15rem,1fr))}
+ .card{display:block;padding:1rem 1.1rem;background:var(--card);border-radius:9px;
+       border:1px solid var(--line);text-decoration:none;color:inherit}
+ .card:hover{border-color:var(--link)}
+ .card .name{font-weight:600;margin-bottom:.2rem}
+ .card .count{color:var(--muted);font-size:.85rem}
+</style>
+<header><h1>Client test cases</h1><div class="sub">3 features &middot; 416 of 466 rows have a test behind them &middot; generated 2026-10-15 17:58</div><p class="note">Only the tabs the client coloured green are here - those are
+the features in scope. Open one to run its cases: clicking <b>Run</b> executes
+<code>./mvnw test -Dcase=&lt;id&gt;</code> in a console window, which needs the
+handler registered once per machine with
+<code>powershell -ExecutionPolicy Bypass -File tools\install-url-handler.ps1</code>.</p>
+</header><main><div class="cards">
+<a class="card" href="test-cases.html"><div class="name">Test Cases</div><div class="count">154 of 182 runnable</div></a>
+<a class="card" href="other-category.html"><div class="name">Other Category</div><div class="count">99 of 109 runnable</div></a>
+<a class="card" href="notification.html"><div class="name">Notification</div><div class="count">163 of 175 runnable</div></a>
+</div></main>

@@ -1,0 +1,34 @@
+h3. Description
+On *Tool > Notification > Add Notification*, ticking *Override above contents to: All languages* copies the 繁體 Title and Content into the other eleven language tabs. Unticking the same checkbox does not undo that: the copies stay on every tab, so the form is in the state the operator chose - "do not override" - while still carrying the override's text. Save then goes through with "Successfully added", where the operator expects the "Title and Content are required for all languages" validation the form shows when the other languages are blank.
+
+*Environment:* Test - https://admin-test.1083.city/tools/notification-form (currency HKD), operator {{qa0001}}
+
+h3. Steps to reproduce
+# Sign in to https://admin-test.1083.city/ as qa0001, with currency HKD, and open *Tool > Notification*, then *+ Add notification*.
+# On the 繁體 tab fill Title "QA NOT Override Unticked", Content and Link.
+# Tick *Override above contents to: All languages*, then untick it again.
+# Open the English or 简体 tab: the 繁體 Title and Content are still there.
+# Under *Agent Group* and *Member group* choose Optional and move agents001 / Default 00 into Selected.
+# Click *Save Notification* and confirm the prompt.
+
+h3. Expected result
+Unticking Override restores the other language tabs to what they held before it was ticked (blank), and Save is refused with the languages-required validation message. Nothing is added to the Notification list.
+
+h3. Actual result
+* After the untick, English and 简体 still hold the 繁體 Title "QA NOT Override Unticked" and its Content.
+* The page says *"Successfully added"* and returns to the list, where the rule is listed as ID 277.
+* API:
+{code}
+POST /api/account/inbox-notification-rule?currency=HKD
+HTTP 200 - rule created
+{code}
+* With the form's default Schedule (Once, no Timer) the rule was sent immediately on save and set itself Inactive (2026-09-30 17:39).
+
+h3. Impact
+The checkbox reads as a mode (override the other languages on / off) but acts as a one-shot copy. An operator who ticks it by mistake and unticks it cannot get the blank tabs back without clearing eleven tabs by hand, and is not warned by validation - the rule saves and, with the default Schedule, sends at once with untranslated text on every language.
+
+h3. Attachment
+* notification-override-untick-keeps-copies-saved.png - the list after Save: "QA NOT Override Unticked" listed as ID 277, Once / Immediate, Inactive after its send
+
+h3. Suggested fix
+On untick, restore each target language's Title and Content to the value it held before the tick (blank for a new rule), or clear the tabs the tick filled and leave any tab the operator edited afterwards alone. Then the existing languages-required validation refuses the save as it does today for blank tabs.

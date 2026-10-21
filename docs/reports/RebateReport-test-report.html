@@ -1,0 +1,1359 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rebate report test - test case report</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2230; --muted:#5b6676;
+    --line:#e2e7ef; --head:#26314a; --headink:#ffffff;
+    --pass:#137a43; --pass-bg:#e6f5ec;
+    --fail:#b02525; --fail-bg:#fdecec;
+    --partial:#9a6a00; --partial-bg:#fdf3dd;
+    --info:#1f6a9c; --info-bg:#e6f1f9;
+    --accent:#c79a2f;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:32px 18px}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.rpt{background:var(--head);color:var(--headink);border-radius:14px;padding:26px 30px;
+    box-shadow:0 6px 20px rgba(20,30,50,.12)}
+  header.rpt h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header.rpt .sub{opacity:.85;font-size:14px}
+  header.rpt code{background:rgba(255,255,255,.14);color:inherit}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px;font-size:13.5px}
+  .meta b{color:var(--accent)}
+  .tally{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:14px;font-weight:600}
+  /* The run at a glance. Proportional segments, so the shape of a result is
+     readable before any of the five numbers above it has been read. */
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:12px;
+    background:rgba(255,255,255,.16)}
+  .bar .seg{display:block;height:100%}
+  .bar .seg.pass{background:#3ddc84}
+  .bar .seg.fail{background:#ff6b6b}
+  .bar .seg.skip{background:#ffcc66}
+  .bar .seg.notrun{background:#8fa3bf}
+  .rate{margin-top:8px;font-size:12.5px;opacity:.85}
+  /* The same bar in a table cell, where the ground is white rather than the
+     header's navy, so the empty track has to be redrawn to stay visible. */
+  .bar.mini{width:150px;height:8px;margin:0;background:var(--line)}
+  td.minibar{width:170px}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 4px}
+  .toolbar .filters{display:flex;flex-wrap:wrap;gap:6px}
+  button.flt{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+  button.flt:hover{color:var(--ink);border-color:var(--muted)}
+  button.flt.on{background:var(--head);border-color:var(--head);color:#fff}
+  .toolbar input[type=search]{font:inherit;font-size:13px;padding:7px 12px;flex:1 1 220px;
+    min-width:180px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    color:var(--ink)}
+  .toolbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hide{display:none !important}
+  .callout.bad{border-left-color:var(--fail)}
+  ol.findings{margin:0;padding-left:20px}
+  ol.findings li{margin-bottom:10px}
+  ol.findings a{color:var(--fail);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;text-decoration:none}
+  ol.findings a:hover{text-decoration:underline}
+  .tag.known{background:var(--fail-bg);color:var(--fail)}
+  /* The detail panel under a row. It is a second <tr> rather than a nested table
+     so the seven columns stay aligned across every group on the page. */
+  button.more{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;margin-right:7px;
+    border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);cursor:pointer;vertical-align:middle}
+  button.more:hover{color:var(--ink);border-color:var(--muted)}
+  button.more::before{content:"\25B8 "}
+  tr.case.open button.more::before{content:"\25BE "}
+  tr.case.open>td{background:#f2f6fd}
+  tr.case.flash>td{animation:flash 1.4s ease-out}
+  @keyframes flash{from{background:#fdf3dd}to{background:transparent}}
+  tr.detail>td{background:#f7f9fc;border-top:0;padding:0 13px 18px}
+  .panels{display:flex;flex-wrap:wrap;gap:14px}
+  .panel{flex:1 1 340px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.wide{flex-basis:100%;margin-top:14px}
+  .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .panel dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+  .panel dt{color:var(--muted);font-weight:600}
+  .panel dd{margin:0;word-break:break-word}
+  .panel p{font-size:13px;margin:10px 0 0}
+  .cmp{display:grid;gap:6px}
+  .cmp>div{display:flex;gap:8px;align-items:baseline}
+  .cmp span{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);min-width:58px}
+  .cmp code{white-space:pre-wrap;word-break:break-word}
+  .cmp>div:first-child code{background:var(--pass-bg);color:var(--pass)}
+  .cmp>div:last-child code{background:var(--fail-bg);color:var(--fail)}
+  .frames{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  details.trace{margin-top:12px;font-size:12.5px}
+  details.trace>summary{cursor:pointer;color:var(--muted)}
+  details.trace pre{margin:8px 0 0;padding:12px;background:#f4f6fa;border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.45;max-height:340px}
+  /* The step trail. Kinds are badges rather than prose because they are what makes
+     it scannable - red for the network and console lines a failure hangs off. */
+  ol.steps{margin:0;padding:0;list-style:none;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  ol.steps li{display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line);
+    align-items:baseline}
+  ol.steps li:first-child{border-top:0}
+  ol.steps .at{color:var(--muted);min-width:52px;text-align:right;font-size:11.5px}
+  ol.steps .kind{min-width:74px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    padding:2px 7px;border-radius:4px;text-align:center;background:#eef1f6;color:var(--muted)}
+  ol.steps .what{flex:1;word-break:break-word;white-space:pre-wrap}
+  /* A capture shown against the trail line that describes it. Kept small so a
+     case with fifty-two of them still scrolls as a trail rather than a gallery,
+     and clickable so the full-size image is one click away. align-self:flex-start
+     stops a tall thumbnail stretching a short line's row. */
+  ol.steps .step-shot{flex:0 0 auto;align-self:flex-start;line-height:0;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  ol.steps .step-shot img{display:block;width:180px;height:auto}
+  ol.steps li.k-evidence{align-items:flex-start}
+  @media (max-width:900px){ol.steps .step-shot img{width:120px}}
+  ol.steps li.k-step .kind{background:var(--info-bg);color:var(--info)}
+  ol.steps li.k-check .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-data .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-network .kind,ol.steps li.k-console .kind{background:var(--fail-bg);color:var(--fail)}
+  ol.steps li.k-network .what,ol.steps li.k-console .what{color:var(--fail)}
+  /* A line the case declared FAIL. Tinted across the whole row rather than only
+     the text, so it is findable while scrolling a trail of a hundred lines, and
+     given a left rule so it still reads as failed without relying on colour. */
+  ol.steps li.failed{background:var(--fail-bg);
+    box-shadow:inset 3px 0 0 var(--fail);padding-left:7px}
+  ol.steps li.failed .what{color:var(--fail);font-weight:600}
+  ol.steps li.failed .kind{background:var(--fail);color:#fff}
+  ol.steps li.k-evidence .kind{background:var(--partial-bg);color:var(--partial)}
+  .nav{margin:18px 0 0;font-size:13.5px}
+  .nav a{color:var(--info);text-decoration:none}
+  .nav a:hover{text-decoration:underline}
+  .callout{background:var(--card);border-left:5px solid var(--accent);border-radius:10px;
+    padding:16px 20px;margin:22px 0;box-shadow:0 2px 8px rgba(20,30,50,.06);font-size:14px}
+  .callout h2{margin:0 0 8px;font-size:16px}
+  .callout p{margin:0 0 10px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--partial)}
+  h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
+  thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
+    font-weight:600;white-space:nowrap}
+  tbody td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;
+    overflow-wrap:break-word}
+  /* Fixed column widths on the case tables, because automatic layout shares the
+     width out by content and one long cell then starves the rest: a remark
+     carrying a two-sentence reading of a failure took 792 of 1565 pixels and left
+     the Actual result column at 103, wrapping its message one word per line. It
+     also stops the full-width detail row from widening the whole table, which was
+     pushing the failure panel off the right of the page. */
+  table.cases{table-layout:fixed}
+  table.cases th:nth-child(1),table.cases td:nth-child(1){width:8%}
+  table.cases th:nth-child(2),table.cases td:nth-child(2){width:16%}
+  table.cases th:nth-child(3),table.cases td:nth-child(3){width:18%}
+  table.cases th:nth-child(4),table.cases td:nth-child(4){width:19%}
+  table.cases th:nth-child(5),table.cases td:nth-child(5){width:7%}
+  table.cases th:nth-child(6),table.cases td:nth-child(6){width:18%}
+  table.cases th:nth-child(7),table.cases td:nth-child(7){width:14%}
+  table.cases tr.detail>td{width:auto}
+  /* The sheet ids run from HOME-001 to HKDWITHDRAWAL-012, and a fixed column
+     clips what it cannot fit: the longer ones were cut mid-word with no sign
+     that anything was missing. They wrap here rather than truncate. */
+  table.cases td.id{white-space:normal;overflow-wrap:anywhere}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td.tc{font-weight:600}
+  td.tc a{color:var(--ink)}
+  td.id{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);
+    font-size:12.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .why{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--fail);
+    white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted)}
+  .secs{margin-top:6px;font-size:11.5px;color:var(--muted)}
+  .tag{display:inline-block;margin-top:6px;margin-right:4px;padding:1px 7px;border-radius:4px;
+    background:#eef1f6;color:var(--muted);font-size:11px;font-weight:600;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .st{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;
+    white-space:nowrap}
+  .st.pass{color:var(--pass);background:var(--pass-bg)}
+  .st.fail{color:var(--fail);background:var(--fail-bg)}
+  .st.partial{color:var(--partial);background:var(--partial-bg)}
+  .st.info{color:var(--info);background:var(--info-bg)}
+  details.shots{max-width:100%}
+  details.shots>summary{cursor:pointer;font-size:12.5px;color:var(--muted);
+    padding:5px 9px;border:1px solid var(--line);border-radius:999px;
+    display:inline-block;list-style:none;user-select:none}
+  details.shots>summary::-webkit-details-marker{display:none}
+  details.shots>summary::before{content:"\25B8 ";color:var(--muted)}
+  details.shots[open]>summary::before{content:"\25BE "}
+  details.shots>summary:hover{color:var(--ink);border-color:var(--muted)}
+  details.shots[open]>summary{margin-bottom:8px}
+  a.shot{display:inline-block;margin:0 6px 6px 0;position:relative;cursor:zoom-in}
+  a.shot img{width:100%;max-width:260px;border:1px solid var(--line);border-radius:8px;display:block;
+    box-shadow:0 2px 6px rgba(20,30,50,.10);transition:transform .12s,box-shadow .12s}
+  a.shot:hover img{transform:scale(1.03);box-shadow:0 6px 18px rgba(20,30,50,.22)}
+  a.shot::after{content:"\2315";position:absolute;right:8px;bottom:8px;
+    background:rgba(15,25,45,.72);color:#fff;font-size:13px;line-height:1;
+    padding:5px 7px;border-radius:6px;opacity:0;transition:opacity .12s}
+  a.shot:hover::after{opacity:1}
+  /* Click-to-zoom overlay. A 260px thumbnail of a 1920x1080 capture is a
+     smudge - readable enough to say a picture exists, not enough to read the
+     page in it - so the full image opens over the report rather than in a
+     separate tab the reader then has to navigate back from. */
+  #lightbox{position:fixed;inset:0;background:rgba(10,16,28,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:999;
+    padding:24px;cursor:zoom-out}
+  #lightbox.open{display:flex}
+  #lightbox img{max-width:96vw;max-height:86vh;border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff}
+  #lightbox .cap{color:#e8eef8;font-size:13px;margin-top:12px;text-align:center;
+    max-width:80vw}
+  #lightbox .hint{color:#93a4bd;font-size:12px;margin-top:6px}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rpt">
+    <h1>Rebate report test</h1>
+    <div class="sub">Test case report &mdash; <code>org.sengmean.tests.rebateprogram.RebateReportTest</code></div>
+    <div class="meta">
+      <div><b>Target:</b> https://admin-test.1083.city/</div>
+      <div><b>Account:</b> qa0001</div>
+      <div><b>Run:</b> 2026-09-21 08:39</div>
+      <div><b>Elapsed:</b> 1074.6s</div>
+      <div><b>Scope:</b> 7 of 8 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headed)</div>
+      <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
+      <div><b>Machine:</b> Windows 11 10.0</div>
+    </div>
+    <div class="tally">21 cases &middot; 12 passed &middot; 0 failed &middot; 9 skipped &middot; 0 not run &middot; 42.5s of browser time</div>
+    <div class="bar" role="img" aria-label="12 passed, 0 failed, 9 skipped, 0 not run">
+      <span class="seg pass" style="width:57.1429%" title="12 passed"></span>
+      <span class="seg skip" style="width:42.8571%" title="9 skipped"></span>
+    </div>
+    <div class="rate">57% of the cases that ran passed</div>
+  </header>
+
+  <div class="nav"><a href="index.html">&larr; All suites</a></div>
+  <div class="toolbar">
+    <div class="filters" role="group" aria-label="Filter cases by status">
+      <button type="button" class="flt on" data-filter="all">All</button>
+      <button type="button" class="flt" data-filter="Pass">Passed</button>
+      <button type="button" class="flt" data-filter="Fail">Failed</button>
+      <button type="button" class="flt" data-filter="Skipped">Skipped</button>
+      <button type="button" class="flt" data-filter="Not run">Not run</button>
+    </div>
+    <input type="search" id="q" placeholder="Search id, case or message" aria-label="Search cases">
+    <button type="button" class="flt" id="expand-all">Expand all details</button>
+    <span class="count" id="shown">21 of 21 cases</span>
+  </div>
+  <section class="grp">
+  <h2 class="section">1. Test cases</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-RebateReportTest-filterByDateTime" data-status="Pass" data-search="rbmp-136 filterbydatetime filter the rebate report by date time">
+        <td class="id" id="RBMP-136">RBMP-136</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByDateTime</code></td>
+        <td>Filter the rebate report by date time</td>
+        <td>The application behaved as expected.<div class="secs">6 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.45s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.filterByDateTime.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.filterByDateTime.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-136</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByDateTime</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by date time</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.45s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Filter the rebate report by date time</dd>
+                <dt>Duration</dt><dd>2.45 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(6 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-136: Filter the rebate report by date time</span></li>
+              <li class="k-data"><span class="at">0.01s</span><span class="kind">DATA</span><span class="what">Time limit = 2026-09-21 00:00:00 - 2026-09-21 23:59:59</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.21s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.25s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.35s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-filterByProduct" data-status="Pass" data-search="rbmp-137 filterbyproduct filter the rebate report by product (game name)">
+        <td class="id" id="RBMP-137">RBMP-137</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByProduct</code></td>
+        <td>Filter the rebate report by Product (game name)</td>
+        <td>The application behaved as expected.<div class="secs">6 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.64s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.filterByProduct.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.filterByProduct.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-137</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByProduct</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by Product (game name)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.64s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Filter the rebate report by Product (game name)</dd>
+                <dt>Duration</dt><dd>2.64 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(6 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-137: Filter the rebate report by Product (game name)</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Product = DREAM GAMING ch</span></li>
+              <li class="k-step"><span class="at">0.04s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.26s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;old_game_provider_id=18&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.31s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.42s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-typeFilterDefaultsToAll" data-status="Pass" data-search="rbmp-138 typefilterdefaultstoall type filter defaults to all and offers both rebate types">
+        <td class="id" id="RBMP-138">RBMP-138</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>typeFilterDefaultsToAll</code></td>
+        <td>Type filter defaults to All and offers both rebate types</td>
+        <td>The application behaved as expected.<div class="secs">4 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">1.21s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.typeFilterDefaultsToAll.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.typeFilterDefaultsToAll.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-138</dd>
+                <dt>Method</dt><dd>RebateReportTest#typeFilterDefaultsToAll</dd>
+                <dt>Expected result</dt><dd>Type filter defaults to All and offers both rebate types</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 1.21s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Type filter defaults to All and offers both rebate types</dd>
+                <dt>Duration</dt><dd>1.21 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(4 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-138: Type filter defaults to All and offers both rebate types</span></li>
+              <li class="k-data"><span class="at">0.02s</span><span class="kind">DATA</span><span class="what">Type options = All / Daily rebate / Real-time rebate</span></li>
+              <li class="k-step"><span class="at">0.03s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">0.14s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-filterByTypeAll" data-status="Pass" data-search="rbmp-145 filterbytypeall filter the rebate report by type = all">
+        <td class="id" id="RBMP-145">RBMP-145</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByTypeAll</code></td>
+        <td>Filter the rebate report by Type = All</td>
+        <td>The application behaved as expected.<div class="secs">6 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.84s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.filterByTypeAll.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.filterByTypeAll.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-145</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByTypeAll</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by Type = All</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.84s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Filter the rebate report by Type = All</dd>
+                <dt>Duration</dt><dd>2.84 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(6 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-145: Filter the rebate report by Type = All</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Type = All</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.23s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.31s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.75s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-filterByTypeDaily" data-status="Pass" data-search="rbmp-146 filterbytypedaily filter the rebate report by type = daily rebate">
+        <td class="id" id="RBMP-146">RBMP-146</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByTypeDaily</code></td>
+        <td>Filter the rebate report by Type = Daily rebate</td>
+        <td>The application behaved as expected.<div class="secs">6 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.55s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.filterByTypeDaily.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.filterByTypeDaily.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-146</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByTypeDaily</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by Type = Daily rebate</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.55s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Filter the rebate report by Type = Daily rebate</dd>
+                <dt>Duration</dt><dd>2.55 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(6 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-146: Filter the rebate report by Type = Daily rebate</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Type = Daily rebate</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.25s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;type=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.30s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.38s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-filterByTypeRealTime" data-status="Pass" data-search="rbmp-147 filterbytyperealtime filter the rebate report by type = real-time rebate">
+        <td class="id" id="RBMP-147">RBMP-147</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByTypeRealTime</code></td>
+        <td>Filter the rebate report by Type = Real-time rebate</td>
+        <td>The application behaved as expected.<div class="secs">6 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.46s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.filterByTypeRealTime.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.filterByTypeRealTime.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-147</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByTypeRealTime</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by Type = Real-time rebate</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.46s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Filter the rebate report by Type = Real-time rebate</dd>
+                <dt>Duration</dt><dd>2.46 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(6 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-147: Filter the rebate report by Type = Real-time rebate</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Type = Real-time rebate</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.21s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;type=2&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.28s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.39s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-filterByStatus" data-status="Pass" data-search="rbmp-139 filterbystatus filter the rebate report by status">
+        <td class="id" id="RBMP-139">RBMP-139</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByStatus</code></td>
+        <td>Filter the rebate report by Status</td>
+        <td>The application behaved as expected.<div class="secs">7 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.47s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.filterByStatus.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.filterByStatus.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-139</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByStatus</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by Status</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.47s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Filter the rebate report by Status</dd>
+                <dt>Duration</dt><dd>2.47 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(7 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-139: Filter the rebate report by Status</span></li>
+              <li class="k-data"><span class="at">0.03s</span><span class="kind">DATA</span><span class="what">Status options = All / Unsettle / Settled / Expired / Cancel</span></li>
+              <li class="k-step"><span class="at">0.03s</span><span class="kind">STEP</span><span class="what">Status = Settled</span></li>
+              <li class="k-step"><span class="at">0.03s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.24s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;status=2&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.29s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.38s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-filterByAgentAccount" data-status="Skipped" data-search="rbmp-140 filterbyagentaccount filter the rebate report by agent account the rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. asserting against an empty table would pass without testing anything. seed rebate activity - see rebatetestdata.seeding_required - and this case runs as written.">
+        <td class="id" id="RBMP-140">RBMP-140</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByAgentAccount</code></td>
+        <td>Filter the rebate report by Agent account</td>
+        <td>The rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. Asserting against an empty table would pass without testing anything. Seed rebate activity - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">2.38s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-140</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByAgentAccount</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by Agent account</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 2.38s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>The rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. Asserting against an empty table would pass without testing anything. Seed rebate activity - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(4 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-140: Filter the rebate report by Agent account</span></li>
+              <li class="k-step"><span class="at">0.02s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.22s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;agent_name=agtest&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.28s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-invalidAgentAccountReturnsNoData" data-status="Pass" data-search="rbmp-141 invalidagentaccountreturnsnodata an invalid agent account returns no data">
+        <td class="id" id="RBMP-141">RBMP-141</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>invalidAgentAccountReturnsNoData</code></td>
+        <td>An invalid Agent account returns No data</td>
+        <td>The application behaved as expected.<div class="secs">5 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.48s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.invalidAgentAccountReturnsNoData.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.invalidAgentAccountReturnsNoData.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-141</dd>
+                <dt>Method</dt><dd>RebateReportTest#invalidAgentAccountReturnsNoData</dd>
+                <dt>Expected result</dt><dd>An invalid Agent account returns No data</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.48s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>An invalid Agent account returns No data</dd>
+                <dt>Duration</dt><dd>2.48 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(5 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-141: An invalid Agent account returns No data</span></li>
+              <li class="k-step"><span class="at">0.02s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.22s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;agent_name=agtest31231&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.28s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.38s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-filterByUsername" data-status="Skipped" data-search="rbmp-142 filterbyusername filter the rebate report by username the rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. asserting against an empty table would pass without testing anything. seed rebate activity - see rebatetestdata.seeding_required - and this case runs as written.">
+        <td class="id" id="RBMP-142">RBMP-142</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByUsername</code></td>
+        <td>Filter the rebate report by Username</td>
+        <td>The rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. Asserting against an empty table would pass without testing anything. Seed rebate activity - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">2.50s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-142</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByUsername</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by Username</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 2.50s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>The rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. Asserting against an empty table would pass without testing anything. Seed rebate activity - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(4 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-142: Filter the rebate report by Username</span></li>
+              <li class="k-step"><span class="at">0.02s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.24s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;username=thu0108&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.42s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-invalidUsernameReturnsNoData" data-status="Pass" data-search="rbmp-143 invalidusernamereturnsnodata an invalid username returns no data">
+        <td class="id" id="RBMP-143">RBMP-143</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>invalidUsernameReturnsNoData</code></td>
+        <td>An invalid Username returns No data</td>
+        <td>The application behaved as expected.<div class="secs">5 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.67s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.invalidUsernameReturnsNoData.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.invalidUsernameReturnsNoData.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-143</dd>
+                <dt>Method</dt><dd>RebateReportTest#invalidUsernameReturnsNoData</dd>
+                <dt>Expected result</dt><dd>An invalid Username returns No data</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.67s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>An invalid Username returns No data</dd>
+                <dt>Duration</dt><dd>2.67 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(5 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-143: An invalid Username returns No data</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.32s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;username=dsaa123fff&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.27s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.39s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-filterByMemberGroup" data-status="Skipped" data-search="rbmp-144 filterbymembergroup filter the rebate report by member group no member groups are configured on this environment, so the member group filter has nothing to select. create at least two - see rebatetestdata.seeding_required - and this case runs as written.">
+        <td class="id" id="RBMP-144">RBMP-144</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>filterByMemberGroup</code></td>
+        <td>Filter the rebate report by Member group</td>
+        <td>No member groups are configured on this environment, so the Member group filter has nothing to select. Create at least two - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">1.13s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-144</dd>
+                <dt>Method</dt><dd>RebateReportTest#filterByMemberGroup</dd>
+                <dt>Expected result</dt><dd>Filter the rebate report by Member group</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 1.13s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>No member groups are configured on this environment, so the Member group filter has nothing to select. Create at least two - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(3 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-144: Filter the rebate report by Member group</span></li>
+              <li class="k-data"><span class="at">0.00s</span><span class="kind">DATA</span><span class="what">Member groups offered = 0</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-resetAllClearsTheFilters" data-status="Pass" data-search="rbmp-152 resetallclearsthefilters reset all returns every filter to its default">
+        <td class="id" id="RBMP-152">RBMP-152</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>resetAllClearsTheFilters</code></td>
+        <td>Reset all returns every filter to its default</td>
+        <td>The application behaved as expected.<div class="secs">9 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">3.86s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.resetAllClearsTheFilters.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.resetAllClearsTheFilters.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-152</dd>
+                <dt>Method</dt><dd>RebateReportTest#resetAllClearsTheFilters</dd>
+                <dt>Expected result</dt><dd>Reset all returns every filter to its default</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 3.86s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Reset all returns every filter to its default</dd>
+                <dt>Duration</dt><dd>3.86 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(9 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-152: Reset all returns every filter to its default</span></li>
+              <li class="k-step"><span class="at">0.01s</span><span class="kind">STEP</span><span class="what">Type = Daily rebate</span></li>
+              <li class="k-step"><span class="at">0.02s</span><span class="kind">STEP</span><span class="what">Status = Settled</span></li>
+              <li class="k-step"><span class="at">0.04s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.24s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;username=dsaa123fff&amp;status=2&amp;type=1&amp;agent_name=agtest31231&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09... -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.30s</span><span class="kind">STEP</span><span class="what">Resetting every filter.</span></li>
+              <li class="k-api"><span class="at">1.49s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">2.56s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">2.66s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-selectReportLanguage" data-status="Pass" data-search="rbmp-153 selectreportlanguage the report relabels its contents in the selected language">
+        <td class="id" id="RBMP-153">RBMP-153</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>selectReportLanguage</code></td>
+        <td>The report relabels its contents in the selected language</td>
+        <td>The application behaved as expected.<div class="secs">12 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">2.34s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.selectReportLanguage.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.selectReportLanguage.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-153</dd>
+                <dt>Method</dt><dd>RebateReportTest#selectReportLanguage</dd>
+                <dt>Expected result</dt><dd>The report relabels its contents in the selected language</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 2.34s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>The report relabels its contents in the selected language</dd>
+                <dt>Duration</dt><dd>2.34 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(12 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-153: The report relabels its contents in the selected language</span></li>
+              <li class="k-api"><span class="at">0.05s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.17s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.22s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">0.26s</span><span class="kind">STEP</span><span class="what">Report language = English</span></li>
+              <li class="k-step"><span class="at">0.26s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.27s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.28s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.30s</span><span class="kind">API</span><span class="what">GET api/account/game_all_product?paginate=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.48s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.59s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">1.68s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-tableShowsAgreedColumns" data-status="Pass" data-search="rbmp-154 tableshowsagreedcolumns the rebate record table shows the agreed column headings">
+        <td class="id" id="RBMP-154">RBMP-154</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>tableShowsAgreedColumns</code></td>
+        <td>The rebate record table shows the agreed column headings</td>
+        <td>The application behaved as expected.<div class="secs">5 events recorded, ended on <code>https://admin-test.1083.city/rebate/report/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">0.76s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/RebateReportTest.tableShowsAgreedColumns.png" target="_blank" rel="noopener"><img src="screenshots/RebateReportTest.tableShowsAgreedColumns.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-154</dd>
+                <dt>Method</dt><dd>RebateReportTest#tableShowsAgreedColumns</dd>
+                <dt>Expected result</dt><dd>The rebate record table shows the agreed column headings</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 0.76s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>The rebate record table shows the agreed column headings</dd>
+                <dt>Duration</dt><dd>0.76 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(5 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-154: The rebate record table shows the agreed column headings</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-data"><span class="at">0.06s</span><span class="kind">DATA</span><span class="what">Columns = No | Username | Member group | Agent code | Record amount | Total valid bet | Total rebate amount</span></li>
+              <li class="k-step"><span class="at">0.06s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/rebate/report/</span></li>
+              <li class="k-evidence"><span class="at">0.15s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-listsEveryMemberWithRebate" data-status="Skipped" data-search="rbmp-134 listseverymemberwithrebate the report lists every member who earned a rebate, with totals the rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. asserting against an empty table would pass without testing anything. seed rebate activity - see rebatetestdata.seeding_required - and this case runs as written.">
+        <td class="id" id="RBMP-134">RBMP-134</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>listsEveryMemberWithRebate</code></td>
+        <td>The report lists every member who earned a rebate, with totals</td>
+        <td>The rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. Asserting against an empty table would pass without testing anything. Seed rebate activity - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">2.15s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-134</dd>
+                <dt>Method</dt><dd>RebateReportTest#listsEveryMemberWithRebate</dd>
+                <dt>Expected result</dt><dd>The report lists every member who earned a rebate, with totals</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 2.15s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>The rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. Asserting against an empty table would pass without testing anything. Seed rebate activity - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(10 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-134: The report lists every member who earned a rebate, with totals</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.18s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.19s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.20s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.22s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.23s</span><span class="kind">API</span><span class="what">GET api/account/game_all_product?paginate=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.42s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.53s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-clickingAMemberShowsTheirRecords" data-status="Skipped" data-search="rbmp-135 clickingamembershowstheirrecords clicking a member shows that member's own rebate records the rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. asserting against an empty table would pass without testing anything. seed rebate activity - see rebatetestdata.seeding_required - and this case runs as written.">
+        <td class="id" id="RBMP-135">RBMP-135</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>clickingAMemberShowsTheirRecords</code></td>
+        <td>Clicking a member shows that member's own rebate records</td>
+        <td>The rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. Asserting against an empty table would pass without testing anything. Seed rebate activity - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">2.16s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-135</dd>
+                <dt>Method</dt><dd>RebateReportTest#clickingAMemberShowsTheirRecords</dd>
+                <dt>Expected result</dt><dd>Clicking a member shows that member's own rebate records</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 2.16s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>The rebate report has no records on this environment for the selected filters, so this row's claim about row contents cannot be checked. Asserting against an empty table would pass without testing anything. Seed rebate activity - see RebateTestData.SEEDING_REQUIRED - and this case runs as written.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(10 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-135: Clicking a member shows that member's own rebate records</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Searching the rebate report.</span></li>
+              <li class="k-api"><span class="at">0.09s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.18s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.20s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.20s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.21s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.23s</span><span class="kind">API</span><span class="what">GET api/account/game_all_product?paginate=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.61s</span><span class="kind">API</span><span class="what">GET api/account/rebate-reports/summary?paginate=50&amp;page=1&amp;start_time=2026-09-21+00:00:00&amp;end_time=2026-09-21+23:59:59&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.56s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-valueDisplayBelowFirstLevel" data-status="Skipped" data-search="rbmp-148 valuedisplaybelowfirstlevel rebate value display when the first bet reaches no experience group needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. see rebatetestdata.seeding_required.">
+        <td class="id" id="RBMP-148">RBMP-148</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>valueDisplayBelowFirstLevel</code></td>
+        <td>Rebate value display when the first bet reaches no experience group</td>
+        <td>Needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. See RebateTestData.SEEDING_REQUIRED.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">0.64s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-148</dd>
+                <dt>Method</dt><dd>RebateReportTest#valueDisplayBelowFirstLevel</dd>
+                <dt>Expected result</dt><dd>Rebate value display when the first bet reaches no experience group</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 0.64s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>Needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. See RebateTestData.SEEDING_REQUIRED.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(2 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-148: Rebate value display when the first bet reaches no experience group</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-valueDisplayAtLevelOne" data-status="Skipped" data-search="rbmp-149 valuedisplayatlevelone rebate value display when the first bet reaches level 1 needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. see rebatetestdata.seeding_required.">
+        <td class="id" id="RBMP-149">RBMP-149</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>valueDisplayAtLevelOne</code></td>
+        <td>Rebate value display when the first bet reaches level 1</td>
+        <td>Needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. See RebateTestData.SEEDING_REQUIRED.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">1.13s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-149</dd>
+                <dt>Method</dt><dd>RebateReportTest#valueDisplayAtLevelOne</dd>
+                <dt>Expected result</dt><dd>Rebate value display when the first bet reaches level 1</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 1.13s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>Needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. See RebateTestData.SEEDING_REQUIRED.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(2 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-149: Rebate value display when the first bet reaches level 1</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-valueDisplayAtLevelTwo" data-status="Skipped" data-search="rbmp-150 valuedisplayatleveltwo rebate value display when experience reaches level 2 needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. see rebatetestdata.seeding_required.">
+        <td class="id" id="RBMP-150">RBMP-150</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>valueDisplayAtLevelTwo</code></td>
+        <td>Rebate value display when experience reaches level 2</td>
+        <td>Needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. See RebateTestData.SEEDING_REQUIRED.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">1.07s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-150</dd>
+                <dt>Method</dt><dd>RebateReportTest#valueDisplayAtLevelTwo</dd>
+                <dt>Expected result</dt><dd>Rebate value display when experience reaches level 2</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 1.07s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>Needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. See RebateTestData.SEEDING_REQUIRED.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(2 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-150: Rebate value display when experience reaches level 2</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RebateReportTest-valueDisplayForRealTimeRecord" data-status="Skipped" data-search="rbmp-151 valuedisplayforrealtimerecord rebate value display for a real-time rebate record needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. see rebatetestdata.seeding_required.">
+        <td class="id" id="RBMP-151">RBMP-151</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>valueDisplayForRealTimeRecord</code></td>
+        <td>Rebate value display for a Real-time rebate record</td>
+        <td>Needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. See RebateTestData.SEEDING_REQUIRED.</td>
+        <td><span class="st partial">Skipped</span><div class="secs">0.61s</div></td>
+        <td><b>Skipped.</b> An assumption the case depends on did not hold, so it stopped rather than report a defect it could not have proved. Open <i>Details</i> for how far it got.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Skipped">
+        <td colspan="7">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RBMP-151</dd>
+                <dt>Method</dt><dd>RebateReportTest#valueDisplayForRealTimeRecord</dd>
+                <dt>Expected result</dt><dd>Rebate value display for a Real-time rebate record</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Skipped in 0.61s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>Why it was skipped</h3>
+              <dl>
+                <dt>Reason</dt><dd>Needs a member with a known betting history and membership level, and a settled rebate record to read back - none of which the admin back office can create. See RebateTestData.SEEDING_REQUIRED.</dd>
+              </dl>
+              <p class="muted">A skip is a statement about the run, not about the application: an assumption the case needs did not hold, so it stopped rather than report a defect it could not have proved.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(2 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: RBMP-151: Rebate value display for a Real-time rebate record</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case aborted by a failed assumption; no closing screenshot is taken.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <h2 class="section">How to read this report</h2>
+  <div class="callout">
+    <p><b>Status</b> is what the run did, not a verdict on the application. A
+    <span class="st fail">Fail</span> on a case badged <code>known-defect</code> is the
+    expected outcome: those cases assert the behaviour the application <i>should</i>
+    have and stay red until the finding is fixed.</p>
+    <p><b>Not run</b> means the case exists in the suite but produced no result, normally
+    because it was filtered out with <code>-DexcludedGroups=creates-data</code>, which
+    keeps cases with real-world side effects - a registered account, a real SMS, a filed
+    deposit, a withdrawal hold, a staked casino bet - out of an unattended run.</p>
+    <p><b>Evidence</b> is the screenshot of the page as the case left it - captured for every
+    case that ran, passed or failed, just before teardown closed the browser. A
+    skipped case never ran, so it has none. Click an image for the full size.</p>
+    <p><b>Details</b>, on every row, opens what would not fit in the table: the case as its
+    source declares it, the diagnosis of a failure - exception, expected against actual,
+    the element that could not be resolved, the lines of this project involved, and the
+    full stack trace - and, for every row alike, the run's own record of what the browser
+    did.</p>
+    <p><b>What the run did</b> is that record. It is captured automatically while the case
+    runs: <code>NAV</code> for a page load or a new tab, <code>API</code> for a call the
+    site made of its own back end with the status it came back with, <code>NETWORK</code>
+    for one that came back 4xx or 5xx, <code>CONSOLE</code> for a console or uncaught
+    error, <code>EVIDENCE</code> for a screenshot, and <code>STEP</code>,
+    <code>CHECK</code> and <code>DATA</code> for what the case itself narrated. A passing
+    row carries one too, deliberately: a green result is a claim, and this is the working
+    behind it.</p>
+  </div>
+  <footer>Generated by <code>org.sengmean.report.HtmlReportGenerator</code> from the test sources, the run's results, its step logs and its screenshots. Rewritten at the end of every run by <code>HtmlReportListener</code>.</footer>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <img id="lightbox-img" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+  <div class="hint">Click anywhere, or press Escape, to close</div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var cap = document.getElementById('lightbox-cap');
+  function open(src, caption) {
+    img.setAttribute('src', src);
+    img.setAttribute('alt', caption || '');
+    cap.textContent = caption || '';
+    box.classList.add('open');
+  }
+  function close() {
+    box.classList.remove('open');
+    img.removeAttribute('src');
+  }
+  document.addEventListener('click', function (e) {
+    // Both the Evidence column's images and the ones shown inline against a trail
+    // line. The inline ones were left out when they were added, so they fell
+    // through to target="_blank" and every capture opened a new tab - fifty-two of
+    // them if a reader worked down the transfer walk.
+    var link = e.target.closest ? e.target.closest('a.shot, a.step-shot') : null;
+    if (link) {
+      // Only take over the plain click - a modified click still opens the file
+      // in a tab, which is what someone reaching for that expects.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+      e.preventDefault();
+      var inner = link.querySelector('img');
+      open(link.getAttribute('href'), inner ? inner.getAttribute('alt') : '');
+    } else if (box.classList.contains('open')) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { close(); }
+  });
+})();
+</script>
+<script>
+(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.case'));
+  var shown = document.getElementById('shown');
+  var search = document.getElementById('q');
+  var expandAll = document.getElementById('expand-all');
+  var filter = 'all';
+  var query = '';
+
+  function panelOf(row) {
+    var next = row.nextElementSibling;
+    return next && next.classList.contains('detail') ? next : null;
+  }
+
+  function matches(row) {
+    if (filter !== 'all' && row.getAttribute('data-status') !== filter) { return false; }
+    if (query === '') { return true; }
+    return (row.getAttribute('data-search') || '').indexOf(query) >= 0;
+  }
+
+  function apply() {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var ok = matches(row);
+      if (ok) { visible++; }
+      row.classList.toggle('hide', !ok);
+      var panel = panelOf(row);
+      if (panel) { panel.classList.toggle('hide', !ok || !row.classList.contains('open')); }
+    });
+    // A group whose every case is filtered out is hidden with its heading, so the
+    // page does not end in a run of empty tables under numbered titles.
+    Array.prototype.forEach.call(document.querySelectorAll('section.grp'), function (grp) {
+      var any = grp.querySelector('tr.case:not(.hide)');
+      grp.classList.toggle('hide', !any);
+    });
+    if (shown) {
+      shown.textContent = visible + ' of ' + rows.length + ' cases';
+    }
+  }
+
+  function open(row, wanted) {
+    var panel = panelOf(row);
+    if (!panel) { return; }
+    var isOpen = wanted === undefined ? !row.classList.contains('open') : wanted;
+    row.classList.toggle('open', isOpen);
+    panel.classList.toggle('hide', !isOpen);
+    var button = row.querySelector('button.more');
+    if (button) { button.setAttribute('aria-expanded', isOpen ? 'true' : 'false'); }
+  }
+
+  document.addEventListener('click', function (e) {
+    var more = e.target.closest ? e.target.closest('button.more') : null;
+    if (more) {
+      open(more.closest('tr.case'));
+      return;
+    }
+    var flt = e.target.closest ? e.target.closest('button.flt[data-filter]') : null;
+    if (flt) {
+      filter = flt.getAttribute('data-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('button.flt[data-filter]'),
+        function (b) { b.classList.toggle('on', b === flt); });
+      apply();
+    }
+  });
+
+  if (search) {
+    search.addEventListener('input', function () {
+      query = search.value.trim().toLowerCase();
+      apply();
+    });
+  }
+
+  if (expandAll) {
+    expandAll.addEventListener('click', function () {
+      var opening = expandAll.getAttribute('data-open') !== 'yes';
+      expandAll.setAttribute('data-open', opening ? 'yes' : 'no');
+      expandAll.textContent = opening ? 'Collapse all details' : 'Expand all details';
+      rows.forEach(function (row) { if (!row.classList.contains('hide')) { open(row, opening); } });
+    });
+  }
+
+  function openFromHash() {
+    if (!window.location.hash) { return; }
+    var target = document.getElementById(window.location.hash.slice(1));
+    if (!target) { return; }
+    // The hash may name either anchor a row carries: the internal
+    // case-<suite>-<method>, which the findings list links to, or the case
+    // id itself - "#HOME-002" - which is what the client test case sheet's
+    // per-row links use. The id sits on a <td>, so resolve upwards to the
+    // row rather than testing the target: without this the browser scrolls
+    // to the right place and leaves the details shut, which reads as a link
+    // that landed on the wrong thing.
+    var row = target.classList.contains('case')
+      ? target
+      : (target.closest ? target.closest('tr.case') : null);
+    if (row) {
+      open(row, true);
+      row.classList.add('flash');
+      row.scrollIntoView({ block: 'center' });
+    }
+  }
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();
+  apply();
+})();
+</script>
+</div>
+</body>
+</html>

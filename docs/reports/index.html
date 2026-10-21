@@ -1,0 +1,977 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weibo Empire admin - test case reports</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2230; --muted:#5b6676;
+    --line:#e2e7ef; --head:#26314a; --headink:#ffffff;
+    --pass:#137a43; --pass-bg:#e6f5ec;
+    --fail:#b02525; --fail-bg:#fdecec;
+    --partial:#9a6a00; --partial-bg:#fdf3dd;
+    --info:#1f6a9c; --info-bg:#e6f1f9;
+    --accent:#c79a2f;                  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:32px 18px}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.rpt{background:var(--head);color:var(--headink);border-radius:14px;padding:26px 30px;
+    box-shadow:0 6px 20px rgba(20,30,50,.12)}
+  header.rpt h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header.rpt .sub{opacity:.85;font-size:14px}
+  header.rpt code{background:rgba(255,255,255,.14);color:inherit}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px;font-size:13.5px}
+  .meta b{color:var(--accent)}
+  .tally{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:14px;font-weight:600}
+  /* The run at a glance. Proportional segments, so the shape of a result is
+     readable before any of the five numbers above it has been read. */
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:12px;
+    background:rgba(255,255,255,.16)}
+  .bar .seg{display:block;height:100%}
+  .bar .seg.pass{background:#3ddc84}
+  .bar .seg.fail{background:#ff6b6b}
+  .bar .seg.skip{background:#ffcc66}
+  .bar .seg.notrun{background:#8fa3bf}
+  .rate{margin-top:8px;font-size:12.5px;opacity:.85}
+  /* The same bar in a table cell, where the ground is white rather than the
+     header's navy, so the empty track has to be redrawn to stay visible. */
+  .bar.mini{width:150px;height:8px;margin:0;background:var(--line)}
+  td.minibar{width:170px}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 4px}
+  .toolbar .filters{display:flex;flex-wrap:wrap;gap:6px}
+  button.flt{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+  button.flt:hover{color:var(--ink);border-color:var(--muted)}
+  button.flt.on{background:var(--head);border-color:var(--head);color:#fff}
+  .toolbar input[type=search]{font:inherit;font-size:13px;padding:7px 12px;flex:1 1 220px;
+    min-width:180px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    color:var(--ink)}
+  .toolbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hide{display:none !important}
+  .callout.bad{border-left-color:var(--fail)}
+  ol.findings{margin:0;padding-left:20px}
+  ol.findings li{margin-bottom:10px}
+  ol.findings a{color:var(--fail);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;text-decoration:none}
+  ol.findings a:hover{text-decoration:underline}
+  .tag.known{background:var(--fail-bg);color:var(--fail)}
+  /* The detail panel under a row. It is a second <tr> rather than a nested table
+     so the seven columns stay aligned across every group on the page. */
+  button.more{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;margin-right:7px;
+    border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);cursor:pointer;vertical-align:middle}
+  button.more:hover{color:var(--ink);border-color:var(--muted)}
+  button.more::before{content:"\25B8 "}
+  tr.case.open button.more::before{content:"\25BE "}
+  tr.case.open>td{background:#f2f6fd}
+  tr.case.flash>td{animation:flash 1.4s ease-out}
+  @keyframes flash{from{background:#fdf3dd}to{background:transparent}}
+  tr.detail>td{background:#f7f9fc;border-top:0;padding:0 13px 18px}
+  .panels{display:flex;flex-wrap:wrap;gap:14px}
+  .panel{flex:1 1 340px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.wide{flex-basis:100%;margin-top:14px}
+  .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .panel dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+  .panel dt{color:var(--muted);font-weight:600}
+  .panel dd{margin:0;word-break:break-word}
+  .panel p{font-size:13px;margin:10px 0 0}
+  .cmp{display:grid;gap:6px}
+  .cmp>div{display:flex;gap:8px;align-items:baseline}
+  .cmp span{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);min-width:58px}
+  .cmp code{white-space:pre-wrap;word-break:break-word}
+  .cmp>div:first-child code{background:var(--pass-bg);color:var(--pass)}
+  .cmp>div:last-child code{background:var(--fail-bg);color:var(--fail)}
+  .frames{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  details.trace{margin-top:12px;font-size:12.5px}
+  details.trace>summary{cursor:pointer;color:var(--muted)}
+  details.trace pre{margin:8px 0 0;padding:12px;background:#f4f6fa;border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.45;max-height:340px}
+  /* The step trail. Kinds are badges rather than prose because they are what makes
+     it scannable - red for the network and console lines a failure hangs off. */
+  ol.steps{margin:0;padding:0;list-style:none;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  ol.steps li{display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line);
+    align-items:baseline}
+  ol.steps li:first-child{border-top:0}
+  ol.steps .at{color:var(--muted);min-width:52px;text-align:right;font-size:11.5px}
+  ol.steps .kind{min-width:74px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    padding:2px 7px;border-radius:4px;text-align:center;background:#eef1f6;color:var(--muted)}
+  ol.steps .what{flex:1;word-break:break-word;white-space:pre-wrap}
+  /* A capture shown against the trail line that describes it. Kept small so a
+     case with fifty-two of them still scrolls as a trail rather than a gallery,
+     and clickable so the full-size image is one click away. align-self:flex-start
+     stops a tall thumbnail stretching a short line's row. */
+  ol.steps .step-shot{flex:0 0 auto;align-self:flex-start;line-height:0;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  ol.steps .step-shot img{display:block;width:180px;height:auto}
+  ol.steps li.k-evidence{align-items:flex-start}
+  @media (max-width:900px){ol.steps .step-shot img{width:120px}}
+  ol.steps li.k-step .kind{background:var(--info-bg);color:var(--info)}
+  ol.steps li.k-check .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-data .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-network .kind,ol.steps li.k-console .kind{background:var(--fail-bg);color:var(--fail)}
+  ol.steps li.k-network .what,ol.steps li.k-console .what{color:var(--fail)}
+  /* A line the case declared FAIL. Tinted across the whole row rather than only
+     the text, so it is findable while scrolling a trail of a hundred lines, and
+     given a left rule so it still reads as failed without relying on colour. */
+  ol.steps li.failed{background:var(--fail-bg);
+    box-shadow:inset 3px 0 0 var(--fail);padding-left:7px}
+  ol.steps li.failed .what{color:var(--fail);font-weight:600}
+  ol.steps li.failed .kind{background:var(--fail);color:#fff}
+  ol.steps li.k-evidence .kind{background:var(--partial-bg);color:var(--partial)}
+  .nav{margin:18px 0 0;font-size:13.5px}
+  .nav a{color:var(--info);text-decoration:none}
+  .nav a:hover{text-decoration:underline}
+  .callout{background:var(--card);border-left:5px solid var(--accent);border-radius:10px;
+    padding:16px 20px;margin:22px 0;box-shadow:0 2px 8px rgba(20,30,50,.06);font-size:14px}
+  .callout h2{margin:0 0 8px;font-size:16px}
+  .callout p{margin:0 0 10px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--partial)}
+  h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  /* The index's package sections: heading, the package name beside it, then its tally. */
+  h2.section .pkg-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    font-weight:500;color:var(--muted);margin-left:8px}
+  .pkg-tally{display:flex;align-items:center;gap:12px;margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+  .pkg-tally .bar.mini{width:160px;flex:0 0 160px}
+  h3.pkg-findings{font-size:14px;margin:14px 0 4px}
+  h3.pkg-findings a{color:inherit}
+  .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
+  thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
+    font-weight:600;white-space:nowrap}
+  tbody td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;
+    overflow-wrap:break-word}
+  /* Fixed column widths on the case tables, because automatic layout shares the
+     width out by content and one long cell then starves the rest: a remark
+     carrying a two-sentence reading of a failure took 792 of 1565 pixels and left
+     the Actual result column at 103, wrapping its message one word per line. It
+     also stops the full-width detail row from widening the whole table, which was
+     pushing the failure panel off the right of the page. */
+  table.cases{table-layout:fixed;min-width:1600px}
+  table.cases th:nth-child(1),table.cases td:nth-child(1){width:6%}
+  table.cases th:nth-child(2),table.cases td:nth-child(2){width:10%}
+  table.cases th:nth-child(3),table.cases td:nth-child(3){width:12%}
+  table.cases th:nth-child(4),table.cases td:nth-child(4){width:14%}
+  table.cases th:nth-child(5),table.cases td:nth-child(5){width:10%}
+  table.cases th:nth-child(6),table.cases td:nth-child(6){width:11%}
+  table.cases th:nth-child(7),table.cases td:nth-child(7){width:11%}
+  table.cases th:nth-child(8),table.cases td:nth-child(8){width:6%}
+  table.cases th:nth-child(9),table.cases td:nth-child(9){width:10%}
+  table.cases th:nth-child(10),table.cases td:nth-child(10){width:10%}
+  table.cases tr.detail>td{width:auto}
+  /* Pre-condition, Test steps and Test data: the client workbook's own wording, with the values
+     the run actually used listed under the sheet's. */
+  .tc-pre{font-size:12.5px;white-space:pre-wrap}
+  ol.tc-steps{margin:0;padding-left:18px;font-size:12.5px}
+  ol.tc-steps li{margin:0 0 3px}
+  ul.tc-data{margin:0;padding-left:16px;font-size:12.5px}
+  ul.tc-data li{margin:0 0 3px;overflow-wrap:anywhere}
+  ul.tc-data.used code{font-size:11.5px;white-space:normal}
+  td.tsteps .src,td.tdata .src{margin:6px 0 3px;font-size:10.5px;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  /* The sheet ids run from HOME-001 to HKDWITHDRAWAL-012, and a fixed column
+     clips what it cannot fit: the longer ones were cut mid-word with no sign
+     that anything was missing. They wrap here rather than truncate. */
+  table.cases td.id{white-space:normal;overflow-wrap:anywhere}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td.tc{font-weight:600}
+  td.tc a{color:var(--ink)}
+  td.id{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);
+    font-size:12.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .why{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--fail);
+    white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted)}
+  .secs{margin-top:6px;font-size:11.5px;color:var(--muted)}
+  .tag{display:inline-block;margin-top:6px;margin-right:4px;padding:1px 7px;border-radius:4px;
+    background:#eef1f6;color:var(--muted);font-size:11px;font-weight:600;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .st{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;
+    white-space:nowrap}
+  .st.pass{color:var(--pass);background:var(--pass-bg)}
+  .st.fail{color:var(--fail);background:var(--fail-bg)}
+  .st.partial{color:var(--partial);background:var(--partial-bg)}
+  .st.info{color:var(--info);background:var(--info-bg)}
+  details.shots{max-width:100%}
+  details.shots>summary{cursor:pointer;font-size:12.5px;color:var(--muted);
+    padding:5px 9px;border:1px solid var(--line);border-radius:999px;
+    display:inline-block;list-style:none;user-select:none}
+  details.shots>summary::-webkit-details-marker{display:none}
+  details.shots>summary::before{content:"\25B8 ";color:var(--muted)}
+  details.shots[open]>summary::before{content:"\25BE "}
+  details.shots>summary:hover{color:var(--ink);border-color:var(--muted)}
+  details.shots[open]>summary{margin-bottom:8px}
+  a.shot{display:inline-block;margin:0 6px 6px 0;position:relative;cursor:zoom-in}
+  a.shot img{width:100%;max-width:260px;border:1px solid var(--line);border-radius:8px;display:block;
+    box-shadow:0 2px 6px rgba(20,30,50,.10);transition:transform .12s,box-shadow .12s}
+  a.shot:hover img{transform:scale(1.03);box-shadow:0 6px 18px rgba(20,30,50,.22)}
+  a.shot::after{content:"\2315";position:absolute;right:8px;bottom:8px;
+    background:rgba(15,25,45,.72);color:#fff;font-size:13px;line-height:1;
+    padding:5px 7px;border-radius:6px;opacity:0;transition:opacity .12s}
+  a.shot:hover::after{opacity:1}
+  /* Click-to-zoom overlay. A 260px thumbnail of a 1920x1080 capture is a
+     smudge - readable enough to say a picture exists, not enough to read the
+     page in it - so the full image opens over the report rather than in a
+     separate tab the reader then has to navigate back from. */
+  #lightbox{position:fixed;inset:0;background:rgba(10,16,28,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:999;
+    padding:24px;cursor:zoom-out}
+  #lightbox.open{display:flex}
+  #lightbox img{max-width:96vw;max-height:86vh;border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff}
+  #lightbox .cap{color:#e8eef8;font-size:13px;margin-top:12px;text-align:center;
+    max-width:80vw}
+  #lightbox .hint{color:#93a4bd;font-size:12px;margin-top:6px}
+  /* A suite page's header is its statistics summary, and collapses to its first
+     lines: title, counts and bar stay; run details, tiles, chart and the cases by
+     result fold away. Drawn on the header's navy, so the status colours are the
+     same bright steps as the header bar, each paired with an icon and a label. */
+  details.rpt-sum>summary{list-style:none;cursor:pointer;user-select:none}
+  details.rpt-sum>summary::-webkit-details-marker{display:none}
+  details.rpt-sum>summary:focus-visible{outline:2px solid #9cc9ff;outline-offset:6px;border-radius:6px}
+  .rpt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rpt-line{flex-wrap:nowrap}
+  .rpt-line h1{margin:0;flex:1 1 auto;min-width:0}
+  details.rpt-sum>.sub{margin-top:14px}
+  header.rpt .sub code{overflow-wrap:anywhere}
+  .chev::before{content:"\25B8";display:inline-block;opacity:.8;transition:transform .15s}
+  details[open]>summary .chev::before{transform:rotate(90deg)}
+  .rpt-toggle-hint{margin-left:auto;font-size:12px;opacity:.6}
+  .rpt-counts{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:14px;
+    font-weight:600;font-variant-numeric:tabular-nums}
+  .cnt i,.tile i,details.cl>summary i{font-style:normal;margin-right:5px}
+  .cnt.pass i,.tile.pass i,details.cl.pass>summary i{color:#3ddc84}
+  .cnt.fail i,.tile.fail i,details.cl.fail>summary i{color:#ff6b6b}
+  .cnt.skip i,.tile.skip i,details.cl.skip>summary i{color:#ffcc66}
+  .cnt.notrun i,.tile.notrun i,details.cl.notrun>summary i{color:#b8c4d6}
+  .cnt.zero{opacity:.55}
+  .rpt-h{font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;opacity:.75;
+    margin:20px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .tile{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:10px 12px}
+  .tile b{display:block;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+  .tile span{font-size:12px;opacity:.75}
+  .chart{margin:16px 0 0}
+  .stack{display:flex;gap:2px;height:28px}
+  .stack .seg{display:flex;align-items:center;justify-content:center;flex-basis:0;
+    min-width:4px;overflow:hidden}
+  .stack .seg:first-child{border-radius:4px 0 0 4px}
+  .stack .seg:last-child{border-radius:0 4px 4px 0}
+  .stack .seg:only-child{border-radius:4px}
+  .stack .seg.pass{background:#3ddc84}
+  .stack .seg.fail{background:#ff6b6b}
+  .stack .seg.skip{background:#ffcc66}
+  .stack .seg.notrun{background:#8fa3bf}
+  .stack .seg:focus-visible{outline:2px solid #fff;outline-offset:1px}
+  .stack em{font-style:normal;font-size:12px;font-weight:700;color:#14203a}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;opacity:.85}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .sw.pass{background:#3ddc84}
+  .sw.fail{background:#ff6b6b}
+  .sw.skip{background:#ffcc66}
+  .sw.notrun{background:#8fa3bf}
+  .case-lists{display:flex;flex-direction:column;gap:8px}
+  details.cl{border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:0 14px;
+    background:rgba(255,255,255,.04)}
+  details.cl>summary{cursor:pointer;padding:9px 0;font-weight:600;font-size:13.5px}
+  details.cl .n{opacity:.7;font-weight:400}
+  details.cl ol{margin:0 0 12px;padding-left:22px;font-size:13px;max-height:280px;overflow:auto}
+  details.cl li{margin:5px 0}
+  details.cl li a{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+    text-decoration:none;color:#9cc9ff}
+  details.cl.fail li a{color:#ff9d9d}
+  details.cl li a:hover{text-decoration:underline}
+  header.rpt .why{color:#ffb3b3}
+  #tip{position:fixed;display:none;z-index:1000;background:#0e1524;color:#fff;font-size:12px;
+    padding:6px 9px;border-radius:6px;pointer-events:none;max-width:320px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  @media (max-width:640px){.rpt-toggle-hint{display:none}}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rpt">
+    <h1>Weibo Empire admin &mdash; test case reports</h1>
+    <div class="sub">One report per suite, every case listed, every case's working recorded</div>
+    <div class="meta">
+      <div><b>Target:</b> https://admin-test.1083.city/</div>
+      <div><b>Account:</b> qa0001</div>
+      <div><b>Run:</b> 2026-10-15 17:58</div>
+      <div><b>Elapsed:</b> 4773.8s</div>
+      <div><b>Scope:</b> 10 of 39 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headed)</div>
+      <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
+      <div><b>Machine:</b> Windows 11 10.0</div>
+    </div>
+    <div class="tally">475 cases &middot; 357 passed &middot; 33 failed &middot; 47 skipped &middot; 38 not run &middot; 15062.4s of browser time</div>
+    <div class="bar" role="img" aria-label="357 passed, 33 failed, 47 skipped, 38 not run">
+      <span class="seg pass" style="width:75.1579%" title="357 passed"></span>
+      <span class="seg fail" style="width:6.9474%" title="33 failed"></span>
+      <span class="seg skip" style="width:9.8947%" title="47 skipped"></span>
+      <span class="seg notrun" style="width:8.0000%" title="38 not run"></span>
+    </div>
+    <div class="rate">82% of the cases that ran passed</div>
+  </header>
+
+  <div class="callout bad">
+    <h2>8 cases need attention across the run</h2>
+    <h3 class="pkg-findings"><a href="#pkg-product">Product</a> <span class="muted">(8)</span></h3>
+    <ol class="findings">
+      <li><a href="OtherCategoryAccessControl-test-report.html#case-OtherCategoryTest-agentIsKeptOut">OC-ACC-003</a> <span class="muted">Other Category - Access control</span> &mdash; Agent role cannot access Other Category management</li>
+      <li><a href="OtherCategoryList-test-report.html#case-OtherCategoryTest-listShowsEveryColumn">OC-LST-001</a> <span class="muted">Other Category - Category list</span> &mdash; Category list shows icon, name, games count, status, and order for every category</li>
+      <li><a href="OtherCategoryManageGames-test-report.html#case-OtherCategoryTest-scrollingLoadsEveryGameOnce">OC-GAM-021</a> <span class="muted">Other Category - Manage games</span> &mdash; Scrolling to the end of the list loads every game exactly once</li>
+      <li><a href="OtherCategoryEdit-test-report.html#case-OtherCategoryTest-editStatus">OC-EDT-004</a> <span class="muted">Other Category - Edit Other Category</span> &mdash; Changing Status and saving updates the category's visibility state</li>
+      <li><a href="OtherCategoryClientDisplay-test-report.html#case-OtherCategoryTest-inactiveUnreachable">OC-CLI-002</a> <span class="muted">Other Category - Client-facing display</span> &mdash; An Inactive category does not appear anywhere on the client UI, including deep links</li>
+      <li><a href="OtherCategoryClientDisplay-test-report.html#case-OtherCategoryTest-emptyActiveCategory">OC-CLI-004</a> <span class="muted">Other Category - Client-facing display</span> &mdash; Client-side behavior for an Active category that has no games</li>
+      <li><a href="OtherCategoryClientDisplay-test-report.html#case-OtherCategoryTest-iconOnClient">OC-CLI-005</a> <span class="muted">Other Category - Client-facing display</span> &mdash; The uploaded category icon displays correctly on the client UI</li>
+      <li><a href="OtherCategoryClientDisplay-test-report.html#case-OtherCategoryTest-bannerlessGameOnClient">OC-CLI-010</a> <span class="muted">Other Category - Client-facing display</span> &mdash; Client-side behavior for a selected game whose banner was never uploaded</li>
+    </ol>
+    <p>Each links to its row on the suite's own page, where the failure is broken down and the run's record of what the browser did is kept.</p>
+  </div>
+  <section class="pkg" id="pkg-auth">
+  <h2 class="section">Authentication <span class="pkg-name">auth</span></h2>
+  <div class="pkg-tally"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="1 passed"></span>
+</span><span>1 suite &middot; 1 cases &middot; 1 passed &middot; 0 failed &middot; 0 skipped &middot; 0 not run &middot; 3.1s</span></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Suite</th><th>Result</th><th>Cases</th><th>Pass</th><th>Fail</th><th>Skip</th><th>Not run</th><th>Time</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="tc"><a href="AdminLogin-test-report.html">Admin login test</a><div class="id">org.sengmean.tests.auth.AdminLoginTest &middot; last run 2026-09-28 09:47</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="1 passed"></span>
+</span></td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>3.1s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="pkg" id="pkg-product">
+  <h2 class="section">Product <span class="pkg-name">product</span></h2>
+  <div class="pkg-tally"><span class="bar mini">      <span class="seg pass" style="width:77.1186%" title="91 passed"></span>
+      <span class="seg fail" style="width:19.4915%" title="23 failed"></span>
+      <span class="seg skip" style="width:1.6949%" title="2 skipped"></span>
+      <span class="seg notrun" style="width:1.6949%" title="2 not run"></span>
+</span><span>13 suites &middot; 118 cases &middot; 91 passed &middot; 23 failed &middot; 2 skipped &middot; 2 not run &middot; 5294.0s</span></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Suite</th><th>Result</th><th>Cases</th><th>Pass</th><th>Fail</th><th>Skip</th><th>Not run</th><th>Time</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="tc"><a href="OtherCategorySeed-test-report.html">Other Category - seed data</a><div class="id">org.sengmean.suites.product.OtherCategorySeedSuite &middot; last run 2026-09-26 10:56</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg notrun" style="width:100.0000%" title="1 not run"></span>
+</span></td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0.0s</td>
+        <td><span class="st info">Not run <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategorySeedCleanup-test-report.html">Other Category - delete seed data</a><div class="id">org.sengmean.suites.product.OtherCategorySeedCleanupSuite &middot; last run 2026-09-26 10:56</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg notrun" style="width:100.0000%" title="1 not run"></span>
+</span></td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0.0s</td>
+        <td><span class="st info">Not run <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryAccessControl-test-report.html">Other Category - Access control</a><div class="id">org.sengmean.suites.product.OtherCategoryAccessControlSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:60.0000%" title="3 passed"></span>
+      <span class="seg fail" style="width:20.0000%" title="1 failed"></span>
+      <span class="seg skip" style="width:20.0000%" title="1 skipped"></span>
+</span></td>
+        <td>5</td>
+        <td>3</td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>214.9s</td>
+        <td><span class="st fail">Findings</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryCreate-test-report.html">Other Category - Create Other Category</a><div class="id">org.sengmean.suites.product.OtherCategoryCreateSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="13 passed"></span>
+</span></td>
+        <td>13</td>
+        <td>13</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>705.6s</td>
+        <td><span class="st pass">Green</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryList-test-report.html">Other Category - Category list</a><div class="id">org.sengmean.suites.product.OtherCategoryListSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:87.5000%" title="7 passed"></span>
+      <span class="seg fail" style="width:12.5000%" title="1 failed"></span>
+</span></td>
+        <td>8</td>
+        <td>7</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>402.7s</td>
+        <td><span class="st fail">Findings</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryManageGames-test-report.html">Other Category - Manage games</a><div class="id">org.sengmean.suites.product.OtherCategoryManageGamesSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:95.8333%" title="23 passed"></span>
+      <span class="seg fail" style="width:4.1667%" title="1 failed"></span>
+</span></td>
+        <td>24</td>
+        <td>23</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>997.6s</td>
+        <td><span class="st fail">Findings</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryBanner-test-report.html">Other Category - Upload &amp; replace game banner</a><div class="id">org.sengmean.suites.product.OtherCategoryBannerSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="12 passed"></span>
+</span></td>
+        <td>12</td>
+        <td>12</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>362.7s</td>
+        <td><span class="st pass">Green</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryEdit-test-report.html">Other Category - Edit Other Category</a><div class="id">org.sengmean.suites.product.OtherCategoryEditSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:87.5000%" title="7 passed"></span>
+      <span class="seg fail" style="width:12.5000%" title="1 failed"></span>
+</span></td>
+        <td>8</td>
+        <td>7</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>258.8s</td>
+        <td><span class="st fail">Findings</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryLocalization-test-report.html">Other Category - Localization</a><div class="id">org.sengmean.suites.product.OtherCategoryLocalizationSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="5 passed"></span>
+</span></td>
+        <td>5</td>
+        <td>5</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>185.8s</td>
+        <td><span class="st pass">Green</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryClientDisplay-test-report.html">Other Category - Client-facing display</a><div class="id">org.sengmean.suites.product.OtherCategoryClientDisplaySuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:60.0000%" title="6 passed"></span>
+      <span class="seg fail" style="width:40.0000%" title="4 failed"></span>
+</span></td>
+        <td>10</td>
+        <td>6</td>
+        <td>4</td>
+        <td>0</td>
+        <td>0</td>
+        <td>580.8s</td>
+        <td><span class="st fail">Findings</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryRegression-test-report.html">Other Category - Regression &amp; data integrity</a><div class="id">org.sengmean.suites.product.OtherCategoryRegressionSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:75.0000%" title="3 passed"></span>
+      <span class="seg skip" style="width:25.0000%" title="1 skipped"></span>
+</span></td>
+        <td>4</td>
+        <td>3</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>364.8s</td>
+        <td><span class="st pass">Green</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="OtherCategoryDelete-test-report.html">Other Category - Delete Other Category</a><div class="id">org.sengmean.suites.product.OtherCategoryDeleteSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="6 passed"></span>
+</span></td>
+        <td>6</td>
+        <td>6</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>570.8s</td>
+        <td><span class="st pass">Green</span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="UiOtherCategoryClientHK-test-report.html">Other Category - client UI (HK, new UI)</a><div class="id">org.sengmean.tests.product.UiOtherCategoryClientHK &middot; last run 2026-10-15 14:19</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:28.5714%" title="6 passed"></span>
+      <span class="seg fail" style="width:71.4286%" title="15 failed"></span>
+</span></td>
+        <td>21</td>
+        <td>6</td>
+        <td>15</td>
+        <td>0</td>
+        <td>0</td>
+        <td>649.4s</td>
+        <td><span class="st fail">Findings <span class="muted">(earlier run)</span></span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="pkg" id="pkg-promo">
+  <h2 class="section">Promo <span class="pkg-name">promo</span></h2>
+  <div class="pkg-tally"><span class="bar mini">      <span class="seg pass" style="width:48.6486%" title="18 passed"></span>
+      <span class="seg fail" style="width:2.7027%" title="1 failed"></span>
+      <span class="seg skip" style="width:48.6486%" title="18 skipped"></span>
+</span><span>3 suites &middot; 37 cases &middot; 18 passed &middot; 1 failed &middot; 18 skipped &middot; 0 not run &middot; 639.7s</span></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Suite</th><th>Result</th><th>Cases</th><th>Pass</th><th>Fail</th><th>Skip</th><th>Not run</th><th>Time</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="tc"><a href="ClientValidDeposit-test-report.html">Discount - a qualifying client deposit</a><div class="id">org.sengmean.tests.promo.ClientValidDepositTest &middot; last run 2026-10-08 16:59</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg fail" style="width:33.3333%" title="1 failed"></span>
+      <span class="seg skip" style="width:66.6667%" title="2 skipped"></span>
+</span></td>
+        <td>3</td>
+        <td>0</td>
+        <td>1</td>
+        <td>2</td>
+        <td>0</td>
+        <td>405.9s</td>
+        <td><span class="st fail">Findings <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="SystemPromotionRecords-test-report.html">Discount - System Promotion / Live Promotion records</a><div class="id">org.sengmean.tests.promo.SystemPromotionRecordsTest &middot; last run 2026-10-08 16:59</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:11.1111%" title="2 passed"></span>
+      <span class="seg skip" style="width:88.8889%" title="16 skipped"></span>
+</span></td>
+        <td>18</td>
+        <td>2</td>
+        <td>0</td>
+        <td>16</td>
+        <td>0</td>
+        <td>41.8s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="SystemPromotionSetup-test-report.html">Discount - System Promotion Setup</a><div class="id">org.sengmean.tests.promo.SystemPromotionSetupTest &middot; last run 2026-10-15 13:28</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="16 passed"></span>
+</span></td>
+        <td>16</td>
+        <td>16</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>192.1s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="pkg" id="pkg-rebateprogram">
+  <h2 class="section">Rebate program <span class="pkg-name">rebateprogram</span></h2>
+  <div class="pkg-tally"><span class="bar mini">      <span class="seg pass" style="width:87.0130%" title="134 passed"></span>
+      <span class="seg fail" style="width:3.8961%" title="6 failed"></span>
+      <span class="seg skip" style="width:9.0909%" title="14 skipped"></span>
+</span><span>7 suites &middot; 154 cases &middot; 134 passed &middot; 6 failed &middot; 14 skipped &middot; 0 not run &middot; 2936.9s</span></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Suite</th><th>Result</th><th>Cases</th><th>Pass</th><th>Fail</th><th>Skip</th><th>Not run</th><th>Time</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="tc"><a href="DailyRebate-test-report.html">Daily rebate test</a><div class="id">org.sengmean.tests.rebateprogram.DailyRebateTest &middot; last run 2026-09-22 17:15</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:98.2143%" title="55 passed"></span>
+      <span class="seg fail" style="width:1.7857%" title="1 failed"></span>
+</span></td>
+        <td>56</td>
+        <td>55</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1365.1s</td>
+        <td><span class="st fail">Findings <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="RealTimeRebate-test-report.html">Real time rebate test</a><div class="id">org.sengmean.tests.rebateprogram.RealTimeRebateTest &middot; last run 2026-09-22 17:41</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:91.3793%" title="53 passed"></span>
+      <span class="seg fail" style="width:8.6207%" title="5 failed"></span>
+</span></td>
+        <td>58</td>
+        <td>53</td>
+        <td>5</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1405.5s</td>
+        <td><span class="st fail">Findings <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="RebateAccessControl-test-report.html">Rebate access control test</a><div class="id">org.sengmean.tests.rebateprogram.RebateAccessControlTest &middot; last run 2026-09-21 08:39</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="5 passed"></span>
+</span></td>
+        <td>5</td>
+        <td>5</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>32.6s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="RebateLocalization-test-report.html">Rebate localization test</a><div class="id">org.sengmean.tests.rebateprogram.RebateLocalizationTest &middot; last run 2026-09-21 09:03</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:75.0000%" title="3 passed"></span>
+      <span class="seg skip" style="width:25.0000%" title="1 skipped"></span>
+</span></td>
+        <td>4</td>
+        <td>3</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>22.2s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="RebateMigration-test-report.html">Rebate migration test</a><div class="id">org.sengmean.tests.rebateprogram.RebateMigrationTest &middot; last run 2026-09-21 17:12</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg skip" style="width:100.0000%" title="4 skipped"></span>
+</span></td>
+        <td>4</td>
+        <td>0</td>
+        <td>0</td>
+        <td>4</td>
+        <td>0</td>
+        <td>11.6s</td>
+        <td><span class="st info">Not run <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="RebateReport-test-report.html">Rebate report test</a><div class="id">org.sengmean.tests.rebateprogram.RebateReportTest &middot; last run 2026-09-21 08:39</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:57.1429%" title="12 passed"></span>
+      <span class="seg skip" style="width:42.8571%" title="9 skipped"></span>
+</span></td>
+        <td>21</td>
+        <td>12</td>
+        <td>0</td>
+        <td>9</td>
+        <td>0</td>
+        <td>42.5s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="RebateSetUp-test-report.html">Rebate set up test</a><div class="id">org.sengmean.tests.rebateprogram.RebateSetUpTest &middot; last run 2026-09-21 11:44</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="6 passed"></span>
+</span></td>
+        <td>6</td>
+        <td>6</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>57.4s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="pkg" id="pkg-tool">
+  <h2 class="section">Tool <span class="pkg-name">tool</span></h2>
+  <div class="pkg-tally"><span class="bar mini">      <span class="seg pass" style="width:68.4848%" title="113 passed"></span>
+      <span class="seg fail" style="width:1.8182%" title="3 failed"></span>
+      <span class="seg skip" style="width:7.8788%" title="13 skipped"></span>
+      <span class="seg notrun" style="width:21.8182%" title="36 not run"></span>
+</span><span>15 suites &middot; 165 cases &middot; 113 passed &middot; 3 failed &middot; 13 skipped &middot; 36 not run &middot; 6188.7s</span></div>
+  <div class="tbl-scroll">
+  <table>
+    <thead><tr><th>Suite</th><th>Result</th><th>Cases</th><th>Pass</th><th>Fail</th><th>Skip</th><th>Not run</th><th>Time</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="tc"><a href="NotificationSeed-test-report.html">Notification - seed data</a><div class="id">org.sengmean.suites.tool.NotificationSeedSuite &middot; last run 2026-10-01 17:28</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="1 passed"></span>
+</span></td>
+        <td>1</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>522.1s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationSeedCleanup-test-report.html">Notification - delete seed data</a><div class="id">org.sengmean.suites.tool.NotificationSeedCleanupSuite</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg notrun" style="width:100.0000%" title="1 not run"></span>
+</span></td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0.0s</td>
+        <td><span class="st info">Not run <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationAccessControl-test-report.html">Notification - Access control</a><div class="id">org.sengmean.suites.tool.NotificationAccessControlSuite &middot; last run 2026-09-30 09:11</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:60.0000%" title="3 passed"></span>
+      <span class="seg fail" style="width:40.0000%" title="2 failed"></span>
+</span></td>
+        <td>5</td>
+        <td>3</td>
+        <td>2</td>
+        <td>0</td>
+        <td>0</td>
+        <td>151.8s</td>
+        <td><span class="st fail">Findings <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationCreate-test-report.html">Notification - Create notification</a><div class="id">org.sengmean.suites.tool.NotificationCreateSuite &middot; last run 2026-10-01 12:00</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:94.5946%" title="35 passed"></span>
+      <span class="seg skip" style="width:5.4054%" title="2 skipped"></span>
+</span></td>
+        <td>37</td>
+        <td>35</td>
+        <td>0</td>
+        <td>2</td>
+        <td>0</td>
+        <td>1245.4s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationList-test-report.html">Notification - Notification list</a><div class="id">org.sengmean.suites.tool.NotificationListSuite &middot; last run 2026-10-01 14:24</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:93.3333%" title="14 passed"></span>
+      <span class="seg skip" style="width:6.6667%" title="1 skipped"></span>
+</span></td>
+        <td>15</td>
+        <td>14</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>360.0s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationTargetGroups-test-report.html">Notification - Target delivery groups</a><div class="id">org.sengmean.suites.tool.NotificationTargetGroupsSuite &middot; last run 2026-10-01 11:14</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:83.3333%" title="10 passed"></span>
+      <span class="seg skip" style="width:16.6667%" title="2 skipped"></span>
+</span></td>
+        <td>12</td>
+        <td>10</td>
+        <td>0</td>
+        <td>2</td>
+        <td>0</td>
+        <td>501.1s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationEdit-test-report.html">Notification - Edit notification</a><div class="id">org.sengmean.suites.tool.NotificationEditSuite &middot; last run 2026-10-01 14:15</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:23.0769%" title="3 passed"></span>
+      <span class="seg notrun" style="width:76.9231%" title="10 not run"></span>
+</span></td>
+        <td>13</td>
+        <td>3</td>
+        <td>0</td>
+        <td>0</td>
+        <td>10</td>
+        <td>199.7s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationSendNow-test-report.html">Notification - Send Now</a><div class="id">org.sengmean.suites.tool.NotificationSendNowSuite &middot; last run 2026-10-01 11:14</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="5 passed"></span>
+</span></td>
+        <td>5</td>
+        <td>5</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>327.0s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationRecordHistory-test-report.html">Notification - Record History list</a><div class="id">org.sengmean.suites.tool.NotificationRecordHistorySuite &middot; last run 2026-10-01 14:24</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:8.3333%" title="1 passed"></span>
+      <span class="seg notrun" style="width:91.6667%" title="11 not run"></span>
+</span></td>
+        <td>12</td>
+        <td>1</td>
+        <td>0</td>
+        <td>0</td>
+        <td>11</td>
+        <td>28.4s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationRecordDetail-test-report.html">Notification - Record History detail view</a><div class="id">org.sengmean.suites.tool.NotificationRecordDetailSuite &middot; last run 2026-10-01 11:14</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:87.5000%" title="7 passed"></span>
+      <span class="seg skip" style="width:12.5000%" title="1 skipped"></span>
+</span></td>
+        <td>8</td>
+        <td>7</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>323.6s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationLocalization-test-report.html">Notification - Localization</a><div class="id">org.sengmean.suites.tool.NotificationLocalizationSuite &middot; last run 2026-10-01 11:14</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:100.0000%" title="7 passed"></span>
+</span></td>
+        <td>7</td>
+        <td>7</td>
+        <td>0</td>
+        <td>0</td>
+        <td>0</td>
+        <td>302.6s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationClientInbox-test-report.html">Notification - Client Message Inbox</a><div class="id">org.sengmean.suites.tool.NotificationClientInboxSuite &middot; last run 2026-10-01 11:14</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:94.7368%" title="18 passed"></span>
+      <span class="seg skip" style="width:5.2632%" title="1 skipped"></span>
+</span></td>
+        <td>19</td>
+        <td>18</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>1289.7s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationRegression-test-report.html">Notification - Regression &amp; scheduling integrity</a><div class="id">org.sengmean.suites.tool.NotificationRegressionSuite &middot; last run 2026-10-01 11:14</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:44.4444%" title="4 passed"></span>
+      <span class="seg skip" style="width:55.5556%" title="5 skipped"></span>
+</span></td>
+        <td>9</td>
+        <td>4</td>
+        <td>0</td>
+        <td>5</td>
+        <td>0</td>
+        <td>477.5s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="NotificationDelete-test-report.html">Notification - Delete notification</a><div class="id">org.sengmean.suites.tool.NotificationDeleteSuite &middot; last run 2026-10-01 11:14</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg pass" style="width:83.3333%" title="5 passed"></span>
+      <span class="seg skip" style="width:16.6667%" title="1 skipped"></span>
+</span></td>
+        <td>6</td>
+        <td>5</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>423.6s</td>
+        <td><span class="st pass">Green <span class="muted">(earlier run)</span></span></td>
+      </tr>
+      <tr>
+        <td class="tc"><a href="UiNotificationCenterClientHK-test-report.html">Notification - Message Center on the client (HK, new UI)</a><div class="id">org.sengmean.tests.tool.UiNotificationCenterClientHK &middot; last run 2026-10-08 12:20</div></td>
+        <td class="minibar"><span class="bar mini">      <span class="seg fail" style="width:6.6667%" title="1 failed"></span>
+      <span class="seg notrun" style="width:93.3333%" title="14 not run"></span>
+</span></td>
+        <td>15</td>
+        <td>0</td>
+        <td>1</td>
+        <td>0</td>
+        <td>14</td>
+        <td>36.2s</td>
+        <td><span class="st fail">Findings <span class="muted">(earlier run)</span></span></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <h2 class="section">How to read this report</h2>
+  <div class="callout">
+    <p><b>Status</b> is what the run did, not a verdict on the application. A
+    <span class="st fail">Fail</span> on a case badged <code>known-defect</code> is the
+    expected outcome: those cases assert the behaviour the application <i>should</i>
+    have and stay red until the finding is fixed.</p>
+    <p><b>Not run</b> means the case exists in the suite but produced no result, normally
+    because it was filtered out with <code>-DexcludedGroups=creates-data</code>, which
+    keeps cases with real-world side effects - a registered account, a real SMS, a filed
+    deposit, a withdrawal hold, a staked casino bet - out of an unattended run.</p>
+    <p><b>Evidence</b> is the screenshot of the page as the case left it - captured for every
+    case that ran, passed or failed, just before teardown closed the browser. A
+    skipped case never ran, so it has none. Click an image for the full size.</p>
+    <p><b>Details</b>, on every row, opens what would not fit in the table: the case as its
+    source declares it, the diagnosis of a failure - exception, expected against actual,
+    the element that could not be resolved, the lines of this project involved, and the
+    full stack trace - and, for every row alike, the run's own record of what the browser
+    did.</p>
+    <p><b>What the run did</b> is that record. It is captured automatically while the case
+    runs: <code>NAV</code> for a page load or a new tab, <code>API</code> for a call the
+    site made of its own back end with the status it came back with, <code>NETWORK</code>
+    for one that came back 4xx or 5xx, <code>CONSOLE</code> for a console or uncaught
+    error, <code>EVIDENCE</code> for a screenshot, and <code>STEP</code>,
+    <code>CHECK</code> and <code>DATA</code> for what the case itself narrated. A passing
+    row carries one too, deliberately: a green result is a claim, and this is the working
+    behind it.</p>
+  </div>
+  <footer>Generated by <code>org.sengmean.report.HtmlReportGenerator</code>, rewritten at the end of every run by <code>HtmlReportListener</code>. <code>mvn exec:java@html-report</code> rebuilds these pages by hand.</footer>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <img id="lightbox-img" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+  <div class="hint">Click anywhere, or press Escape, to close</div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var cap = document.getElementById('lightbox-cap');
+  function open(src, caption) {
+    img.setAttribute('src', src);
+    img.setAttribute('alt', caption || '');
+    cap.textContent = caption || '';
+    box.classList.add('open');
+  }
+  function close() {
+    box.classList.remove('open');
+    img.removeAttribute('src');
+  }
+  document.addEventListener('click', function (e) {
+    // Both the Evidence column's images and the ones shown inline against a trail
+    // line. The inline ones were left out when they were added, so they fell
+    // through to target="_blank" and every capture opened a new tab - fifty-two of
+    // them if a reader worked down the transfer walk.
+    var link = e.target.closest ? e.target.closest('a.shot, a.step-shot') : null;
+    if (link) {
+      // Only take over the plain click - a modified click still opens the file
+      // in a tab, which is what someone reaching for that expects.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+      e.preventDefault();
+      var inner = link.querySelector('img');
+      open(link.getAttribute('href'), inner ? inner.getAttribute('alt') : '');
+    } else if (box.classList.contains('open')) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { close(); }
+  });
+})();
+</script>
+</div>
+</body>
+</html>

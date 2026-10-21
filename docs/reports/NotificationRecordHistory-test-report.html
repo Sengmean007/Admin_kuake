@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notification - Record History list - test case report</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2230; --muted:#5b6676;
+    --line:#e2e7ef; --head:#26314a; --headink:#ffffff;
+    --pass:#137a43; --pass-bg:#e6f5ec;
+    --fail:#b02525; --fail-bg:#fdecec;
+    --partial:#9a6a00; --partial-bg:#fdf3dd;
+    --info:#1f6a9c; --info-bg:#e6f1f9;
+    --accent:#c79a2f;                  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:32px 18px}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.rpt{background:var(--head);color:var(--headink);border-radius:14px;padding:26px 30px;
+    box-shadow:0 6px 20px rgba(20,30,50,.12)}
+  header.rpt h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header.rpt .sub{opacity:.85;font-size:14px}
+  header.rpt code{background:rgba(255,255,255,.14);color:inherit}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px;font-size:13.5px}
+  .meta b{color:var(--accent)}
+  .tally{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:14px;font-weight:600}
+  /* The run at a glance. Proportional segments, so the shape of a result is
+     readable before any of the five numbers above it has been read. */
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:12px;
+    background:rgba(255,255,255,.16)}
+  .bar .seg{display:block;height:100%}
+  .bar .seg.pass{background:#3ddc84}
+  .bar .seg.fail{background:#ff6b6b}
+  .bar .seg.skip{background:#ffcc66}
+  .bar .seg.notrun{background:#8fa3bf}
+  .rate{margin-top:8px;font-size:12.5px;opacity:.85}
+  /* The same bar in a table cell, where the ground is white rather than the
+     header's navy, so the empty track has to be redrawn to stay visible. */
+  .bar.mini{width:150px;height:8px;margin:0;background:var(--line)}
+  td.minibar{width:170px}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 4px}
+  .toolbar .filters{display:flex;flex-wrap:wrap;gap:6px}
+  button.flt{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+  button.flt:hover{color:var(--ink);border-color:var(--muted)}
+  button.flt.on{background:var(--head);border-color:var(--head);color:#fff}
+  .toolbar input[type=search]{font:inherit;font-size:13px;padding:7px 12px;flex:1 1 220px;
+    min-width:180px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    color:var(--ink)}
+  .toolbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hide{display:none !important}
+  .callout.bad{border-left-color:var(--fail)}
+  ol.findings{margin:0;padding-left:20px}
+  ol.findings li{margin-bottom:10px}
+  ol.findings a{color:var(--fail);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;text-decoration:none}
+  ol.findings a:hover{text-decoration:underline}
+  .tag.known{background:var(--fail-bg);color:var(--fail)}
+  /* The detail panel under a row. It is a second <tr> rather than a nested table
+     so the seven columns stay aligned across every group on the page. */
+  button.more{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;margin-right:7px;
+    border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);cursor:pointer;vertical-align:middle}
+  button.more:hover{color:var(--ink);border-color:var(--muted)}
+  button.more::before{content:"\25B8 "}
+  tr.case.open button.more::before{content:"\25BE "}
+  tr.case.open>td{background:#f2f6fd}
+  tr.case.flash>td{animation:flash 1.4s ease-out}
+  @keyframes flash{from{background:#fdf3dd}to{background:transparent}}
+  tr.detail>td{background:#f7f9fc;border-top:0;padding:0 13px 18px}
+  .panels{display:flex;flex-wrap:wrap;gap:14px}
+  .panel{flex:1 1 340px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.wide{flex-basis:100%;margin-top:14px}
+  .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .panel dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+  .panel dt{color:var(--muted);font-weight:600}
+  .panel dd{margin:0;word-break:break-word}
+  .panel p{font-size:13px;margin:10px 0 0}
+  .cmp{display:grid;gap:6px}
+  .cmp>div{display:flex;gap:8px;align-items:baseline}
+  .cmp span{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);min-width:58px}
+  .cmp code{white-space:pre-wrap;word-break:break-word}
+  .cmp>div:first-child code{background:var(--pass-bg);color:var(--pass)}
+  .cmp>div:last-child code{background:var(--fail-bg);color:var(--fail)}
+  .frames{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  details.trace{margin-top:12px;font-size:12.5px}
+  details.trace>summary{cursor:pointer;color:var(--muted)}
+  details.trace pre{margin:8px 0 0;padding:12px;background:#f4f6fa;border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.45;max-height:340px}
+  /* The step trail. Kinds are badges rather than prose because they are what makes
+     it scannable - red for the network and console lines a failure hangs off. */
+  ol.steps{margin:0;padding:0;list-style:none;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  ol.steps li{display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line);
+    align-items:baseline}
+  ol.steps li:first-child{border-top:0}
+  ol.steps .at{color:var(--muted);min-width:52px;text-align:right;font-size:11.5px}
+  ol.steps .kind{min-width:74px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    padding:2px 7px;border-radius:4px;text-align:center;background:#eef1f6;color:var(--muted)}
+  ol.steps .what{flex:1;word-break:break-word;white-space:pre-wrap}
+  /* A capture shown against the trail line that describes it. Kept small so a
+     case with fifty-two of them still scrolls as a trail rather than a gallery,
+     and clickable so the full-size image is one click away. align-self:flex-start
+     stops a tall thumbnail stretching a short line's row. */
+  ol.steps .step-shot{flex:0 0 auto;align-self:flex-start;line-height:0;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  ol.steps .step-shot img{display:block;width:180px;height:auto}
+  ol.steps li.k-evidence{align-items:flex-start}
+  @media (max-width:900px){ol.steps .step-shot img{width:120px}}
+  ol.steps li.k-step .kind{background:var(--info-bg);color:var(--info)}
+  ol.steps li.k-check .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-data .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-network .kind,ol.steps li.k-console .kind{background:var(--fail-bg);color:var(--fail)}
+  ol.steps li.k-network .what,ol.steps li.k-console .what{color:var(--fail)}
+  /* A line the case declared FAIL. Tinted across the whole row rather than only
+     the text, so it is findable while scrolling a trail of a hundred lines, and
+     given a left rule so it still reads as failed without relying on colour. */
+  ol.steps li.failed{background:var(--fail-bg);
+    box-shadow:inset 3px 0 0 var(--fail);padding-left:7px}
+  ol.steps li.failed .what{color:var(--fail);font-weight:600}
+  ol.steps li.failed .kind{background:var(--fail);color:#fff}
+  ol.steps li.k-evidence .kind{background:var(--partial-bg);color:var(--partial)}
+  .nav{margin:18px 0 0;font-size:13.5px}
+  .nav a{color:var(--info);text-decoration:none}
+  .nav a:hover{text-decoration:underline}
+  .callout{background:var(--card);border-left:5px solid var(--accent);border-radius:10px;
+    padding:16px 20px;margin:22px 0;box-shadow:0 2px 8px rgba(20,30,50,.06);font-size:14px}
+  .callout h2{margin:0 0 8px;font-size:16px}
+  .callout p{margin:0 0 10px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--partial)}
+  h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  /* The index's package sections: heading, the package name beside it, then its tally. */
+  h2.section .pkg-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    font-weight:500;color:var(--muted);margin-left:8px}
+  .pkg-tally{display:flex;align-items:center;gap:12px;margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+  .pkg-tally .bar.mini{width:160px;flex:0 0 160px}
+  h3.pkg-findings{font-size:14px;margin:14px 0 4px}
+  h3.pkg-findings a{color:inherit}
+  .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
+  thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
+    font-weight:600;white-space:nowrap}
+  tbody td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;
+    overflow-wrap:break-word}
+  /* Fixed column widths on the case tables, because automatic layout shares the
+     width out by content and one long cell then starves the rest: a remark
+     carrying a two-sentence reading of a failure took 792 of 1565 pixels and left
+     the Actual result column at 103, wrapping its message one word per line. It
+     also stops the full-width detail row from widening the whole table, which was
+     pushing the failure panel off the right of the page. */
+  table.cases{table-layout:fixed;min-width:1600px}
+  table.cases th:nth-child(1),table.cases td:nth-child(1){width:6%}
+  table.cases th:nth-child(2),table.cases td:nth-child(2){width:10%}
+  table.cases th:nth-child(3),table.cases td:nth-child(3){width:12%}
+  table.cases th:nth-child(4),table.cases td:nth-child(4){width:14%}
+  table.cases th:nth-child(5),table.cases td:nth-child(5){width:10%}
+  table.cases th:nth-child(6),table.cases td:nth-child(6){width:11%}
+  table.cases th:nth-child(7),table.cases td:nth-child(7){width:11%}
+  table.cases th:nth-child(8),table.cases td:nth-child(8){width:6%}
+  table.cases th:nth-child(9),table.cases td:nth-child(9){width:10%}
+  table.cases th:nth-child(10),table.cases td:nth-child(10){width:10%}
+  table.cases tr.detail>td{width:auto}
+  /* Pre-condition, Test steps and Test data: the client workbook's own wording, with the values
+     the run actually used listed under the sheet's. */
+  .tc-pre{font-size:12.5px;white-space:pre-wrap}
+  ol.tc-steps{margin:0;padding-left:18px;font-size:12.5px}
+  ol.tc-steps li{margin:0 0 3px}
+  ul.tc-data{margin:0;padding-left:16px;font-size:12.5px}
+  ul.tc-data li{margin:0 0 3px;overflow-wrap:anywhere}
+  ul.tc-data.used code{font-size:11.5px;white-space:normal}
+  td.tsteps .src,td.tdata .src{margin:6px 0 3px;font-size:10.5px;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  /* The sheet ids run from HOME-001 to HKDWITHDRAWAL-012, and a fixed column
+     clips what it cannot fit: the longer ones were cut mid-word with no sign
+     that anything was missing. They wrap here rather than truncate. */
+  table.cases td.id{white-space:normal;overflow-wrap:anywhere}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td.tc{font-weight:600}
+  td.tc a{color:var(--ink)}
+  td.id{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);
+    font-size:12.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .why{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--fail);
+    white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted)}
+  .secs{margin-top:6px;font-size:11.5px;color:var(--muted)}
+  .tag{display:inline-block;margin-top:6px;margin-right:4px;padding:1px 7px;border-radius:4px;
+    background:#eef1f6;color:var(--muted);font-size:11px;font-weight:600;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .st{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;
+    white-space:nowrap}
+  .st.pass{color:var(--pass);background:var(--pass-bg)}
+  .st.fail{color:var(--fail);background:var(--fail-bg)}
+  .st.partial{color:var(--partial);background:var(--partial-bg)}
+  .st.info{color:var(--info);background:var(--info-bg)}
+  details.shots{max-width:100%}
+  details.shots>summary{cursor:pointer;font-size:12.5px;color:var(--muted);
+    padding:5px 9px;border:1px solid var(--line);border-radius:999px;
+    display:inline-block;list-style:none;user-select:none}
+  details.shots>summary::-webkit-details-marker{display:none}
+  details.shots>summary::before{content:"\25B8 ";color:var(--muted)}
+  details.shots[open]>summary::before{content:"\25BE "}
+  details.shots>summary:hover{color:var(--ink);border-color:var(--muted)}
+  details.shots[open]>summary{margin-bottom:8px}
+  a.shot{display:inline-block;margin:0 6px 6px 0;position:relative;cursor:zoom-in}
+  a.shot img{width:100%;max-width:260px;border:1px solid var(--line);border-radius:8px;display:block;
+    box-shadow:0 2px 6px rgba(20,30,50,.10);transition:transform .12s,box-shadow .12s}
+  a.shot:hover img{transform:scale(1.03);box-shadow:0 6px 18px rgba(20,30,50,.22)}
+  a.shot::after{content:"\2315";position:absolute;right:8px;bottom:8px;
+    background:rgba(15,25,45,.72);color:#fff;font-size:13px;line-height:1;
+    padding:5px 7px;border-radius:6px;opacity:0;transition:opacity .12s}
+  a.shot:hover::after{opacity:1}
+  /* Click-to-zoom overlay. A 260px thumbnail of a 1920x1080 capture is a
+     smudge - readable enough to say a picture exists, not enough to read the
+     page in it - so the full image opens over the report rather than in a
+     separate tab the reader then has to navigate back from. */
+  #lightbox{position:fixed;inset:0;background:rgba(10,16,28,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:999;
+    padding:24px;cursor:zoom-out}
+  #lightbox.open{display:flex}
+  #lightbox img{max-width:96vw;max-height:86vh;border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff}
+  #lightbox .cap{color:#e8eef8;font-size:13px;margin-top:12px;text-align:center;
+    max-width:80vw}
+  #lightbox .hint{color:#93a4bd;font-size:12px;margin-top:6px}
+  /* A suite page's header is its statistics summary, and collapses to its first
+     lines: title, counts and bar stay; run details, tiles, chart and the cases by
+     result fold away. Drawn on the header's navy, so the status colours are the
+     same bright steps as the header bar, each paired with an icon and a label. */
+  details.rpt-sum>summary{list-style:none;cursor:pointer;user-select:none}
+  details.rpt-sum>summary::-webkit-details-marker{display:none}
+  details.rpt-sum>summary:focus-visible{outline:2px solid #9cc9ff;outline-offset:6px;border-radius:6px}
+  .rpt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rpt-line{flex-wrap:nowrap}
+  .rpt-line h1{margin:0;flex:1 1 auto;min-width:0}
+  details.rpt-sum>.sub{margin-top:14px}
+  header.rpt .sub code{overflow-wrap:anywhere}
+  .chev::before{content:"\25B8";display:inline-block;opacity:.8;transition:transform .15s}
+  details[open]>summary .chev::before{transform:rotate(90deg)}
+  .rpt-toggle-hint{margin-left:auto;font-size:12px;opacity:.6}
+  .rpt-counts{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:14px;
+    font-weight:600;font-variant-numeric:tabular-nums}
+  .cnt i,.tile i,details.cl>summary i{font-style:normal;margin-right:5px}
+  .cnt.pass i,.tile.pass i,details.cl.pass>summary i{color:#3ddc84}
+  .cnt.fail i,.tile.fail i,details.cl.fail>summary i{color:#ff6b6b}
+  .cnt.skip i,.tile.skip i,details.cl.skip>summary i{color:#ffcc66}
+  .cnt.notrun i,.tile.notrun i,details.cl.notrun>summary i{color:#b8c4d6}
+  .cnt.zero{opacity:.55}
+  .rpt-h{font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;opacity:.75;
+    margin:20px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .tile{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:10px 12px}
+  .tile b{display:block;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+  .tile span{font-size:12px;opacity:.75}
+  .chart{margin:16px 0 0}
+  .stack{display:flex;gap:2px;height:28px}
+  .stack .seg{display:flex;align-items:center;justify-content:center;flex-basis:0;
+    min-width:4px;overflow:hidden}
+  .stack .seg:first-child{border-radius:4px 0 0 4px}
+  .stack .seg:last-child{border-radius:0 4px 4px 0}
+  .stack .seg:only-child{border-radius:4px}
+  .stack .seg.pass{background:#3ddc84}
+  .stack .seg.fail{background:#ff6b6b}
+  .stack .seg.skip{background:#ffcc66}
+  .stack .seg.notrun{background:#8fa3bf}
+  .stack .seg:focus-visible{outline:2px solid #fff;outline-offset:1px}
+  .stack em{font-style:normal;font-size:12px;font-weight:700;color:#14203a}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;opacity:.85}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .sw.pass{background:#3ddc84}
+  .sw.fail{background:#ff6b6b}
+  .sw.skip{background:#ffcc66}
+  .sw.notrun{background:#8fa3bf}
+  .case-lists{display:flex;flex-direction:column;gap:8px}
+  details.cl{border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:0 14px;
+    background:rgba(255,255,255,.04)}
+  details.cl>summary{cursor:pointer;padding:9px 0;font-weight:600;font-size:13.5px}
+  details.cl .n{opacity:.7;font-weight:400}
+  details.cl ol{margin:0 0 12px;padding-left:22px;font-size:13px;max-height:280px;overflow:auto}
+  details.cl li{margin:5px 0}
+  details.cl li a{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+    text-decoration:none;color:#9cc9ff}
+  details.cl.fail li a{color:#ff9d9d}
+  details.cl li a:hover{text-decoration:underline}
+  header.rpt .why{color:#ffb3b3}
+  #tip{position:fixed;display:none;z-index:1000;background:#0e1524;color:#fff;font-size:12px;
+    padding:6px 9px;border-radius:6px;pointer-events:none;max-width:320px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  @media (max-width:640px){.rpt-toggle-hint{display:none}}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rpt">
+  <details class="rpt-sum" open>
+    <summary>
+      <span class="rpt-line"><span class="chev" aria-hidden="true"></span><h1>Notification - Record History list</h1><span class="rpt-toggle-hint">click to minimise / expand</span></span>
+      <span class="rpt-counts"><span class="cnt pass"><i>&#10003;</i>1 passed</span><span class="cnt fail zero"><i>&#10007;</i>0 failed</span><span class="cnt skip zero"><i>&#8856;</i>0 skipped</span><span class="cnt notrun"><i>&#9675;</i>11 not run</span><span class="cnt">12 cases</span></span>
+<span class="bar">      <span class="seg pass" style="width:8.3333%" title="1 passed"></span>
+      <span class="seg notrun" style="width:91.6667%" title="11 not run"></span>
+</span>
+    </summary>
+    <div class="sub">Test case report &mdash; <code>org.sengmean.suites.tool.NotificationRecordHistorySuite</code></div>
+    <div class="meta">
+      <div><b>Target:</b> https://admin-test.1083.city/</div>
+      <div><b>Account:</b> qa0001</div>
+      <div><b>Run:</b> 2026-10-01 14:24</div>
+      <div><b>Elapsed:</b> 465.4s</div>
+      <div><b>Scope:</b> 2 of 34 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headless)</div>
+      <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
+      <div><b>Machine:</b> Windows 11 10.0</div>
+    </div>
+    <h2 class="rpt-h">Statistics</h2>
+    <div class="tiles">
+        <div class="tile "><b>12</b><span>cases</span></div>
+        <div class="tile pass"><b><i>&#10003;</i>1</b><span>passed</span></div>
+        <div class="tile fail"><b><i>&#10007;</i>0</b><span>failed</span></div>
+        <div class="tile skip"><b><i>&#8856;</i>0</b><span>skipped</span></div>
+        <div class="tile notrun"><b><i>&#9675;</i>11</b><span>not run</span></div>
+        <div class="tile"><b>100%</b><span>pass rate of the cases that ran</span></div>
+        <div class="tile"><b>28.4s</b><span>browser time</span></div>
+    </div>
+      <div class="chart" role="img" aria-label="Notification - Record History list: 1 passed, 0 failed, 0 skipped, 11 not run">
+        <div class="stack big"><span class="seg pass" style="flex-grow:1" tabindex="0" data-tip="Notification - Record History list - 1 passed (8%)"><em>1</em></span><span class="seg notrun" style="flex-grow:11" tabindex="0" data-tip="Notification - Record History list - 11 not run (92%)"><em>11</em></span></div>
+        <div class="chart-legend"><span><i class="sw pass"></i>Passed</span><span><i class="sw fail"></i>Failed</span><span><i class="sw skip"></i>Skipped</span><span><i class="sw notrun"></i>Not run</span></div>
+      </div>
+    <h2 class="rpt-h">Cases by result</h2>
+    <div class="case-lists">
+      <details class="cl pass"><summary><i>&#10003;</i>Passed <span class="n">(1)</span></summary>
+        <ol>
+          <li><a href="#case-NotificationTest-statusFilter">NOT-RHL-002</a> Status filter (All/Sent/Pending/Failed) narrows the history list</li>
+        </ol>
+      </details>
+      <details class="cl notrun"><summary><i>&#9675;</i>Not run <span class="n">(11)</span></summary>
+        <ol>
+          <li><a href="#case-NotificationTest-historyShowsEveryColumn">NOT-RHL-001</a> Record History lists ID, Notification Title, Type, Agent Group, Member Group, Released At, and Status for every send</li>
+          <li><a href="#case-NotificationTest-dateFilter">NOT-RHL-003</a> From/To date filters narrow the history to that window</li>
+          <li><a href="#case-NotificationTest-languageFilter">NOT-RHL-004</a> Changing the language filter updates the displayed Notification Title</li>
+          <li><a href="#case-NotificationTest-eachFiringIsItsOwnEntry">NOT-RHL-005</a> Over multiple days, a recurring notification logs a separate entry each time it fires</li>
+          <li><a href="#case-NotificationTest-onceLogsExactlyOnce">NOT-RHL-006</a> A one-time notification never generates a second history entry</li>
+          <li><a href="#case-NotificationTest-failedEntries">NOT-RHL-007</a> Failed status is reserved for delivery-layer failures such as lost connection, not content or validation issues</li>
+          <li><a href="#case-NotificationTest-historyPager">NOT-RHL-008</a> Record History's page size and Prev/Next pager work as the Notification tab's do</li>
+          <li><a href="#case-NotificationTest-invertedDateRange">NOT-RHL-009</a> A From date later than the To date shows nothing or is corrected, never a wrong window</li>
+          <li><a href="#case-NotificationTest-clearingDates">NOT-RHL-010</a> Clearing the From/To dates restores the whole history</li>
+          <li><a href="#case-NotificationTest-broadcastHistoryReadsAll">NOT-RHL-011</a> A broadcast send's Record History row reads All / All</li>
+          <li><a href="#case-NotificationTest-historyNewestFirst">NOT-RHL-012</a> Record History is listed newest first, by Released At and ID</li>
+        </ol>
+      </details>
+    </div>
+  </details>
+  </header>
+
+  <div class="nav"><a href="index.html">&larr; All suites</a></div>
+  <div class="toolbar">
+    <div class="filters" role="group" aria-label="Filter cases by status">
+      <button type="button" class="flt on" data-filter="all">All</button>
+      <button type="button" class="flt" data-filter="Pass">Passed</button>
+      <button type="button" class="flt" data-filter="Fail">Failed</button>
+      <button type="button" class="flt" data-filter="Skipped">Skipped</button>
+      <button type="button" class="flt" data-filter="Not run">Not run</button>
+    </div>
+    <input type="search" id="q" placeholder="Search id, case or message" aria-label="Search cases">
+    <button type="button" class="flt" id="expand-all">Expand all details</button>
+    <span class="count" id="shown">12 of 12 cases</span>
+  </div>
+  <section class="grp">
+  <h2 class="section">1. 7. Record History list</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-NotificationTest-historyShowsEveryColumn" data-status="Not run" data-search="not-rhl-001 historyshowseverycolumn record history lists id, notification title, type, agent group, member group, released at, and status for every send creates-data">
+        <td class="id" id="NOT-RHL-001">NOT-RHL-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>historyShowsEveryColumn</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Switch to the Record History tab.</li><li>Review the list.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Existing history entries, e.g. ID 5081, 5080.</li></ul></td>
+        <td>Record History lists ID, Notification Title, Type, Agent Group, Member Group, Released At, and Status for every send</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-001</dd>
+                <dt>Method</dt><dd>NotificationTest#historyShowsEveryColumn</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</dd>
+                <dt>Expected result</dt><dd>Record History lists ID, Notification Title, Type, Agent Group, Member Group, Released At, and Status for every send</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-statusFilter" data-status="Pass" data-search="not-rhl-002 statusfilter status filter (all/sent/pending/failed) narrows the history list">
+        <td class="id" id="NOT-RHL-002">NOT-RHL-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>statusFilter</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab. Entries with Sent, Pending, and Failed statuses all exist.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Set the status filter to Sent.</li><li>Set it to Pending.</li><li>Set it to Failed.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Mixed-status history entries.</li></ul></td>
+        <td>Status filter (All/Sent/Pending/Failed) narrows the history list</td>
+        <td>The application behaved as expected.<div class="secs">60 events recorded, ended on <code>https://admin-test.1083.city/tools/notification/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">28.35s</div></td>
+        <td><span class="muted">&mdash;</span></td>
+        <td><a class="shot" href="screenshots/NotificationTest.statusFilter.png" target="_blank" rel="noopener"><img src="screenshots/NotificationTest.statusFilter.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-002</dd>
+                <dt>Method</dt><dd>NotificationTest#statusFilter</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab. Entries with Sent, Pending, and Failed statuses all exist.</dd>
+                <dt>Expected result</dt><dd>Status filter (All/Sent/Pending/Failed) narrows the history list</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Pass in 28.35s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Status filter (All/Sent/Pending/Failed) narrows the history list</dd>
+                <dt>Duration</dt><dd>28.35 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(60 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: NOT-LST-002: Status filter shows only Active or only Inactive notifications as selected</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">0.02s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.02s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.02s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.03s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.10s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.28s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">0.35s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.45s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.51s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.52s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.52s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.68s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.76s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.92s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.93s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.93s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.94s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.00s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.21s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">1.83s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">2.08s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">3.10s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">4.47s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.76s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">8.57s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">8.58s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">8.58s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">8.58s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.59s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">8.67s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">8.83s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">8.89s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">8.99s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">9.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">9.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">9.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">9.17s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.26s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.41s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.42s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.43s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.45s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.49s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.83s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">10.32s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to --- All ---.</span></li>
+              <li class="k-api"><span class="at">10.57s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">11.58s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">12.84s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">14.32s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">17.18s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to Active.</span></li>
+              <li class="k-api"><span class="at">17.43s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?where[status]=1&amp;page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">18.72s</span><span class="kind">STEP</span><span class="what">Setting the Status filter to Inactive.</span></li>
+              <li class="k-api"><span class="at">18.98s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?where[status]=2&amp;page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">19.33s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">23.97s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/tools/notification/</span></li>
+              <li class="k-evidence"><span class="at">24.10s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-dateFilter" data-status="Not run" data-search="not-rhl-003 datefilter from/to date filters narrow the history to that window">
+        <td class="id" id="NOT-RHL-003">NOT-RHL-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>dateFilter</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Set From and To to a range covering only some existing entries.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>From = 2026-01-22, To = 2026-01-23.</li></ul></td>
+        <td>From/To date filters narrow the history to that window</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-003</dd>
+                <dt>Method</dt><dd>NotificationTest#dateFilter</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</dd>
+                <dt>Expected result</dt><dd>From/To date filters narrow the history to that window</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-languageFilter" data-status="Not run" data-search="not-rhl-004 languagefilter changing the language filter updates the displayed notification title creates-data">
+        <td class="id" id="NOT-RHL-004">NOT-RHL-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>languageFilter</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Change the language filter to a different supported language.</li><li>Check the Notification Title column.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Switch from 繁體 to English.</li></ul></td>
+        <td>Changing the language filter updates the displayed Notification Title</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-004</dd>
+                <dt>Method</dt><dd>NotificationTest#languageFilter</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</dd>
+                <dt>Expected result</dt><dd>Changing the language filter updates the displayed Notification Title</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-eachFiringIsItsOwnEntry" data-status="Not run" data-search="not-rhl-005 eachfiringisitsownentry over multiple days, a recurring notification logs a separate entry each time it fires creates-data">
+        <td class="id" id="NOT-RHL-005">NOT-RHL-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>eachFiringIsItsOwnEntry</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab. A Daily-scheduled Active notification exists.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Note the most recent Record History entry for a Daily notification.</li><li>Wait until its next scheduled Timer passes (or advance the test environment's clock, if supported).</li><li>Check Record History again.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>A Daily notification firing at a known Timer.</li></ul></td>
+        <td>Over multiple days, a recurring notification logs a separate entry each time it fires</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-005</dd>
+                <dt>Method</dt><dd>NotificationTest#eachFiringIsItsOwnEntry</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab. A Daily-scheduled Active notification exists.</dd>
+                <dt>Expected result</dt><dd>Over multiple days, a recurring notification logs a separate entry each time it fires</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-onceLogsExactlyOnce" data-status="Not run" data-search="not-rhl-006 oncelogsexactlyonce a one-time notification never generates a second history entry creates-data">
+        <td class="id" id="NOT-RHL-006">NOT-RHL-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>onceLogsExactlyOnce</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab. A Once-scheduled notification that has already sent exists.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Note the single Record History entry for a Once-scheduled notification.</li><li>Wait and recheck after a significant delay.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>A Once-scheduled, already-sent notification.</li></ul></td>
+        <td>A one-time notification never generates a second history entry</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-006</dd>
+                <dt>Method</dt><dd>NotificationTest#onceLogsExactlyOnce</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab. A Once-scheduled notification that has already sent exists.</dd>
+                <dt>Expected result</dt><dd>A one-time notification never generates a second history entry</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-failedEntries" data-status="Not run" data-search="not-rhl-007 failedentries failed status is reserved for delivery-layer failures such as lost connection, not content or validation issues">
+        <td class="id" id="NOT-RHL-007">NOT-RHL-007</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>failedEntries</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab. A Failed-status entry exists, e.g. &quot;Maintenance window heads-up notice&quot;.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Locate a Failed-status entry.</li><li>Open its detail view, if available.</li><li>Look for a failure reason or retry option.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>The &quot;Maintenance window heads-up notice&quot; Failed entry.</li></ul></td>
+        <td>Failed status is reserved for delivery-layer failures such as lost connection, not content or validation issues</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-007</dd>
+                <dt>Method</dt><dd>NotificationTest#failedEntries</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab. A Failed-status entry exists, e.g. &quot;Maintenance window heads-up notice&quot;.</dd>
+                <dt>Expected result</dt><dd>Failed status is reserved for delivery-layer failures such as lost connection, not content or validation issues</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-historyPager" data-status="Not run" data-search="not-rhl-008 historypager record history's page size and prev/next pager work as the notification tab's do">
+        <td class="id" id="NOT-RHL-008">NOT-RHL-008</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>historyPager</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab, with more than one page of entries at the smallest page size.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Choose the smallest page size.</li><li>Click Next, then Prev.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Existing history entries.</li></ul></td>
+        <td>Record History's page size and Prev/Next pager work as the Notification tab's do</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-008</dd>
+                <dt>Method</dt><dd>NotificationTest#historyPager</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab, with more than one page of entries at the smallest page size.</dd>
+                <dt>Expected result</dt><dd>Record History's page size and Prev/Next pager work as the Notification tab's do</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-invertedDateRange" data-status="Not run" data-search="not-rhl-009 inverteddaterange a from date later than the to date shows nothing or is corrected, never a wrong window">
+        <td class="id" id="NOT-RHL-009">NOT-RHL-009</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>invertedDateRange</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Set From to today and To to a week ago.</li><li>Read the entries and the two date fields.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>From = today, To = today minus 7 days.</li></ul></td>
+        <td>A From date later than the To date shows nothing or is corrected, never a wrong window</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-009</dd>
+                <dt>Method</dt><dd>NotificationTest#invertedDateRange</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</dd>
+                <dt>Expected result</dt><dd>A From date later than the To date shows nothing or is corrected, never a wrong window</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-clearingDates" data-status="Not run" data-search="not-rhl-010 clearingdates clearing the from/to dates restores the whole history">
+        <td class="id" id="NOT-RHL-010">NOT-RHL-010</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>clearingDates</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Note the number of entries with no dates set.</li><li>Set From and To to today; note the count.</li><li>Clear both dates.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Today's date.</li></ul></td>
+        <td>Clearing the From/To dates restores the whole history</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-010</dd>
+                <dt>Method</dt><dd>NotificationTest#clearingDates</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab.</dd>
+                <dt>Expected result</dt><dd>Clearing the From/To dates restores the whole history</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-broadcastHistoryReadsAll" data-status="Not run" data-search="not-rhl-011 broadcasthistoryreadsall a broadcast send's record history row reads all / all creates-data">
+        <td class="id" id="NOT-RHL-011">NOT-RHL-011</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>broadcastHistoryReadsAll</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A broadcast rule (Select all on both groups) exists.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Send Now on the broadcast rule.</li><li>Read its new Record History row.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>&quot;QA NOT Maintenance window heads-up notice&quot;.</li></ul></td>
+        <td>A broadcast send's Record History row reads All / All</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-011</dd>
+                <dt>Method</dt><dd>NotificationTest#broadcastHistoryReadsAll</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. A broadcast rule (Select all on both groups) exists.</dd>
+                <dt>Expected result</dt><dd>A broadcast send's Record History row reads All / All</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-NotificationTest-historyNewestFirst" data-status="Not run" data-search="not-rhl-012 historynewestfirst record history is listed newest first, by released at and id">
+        <td class="id" id="NOT-RHL-012">NOT-RHL-012</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>historyNewestFirst</code></td>
+        <td class="tpre"><div class="tc-pre">Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab with at least two entries.</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Read Released At and ID top to bottom.</li></ol></td>
+        <td class="tdata"><ul class="tc-data"><li>Existing history entries.</li></ul></td>
+        <td>Record History is listed newest first, by Released At and ID</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>NOT-RHL-012</dd>
+                <dt>Method</dt><dd>NotificationTest#historyNewestFirst</dd>
+                <dt>Group</dt><dd>7. Record History list (RecordHistoryList)</dd>
+                <dt>Pre-condition</dt><dd>Logged in to the Weibo merchant admin back-office as Super Admin/Admin with access to Tool &gt; Notification. On the Record History tab with at least two entries.</dd>
+                <dt>Expected result</dt><dd>Record History is listed newest first, by Released At and ID</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <h2 class="section">How to read this report</h2>
+  <div class="callout">
+    <p><b>Status</b> is what the run did, not a verdict on the application. A
+    <span class="st fail">Fail</span> on a case badged <code>known-defect</code> is the
+    expected outcome: those cases assert the behaviour the application <i>should</i>
+    have and stay red until the finding is fixed.</p>
+    <p><b>Not run</b> means the case exists in the suite but produced no result, normally
+    because it was filtered out with <code>-DexcludedGroups=creates-data</code>, which
+    keeps cases with real-world side effects - a registered account, a real SMS, a filed
+    deposit, a withdrawal hold, a staked casino bet - out of an unattended run.</p>
+    <p><b>Evidence</b> is the screenshot of the page as the case left it - captured for every
+    case that ran, passed or failed, just before teardown closed the browser. A
+    skipped case never ran, so it has none. Click an image for the full size.</p>
+    <p><b>Details</b>, on every row, opens what would not fit in the table: the case as its
+    source declares it, the diagnosis of a failure - exception, expected against actual,
+    the element that could not be resolved, the lines of this project involved, and the
+    full stack trace - and, for every row alike, the run's own record of what the browser
+    did.</p>
+    <p><b>What the run did</b> is that record. It is captured automatically while the case
+    runs: <code>NAV</code> for a page load or a new tab, <code>API</code> for a call the
+    site made of its own back end with the status it came back with, <code>NETWORK</code>
+    for one that came back 4xx or 5xx, <code>CONSOLE</code> for a console or uncaught
+    error, <code>EVIDENCE</code> for a screenshot, and <code>STEP</code>,
+    <code>CHECK</code> and <code>DATA</code> for what the case itself narrated. A passing
+    row carries one too, deliberately: a green result is a claim, and this is the working
+    behind it.</p>
+  </div>
+  <footer>Generated by <code>org.sengmean.report.HtmlReportGenerator</code> from the test sources, the run's results, its step logs and its screenshots. Rewritten at the end of every run by <code>HtmlReportListener</code>.</footer>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <img id="lightbox-img" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+  <div class="hint">Click anywhere, or press Escape, to close</div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var cap = document.getElementById('lightbox-cap');
+  function open(src, caption) {
+    img.setAttribute('src', src);
+    img.setAttribute('alt', caption || '');
+    cap.textContent = caption || '';
+    box.classList.add('open');
+  }
+  function close() {
+    box.classList.remove('open');
+    img.removeAttribute('src');
+  }
+  document.addEventListener('click', function (e) {
+    // Both the Evidence column's images and the ones shown inline against a trail
+    // line. The inline ones were left out when they were added, so they fell
+    // through to target="_blank" and every capture opened a new tab - fifty-two of
+    // them if a reader worked down the transfer walk.
+    var link = e.target.closest ? e.target.closest('a.shot, a.step-shot') : null;
+    if (link) {
+      // Only take over the plain click - a modified click still opens the file
+      // in a tab, which is what someone reaching for that expects.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+      e.preventDefault();
+      var inner = link.querySelector('img');
+      open(link.getAttribute('href'), inner ? inner.getAttribute('alt') : '');
+    } else if (box.classList.contains('open')) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { close(); }
+  });
+})();
+</script>
+<script>
+(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.case'));
+  var shown = document.getElementById('shown');
+  var search = document.getElementById('q');
+  var expandAll = document.getElementById('expand-all');
+  var filter = 'all';
+  var query = '';
+
+  function panelOf(row) {
+    var next = row.nextElementSibling;
+    return next && next.classList.contains('detail') ? next : null;
+  }
+
+  function matches(row) {
+    if (filter !== 'all' && row.getAttribute('data-status') !== filter) { return false; }
+    if (query === '') { return true; }
+    return (row.getAttribute('data-search') || '').indexOf(query) >= 0;
+  }
+
+  function apply() {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var ok = matches(row);
+      if (ok) { visible++; }
+      row.classList.toggle('hide', !ok);
+      var panel = panelOf(row);
+      if (panel) { panel.classList.toggle('hide', !ok || !row.classList.contains('open')); }
+    });
+    // A group whose every case is filtered out is hidden with its heading, so the
+    // page does not end in a run of empty tables under numbered titles.
+    Array.prototype.forEach.call(document.querySelectorAll('section.grp'), function (grp) {
+      var any = grp.querySelector('tr.case:not(.hide)');
+      grp.classList.toggle('hide', !any);
+    });
+    if (shown) {
+      shown.textContent = visible + ' of ' + rows.length + ' cases';
+    }
+  }
+
+  function open(row, wanted) {
+    var panel = panelOf(row);
+    if (!panel) { return; }
+    var isOpen = wanted === undefined ? !row.classList.contains('open') : wanted;
+    row.classList.toggle('open', isOpen);
+    panel.classList.toggle('hide', !isOpen);
+    var button = row.querySelector('button.more');
+    if (button) { button.setAttribute('aria-expanded', isOpen ? 'true' : 'false'); }
+  }
+
+  document.addEventListener('click', function (e) {
+    var more = e.target.closest ? e.target.closest('button.more') : null;
+    if (more) {
+      open(more.closest('tr.case'));
+      return;
+    }
+    var flt = e.target.closest ? e.target.closest('button.flt[data-filter]') : null;
+    if (flt) {
+      filter = flt.getAttribute('data-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('button.flt[data-filter]'),
+        function (b) { b.classList.toggle('on', b === flt); });
+      apply();
+    }
+  });
+
+  if (search) {
+    search.addEventListener('input', function () {
+      query = search.value.trim().toLowerCase();
+      apply();
+    });
+  }
+
+  if (expandAll) {
+    expandAll.addEventListener('click', function () {
+      var opening = expandAll.getAttribute('data-open') !== 'yes';
+      expandAll.setAttribute('data-open', opening ? 'yes' : 'no');
+      expandAll.textContent = opening ? 'Collapse all details' : 'Expand all details';
+      rows.forEach(function (row) { if (!row.classList.contains('hide')) { open(row, opening); } });
+    });
+  }
+
+  function openFromHash() {
+    if (!window.location.hash) { return; }
+    var target = document.getElementById(window.location.hash.slice(1));
+    if (!target) { return; }
+    // The hash may name either anchor a row carries: the internal
+    // case-<suite>-<method>, which the findings list links to, or the case
+    // id itself - "#HOME-002" - which is what the client test case sheet's
+    // per-row links use. The id sits on a <td>, so resolve upwards to the
+    // row rather than testing the target: without this the browser scrolls
+    // to the right place and leaves the details shut, which reads as a link
+    // that landed on the wrong thing.
+    var row = target.classList.contains('case')
+      ? target
+      : (target.closest ? target.closest('tr.case') : null);
+    if (row) {
+      open(row, true);
+      row.classList.add('flash');
+      row.scrollIntoView({ block: 'center' });
+    }
+  }
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();
+  apply();
+})();
+</script>
+  <div id="tip" role="tooltip"></div>
+  <script>
+  (function(){
+    var sum=document.querySelector('details.rpt-sum');
+    var KEY='admin-weibo-summary-open';
+    if(sum){
+      try{var v=localStorage.getItem(KEY);if(v!==null){sum.open=v==='1';}}catch(e){}
+      sum.addEventListener('toggle',function(){try{localStorage.setItem(KEY,sum.open?'1':'0');}catch(e){}});
+    }
+    var tip=document.getElementById('tip');
+    function show(el,x,y){tip.textContent=el.getAttribute('data-tip');tip.style.display='block';
+      var w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(x+12,window.innerWidth-w-8))+'px';tip.style.top=(y+14)+'px';}
+    function hide(){tip.style.display='none';}
+    document.addEventListener('mousemove',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){show(el,e.clientX,e.clientY);}else{hide();}});
+    document.addEventListener('focusin',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){var r=el.getBoundingClientRect();show(el,r.left,r.bottom);}});
+    document.addEventListener('focusout',hide);
+  })();
+  </script>
+</div>
+</body>
+</html>
