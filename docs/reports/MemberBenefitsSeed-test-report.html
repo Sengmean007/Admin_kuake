@@ -1,0 +1,1311 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Member Benefits - seed data - test case report</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2230; --muted:#5b6676;
+    --line:#e2e7ef; --head:#26314a; --headink:#ffffff;
+    --pass:#137a43; --pass-bg:#e6f5ec;
+    --fail:#b02525; --fail-bg:#fdecec;
+    --partial:#9a6a00; --partial-bg:#fdf3dd;
+    --info:#1f6a9c; --info-bg:#e6f1f9;
+    --accent:#c79a2f;                  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:32px 18px}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.rpt{background:var(--head);color:var(--headink);border-radius:14px;padding:26px 30px;
+    box-shadow:0 6px 20px rgba(20,30,50,.12)}
+  header.rpt h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header.rpt .sub{opacity:.85;font-size:14px}
+  header.rpt code{background:rgba(255,255,255,.14);color:inherit}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px;font-size:13.5px}
+  .meta b{color:var(--accent)}
+  .tally{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:14px;font-weight:600}
+  /* The run at a glance. Proportional segments, so the shape of a result is
+     readable before any of the five numbers above it has been read. */
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:12px;
+    background:rgba(255,255,255,.16)}
+  .bar .seg{display:block;height:100%}
+  .bar .seg.pass{background:#3ddc84}
+  .bar .seg.fail{background:#ff6b6b}
+  .bar .seg.skip{background:#ffcc66}
+  .bar .seg.notrun{background:#8fa3bf}
+  .rate{margin-top:8px;font-size:12.5px;opacity:.85}
+  /* The same bar in a table cell, where the ground is white rather than the
+     header's navy, so the empty track has to be redrawn to stay visible. */
+  .bar.mini{width:150px;height:8px;margin:0;background:var(--line)}
+  td.minibar{width:170px}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 4px}
+  .toolbar .filters{display:flex;flex-wrap:wrap;gap:6px}
+  button.flt{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+  button.flt:hover{color:var(--ink);border-color:var(--muted)}
+  button.flt.on{background:var(--head);border-color:var(--head);color:#fff}
+  .toolbar input[type=search]{font:inherit;font-size:13px;padding:7px 12px;flex:1 1 220px;
+    min-width:180px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    color:var(--ink)}
+  .toolbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hide{display:none !important}
+  .callout.bad{border-left-color:var(--fail)}
+  ol.findings{margin:0;padding-left:20px}
+  ol.findings li{margin-bottom:10px}
+  ol.findings a{color:var(--fail);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;text-decoration:none}
+  ol.findings a:hover{text-decoration:underline}
+  .tag.known{background:var(--fail-bg);color:var(--fail)}
+  /* The detail panel under a row. It is a second <tr> rather than a nested table
+     so the seven columns stay aligned across every group on the page. */
+  button.more{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;margin-right:7px;
+    border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);cursor:pointer;vertical-align:middle}
+  button.more:hover{color:var(--ink);border-color:var(--muted)}
+  button.more::before{content:"\25B8 "}
+  tr.case.open button.more::before{content:"\25BE "}
+  tr.case.open>td{background:#f2f6fd}
+  tr.case.flash>td{animation:flash 1.4s ease-out}
+  @keyframes flash{from{background:#fdf3dd}to{background:transparent}}
+  tr.detail>td{background:#f7f9fc;border-top:0;padding:0 13px 18px}
+  .panels{display:flex;flex-wrap:wrap;gap:14px}
+  .panel{flex:1 1 340px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.wide{flex-basis:100%;margin-top:14px}
+  .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .panel dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+  .panel dt{color:var(--muted);font-weight:600}
+  .panel dd{margin:0;word-break:break-word}
+  .panel p{font-size:13px;margin:10px 0 0}
+  .cmp{display:grid;gap:6px}
+  .cmp>div{display:flex;gap:8px;align-items:baseline}
+  .cmp span{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);min-width:58px}
+  .cmp code{white-space:pre-wrap;word-break:break-word}
+  .cmp>div:first-child code{background:var(--pass-bg);color:var(--pass)}
+  .cmp>div:last-child code{background:var(--fail-bg);color:var(--fail)}
+  .frames{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  details.trace{margin-top:12px;font-size:12.5px}
+  details.trace>summary{cursor:pointer;color:var(--muted)}
+  details.trace pre{margin:8px 0 0;padding:12px;background:#f4f6fa;border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.45;max-height:340px}
+  /* The step trail. Kinds are badges rather than prose because they are what makes
+     it scannable - red for the network and console lines a failure hangs off. */
+  ol.steps{margin:0;padding:0;list-style:none;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  ol.steps li{display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line);
+    align-items:baseline}
+  ol.steps li:first-child{border-top:0}
+  ol.steps .at{color:var(--muted);min-width:52px;text-align:right;font-size:11.5px}
+  ol.steps .kind{min-width:74px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    padding:2px 7px;border-radius:4px;text-align:center;background:#eef1f6;color:var(--muted)}
+  ol.steps .what{flex:1;word-break:break-word;white-space:pre-wrap}
+  /* A capture shown against the trail line that describes it. Kept small so a
+     case with fifty-two of them still scrolls as a trail rather than a gallery,
+     and clickable so the full-size image is one click away. align-self:flex-start
+     stops a tall thumbnail stretching a short line's row. */
+  ol.steps .step-shot{flex:0 0 auto;align-self:flex-start;line-height:0;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  ol.steps .step-shot img{display:block;width:180px;height:auto}
+  ol.steps li.k-evidence{align-items:flex-start}
+  @media (max-width:900px){ol.steps .step-shot img{width:120px}}
+  ol.steps li.k-step .kind{background:var(--info-bg);color:var(--info)}
+  ol.steps li.k-check .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-data .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-network .kind,ol.steps li.k-console .kind{background:var(--fail-bg);color:var(--fail)}
+  ol.steps li.k-network .what,ol.steps li.k-console .what{color:var(--fail)}
+  /* A line the case declared FAIL. Tinted across the whole row rather than only
+     the text, so it is findable while scrolling a trail of a hundred lines, and
+     given a left rule so it still reads as failed without relying on colour. */
+  ol.steps li.failed{background:var(--fail-bg);
+    box-shadow:inset 3px 0 0 var(--fail);padding-left:7px}
+  ol.steps li.failed .what{color:var(--fail);font-weight:600}
+  ol.steps li.failed .kind{background:var(--fail);color:#fff}
+  ol.steps li.k-evidence .kind{background:var(--partial-bg);color:var(--partial)}
+  .nav{margin:18px 0 0;font-size:13.5px}
+  .nav a{color:var(--info);text-decoration:none}
+  .nav a:hover{text-decoration:underline}
+  .callout{background:var(--card);border-left:5px solid var(--accent);border-radius:10px;
+    padding:16px 20px;margin:22px 0;box-shadow:0 2px 8px rgba(20,30,50,.06);font-size:14px}
+  .callout h2{margin:0 0 8px;font-size:16px}
+  .callout p{margin:0 0 10px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--partial)}
+  h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  /* The index's package sections: heading, the package name beside it, then its tally. */
+  h2.section .pkg-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    font-weight:500;color:var(--muted);margin-left:8px}
+  .pkg-tally{display:flex;align-items:center;gap:12px;margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+  .pkg-tally .bar.mini{width:160px;flex:0 0 160px}
+  h3.pkg-findings{font-size:14px;margin:14px 0 4px}
+  h3.pkg-findings a{color:inherit}
+  .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
+  thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
+    font-weight:600;white-space:nowrap}
+  tbody td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;
+    overflow-wrap:break-word}
+  /* Fixed column widths on the case tables, because automatic layout shares the
+     width out by content and one long cell then starves the rest: a remark
+     carrying a two-sentence reading of a failure took 792 of 1565 pixels and left
+     the Actual result column at 103, wrapping its message one word per line. It
+     also stops the full-width detail row from widening the whole table, which was
+     pushing the failure panel off the right of the page. */
+  table.cases{table-layout:fixed;min-width:1600px}
+  table.cases th:nth-child(1),table.cases td:nth-child(1){width:6%}
+  table.cases th:nth-child(2),table.cases td:nth-child(2){width:10%}
+  table.cases th:nth-child(3),table.cases td:nth-child(3){width:12%}
+  table.cases th:nth-child(4),table.cases td:nth-child(4){width:14%}
+  table.cases th:nth-child(5),table.cases td:nth-child(5){width:10%}
+  table.cases th:nth-child(6),table.cases td:nth-child(6){width:11%}
+  table.cases th:nth-child(7),table.cases td:nth-child(7){width:11%}
+  table.cases th:nth-child(8),table.cases td:nth-child(8){width:6%}
+  table.cases th:nth-child(9),table.cases td:nth-child(9){width:10%}
+  table.cases th:nth-child(10),table.cases td:nth-child(10){width:10%}
+  table.cases tr.detail>td{width:auto}
+  /* Pre-condition, Test steps and Test data: the client workbook's own wording, with the values
+     the run actually used listed under the sheet's. */
+  .tc-pre{font-size:12.5px;white-space:pre-wrap}
+  ol.tc-steps{margin:0;padding-left:18px;font-size:12.5px}
+  ol.tc-steps li{margin:0 0 3px}
+  ul.tc-data{margin:0;padding-left:16px;font-size:12.5px}
+  ul.tc-data li{margin:0 0 3px;overflow-wrap:anywhere}
+  ul.tc-data.used code{font-size:11.5px;white-space:normal}
+  td.tsteps .src,td.tdata .src{margin:6px 0 3px;font-size:10.5px;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  /* The sheet ids run from HOME-001 to HKDWITHDRAWAL-012, and a fixed column
+     clips what it cannot fit: the longer ones were cut mid-word with no sign
+     that anything was missing. They wrap here rather than truncate. */
+  table.cases td.id{white-space:normal;overflow-wrap:anywhere}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td.tc{font-weight:600}
+  td.tc a{color:var(--ink)}
+  td.id{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);
+    font-size:12.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .why{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--fail);
+    white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted)}
+  .secs{margin-top:6px;font-size:11.5px;color:var(--muted)}
+  .tag{display:inline-block;margin-top:6px;margin-right:4px;padding:1px 7px;border-radius:4px;
+    background:#eef1f6;color:var(--muted);font-size:11px;font-weight:600;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .st{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;
+    white-space:nowrap}
+  .st.pass{color:var(--pass);background:var(--pass-bg)}
+  .st.fail{color:var(--fail);background:var(--fail-bg)}
+  .st.partial{color:var(--partial);background:var(--partial-bg)}
+  .st.info{color:var(--info);background:var(--info-bg)}
+  details.shots{max-width:100%}
+  details.shots>summary{cursor:pointer;font-size:12.5px;color:var(--muted);
+    padding:5px 9px;border:1px solid var(--line);border-radius:999px;
+    display:inline-block;list-style:none;user-select:none}
+  details.shots>summary::-webkit-details-marker{display:none}
+  details.shots>summary::before{content:"\25B8 ";color:var(--muted)}
+  details.shots[open]>summary::before{content:"\25BE "}
+  details.shots>summary:hover{color:var(--ink);border-color:var(--muted)}
+  details.shots[open]>summary{margin-bottom:8px}
+  a.shot{display:inline-block;margin:0 6px 6px 0;position:relative;cursor:zoom-in}
+  a.shot img{width:100%;max-width:260px;border:1px solid var(--line);border-radius:8px;display:block;
+    box-shadow:0 2px 6px rgba(20,30,50,.10);transition:transform .12s,box-shadow .12s}
+  a.shot:hover img{transform:scale(1.03);box-shadow:0 6px 18px rgba(20,30,50,.22)}
+  a.shot::after{content:"\2315";position:absolute;right:8px;bottom:8px;
+    background:rgba(15,25,45,.72);color:#fff;font-size:13px;line-height:1;
+    padding:5px 7px;border-radius:6px;opacity:0;transition:opacity .12s}
+  a.shot:hover::after{opacity:1}
+  /* Click-to-zoom overlay. A 260px thumbnail of a 1920x1080 capture is a
+     smudge - readable enough to say a picture exists, not enough to read the
+     page in it - so the full image opens over the report rather than in a
+     separate tab the reader then has to navigate back from. */
+  #lightbox{position:fixed;inset:0;background:rgba(10,16,28,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:999;
+    padding:24px;cursor:zoom-out}
+  #lightbox.open{display:flex}
+  #lightbox img{max-width:96vw;max-height:86vh;border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff}
+  #lightbox .cap{color:#e8eef8;font-size:13px;margin-top:12px;text-align:center;
+    max-width:80vw}
+  #lightbox .hint{color:#93a4bd;font-size:12px;margin-top:6px}
+  /* A suite page's header is its statistics summary, and collapses to its first
+     lines: title, counts and bar stay; run details, tiles, chart and the cases by
+     result fold away. Drawn on the header's navy, so the status colours are the
+     same bright steps as the header bar, each paired with an icon and a label. */
+  details.rpt-sum>summary{list-style:none;cursor:pointer;user-select:none}
+  details.rpt-sum>summary::-webkit-details-marker{display:none}
+  details.rpt-sum>summary:focus-visible{outline:2px solid #9cc9ff;outline-offset:6px;border-radius:6px}
+  .rpt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rpt-line{flex-wrap:nowrap}
+  .rpt-line h1{margin:0;flex:1 1 auto;min-width:0}
+  details.rpt-sum>.sub{margin-top:14px}
+  header.rpt .sub code{overflow-wrap:anywhere}
+  .chev::before{content:"\25B8";display:inline-block;opacity:.8;transition:transform .15s}
+  details[open]>summary .chev::before{transform:rotate(90deg)}
+  .rpt-toggle-hint{margin-left:auto;font-size:12px;opacity:.6}
+  .rpt-counts{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:14px;
+    font-weight:600;font-variant-numeric:tabular-nums}
+  .cnt i,.tile i,details.cl>summary i{font-style:normal;margin-right:5px}
+  .cnt.pass i,.tile.pass i,details.cl.pass>summary i{color:#3ddc84}
+  .cnt.fail i,.tile.fail i,details.cl.fail>summary i{color:#ff6b6b}
+  .cnt.skip i,.tile.skip i,details.cl.skip>summary i{color:#ffcc66}
+  .cnt.notrun i,.tile.notrun i,details.cl.notrun>summary i{color:#b8c4d6}
+  .cnt.zero{opacity:.55}
+  .rpt-h{font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;opacity:.75;
+    margin:20px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .tile{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:10px 12px}
+  .tile b{display:block;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+  .tile span{font-size:12px;opacity:.75}
+  .chart{margin:16px 0 0}
+  .stack{display:flex;gap:2px;height:28px}
+  .stack .seg{display:flex;align-items:center;justify-content:center;flex-basis:0;
+    min-width:4px;overflow:hidden}
+  .stack .seg:first-child{border-radius:4px 0 0 4px}
+  .stack .seg:last-child{border-radius:0 4px 4px 0}
+  .stack .seg:only-child{border-radius:4px}
+  .stack .seg.pass{background:#3ddc84}
+  .stack .seg.fail{background:#ff6b6b}
+  .stack .seg.skip{background:#ffcc66}
+  .stack .seg.notrun{background:#8fa3bf}
+  .stack .seg:focus-visible{outline:2px solid #fff;outline-offset:1px}
+  .stack em{font-style:normal;font-size:12px;font-weight:700;color:#14203a}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;opacity:.85}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .sw.pass{background:#3ddc84}
+  .sw.fail{background:#ff6b6b}
+  .sw.skip{background:#ffcc66}
+  .sw.notrun{background:#8fa3bf}
+  .case-lists{display:flex;flex-direction:column;gap:8px}
+  details.cl{border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:0 14px;
+    background:rgba(255,255,255,.04)}
+  details.cl>summary{cursor:pointer;padding:9px 0;font-weight:600;font-size:13.5px}
+  details.cl .n{opacity:.7;font-weight:400}
+  details.cl ol{margin:0 0 12px;padding-left:22px;font-size:13px;max-height:280px;overflow:auto}
+  details.cl li{margin:5px 0}
+  details.cl li a{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+    text-decoration:none;color:#9cc9ff}
+  details.cl.fail li a{color:#ff9d9d}
+  details.cl li a:hover{text-decoration:underline}
+  header.rpt .why{color:#ffb3b3}
+  #tip{position:fixed;display:none;z-index:1000;background:#0e1524;color:#fff;font-size:12px;
+    padding:6px 9px;border-radius:6px;pointer-events:none;max-width:320px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  @media (max-width:640px){.rpt-toggle-hint{display:none}}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rpt">
+  <details class="rpt-sum" open>
+    <summary>
+      <span class="rpt-line"><span class="chev" aria-hidden="true"></span><h1>Member Benefits - seed data</h1><span class="rpt-toggle-hint">click to minimise / expand</span></span>
+      <span class="rpt-counts"><span class="cnt pass"><i>&#10003;</i>1 passed</span><span class="cnt fail zero"><i>&#10007;</i>0 failed</span><span class="cnt skip zero"><i>&#8856;</i>0 skipped</span><span class="cnt notrun zero"><i>&#9675;</i>0 not run</span><span class="cnt">1 cases</span></span>
+<span class="bar">      <span class="seg pass" style="width:100.0000%" title="1 passed"></span>
+</span>
+    </summary>
+    <div class="sub">Test case report &mdash; <code>org.sengmean.suites.webcontent.MemberBenefitsSeedSuite</code></div>
+    <div class="meta">
+      <div><b>Target:</b> https://admin-test.138hk.vip/</div>
+      <div><b>Account:</b> qa0001</div>
+      <div><b>Run:</b> 2026-10-23 15:52</div>
+      <div><b>Elapsed:</b> 764.3s</div>
+      <div><b>Scope:</b> 1 of 62 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headless)</div>
+      <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
+      <div><b>Machine:</b> Windows 11 10.0</div>
+    </div>
+    <h2 class="rpt-h">Statistics</h2>
+    <div class="tiles">
+        <div class="tile "><b>1</b><span>cases</span></div>
+        <div class="tile pass"><b><i>&#10003;</i>1</b><span>passed</span></div>
+        <div class="tile fail"><b><i>&#10007;</i>0</b><span>failed</span></div>
+        <div class="tile skip"><b><i>&#8856;</i>0</b><span>skipped</span></div>
+        <div class="tile notrun"><b><i>&#9675;</i>0</b><span>not run</span></div>
+        <div class="tile"><b>100%</b><span>pass rate of the cases that ran</span></div>
+        <div class="tile"><b>712.4s</b><span>browser time</span></div>
+    </div>
+      <div class="chart" role="img" aria-label="Member Benefits - seed data: 1 passed, 0 failed, 0 skipped, 0 not run">
+        <div class="stack big"><span class="seg pass" style="flex-grow:1" tabindex="0" data-tip="Member Benefits - seed data - 1 passed (100%)"><em>1</em></span></div>
+        <div class="chart-legend"><span><i class="sw pass"></i>Passed</span><span><i class="sw fail"></i>Failed</span><span><i class="sw skip"></i>Skipped</span><span><i class="sw notrun"></i>Not run</span></div>
+      </div>
+    <h2 class="rpt-h">Cases by result</h2>
+    <div class="case-lists">
+      <details class="cl pass"><summary><i>&#10003;</i>Passed <span class="n">(1)</span></summary>
+        <ol>
+          <li><a href="#case-MemberBenefitsSeedData-seedBenefits">MB-CRT-901</a> Seed 10 Member Benefits per currency, kept for the data-heavy rows</li>
+        </ol>
+      </details>
+    </div>
+  </details>
+  </header>
+
+  <div class="nav"><a href="index.html">&larr; All suites</a></div>
+  <div class="toolbar">
+    <div class="filters" role="group" aria-label="Filter cases by status">
+      <button type="button" class="flt on" data-filter="all">All</button>
+      <button type="button" class="flt" data-filter="Pass">Passed</button>
+      <button type="button" class="flt" data-filter="Fail">Failed</button>
+      <button type="button" class="flt" data-filter="Skipped">Skipped</button>
+      <button type="button" class="flt" data-filter="Not run">Not run</button>
+    </div>
+    <input type="search" id="q" placeholder="Search id, case or message" aria-label="Search cases">
+    <button type="button" class="flt" id="expand-all">Expand all details</button>
+    <span class="count" id="shown">1 of 1 cases</span>
+  </div>
+  <section class="grp">
+  <h2 class="section">1. Test cases</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-MemberBenefitsSeedData-seedBenefits" data-status="Pass" data-search="mb-crt-901 seedbenefits seed 10 member benefits per currency, kept for the data-heavy rows creates-data">
+        <td class="id" id="MB-CRT-901">MB-CRT-901</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>seedBenefits</code><div class="tag">creates-data</div></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Opening Web content management &gt; Member Benefits.</li><li>Searching Member Benefits names for &quot;QA SEED MB&quot;.</li><li>Clicking Add member benefit.</li><li>Uploading benefit icon icon.jpg.</li><li>Clicking Add banner.</li><li>Uploading the small banner small-banner.jpg to banner 1.</li><li>Uploading the mobile pop-up mobile-popup.jpg to banner 1.</li><li>Uploading the PC pop-up pc-popup.jpg to banner 1.</li><li>Clicking Save member benefit.</li><li>The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</li><li>The page said: &quot;Successfully modified&quot; - pressing OK.</li><li>The browser's own traffic stopped being recorded after 300 entries; the case's own steps continue.</li><li>Setting the header currency filter to TRX.</li><li>Setting the header currency filter to THB.</li></ol><div class="src">From the run's step trail</div></td>
+        <td class="tdata"><div class="src">Used in this run</div><ul class="tc-data used"><li><code>Run currency = USDT</code></li><li><code>Seed benefits under USDT = 0 created, 1 already there, refused: QA SEED MB 01 (Successfully modified); QA SEED MB 02 (Successfully modified); QA SEED MB 03 (Successfully modified); QA SEED MB 04 (Successfully modified); QA SEED MB 05 (Successfully modified); QA SEED MB 06 (Successfully modified); QA SEED MB 07 (Successfully modified); QA SEED MB 08 (Successfully modified); QA SEED MB 09 (Successfully modified); QA SEED MB 10 (Successfully modified)</code></li><li><code>Currency = TRX</code></li><li><code>Run currency = TRX</code></li><li><code>Seed benefits under TRX = 0 created, 1 already there, refused: QA SEED MB 01 (Successfully modified); QA SEED MB 02 (Successfully modified); QA SEED MB 03 (Successfully modified); QA SEED MB 04 (Successfully modified); QA SEED MB 05 (Successfully modified); QA SEED MB 06 (Successfully modified); QA SEED MB 07 (Successfully modified); QA SEED MB 08 (Successfully modified); QA SEED MB 09 (Successfully modified); QA SEED MB 10 (Successfully modified)</code></li><li><code>Currency = THB</code></li><li><code>Run currency = THB</code></li></ul></td>
+        <td>Seed 10 Member Benefits per currency, kept for the data-heavy rows</td>
+        <td>The application behaved as expected.<div class="secs">700 events recorded</div></td>
+        <td><span class="st pass">Pass</span><div class="secs">712.37s</div></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.</td>
+        <td><a class="shot" href="screenshots/MemberBenefitsSeedData.seedBenefits.png" target="_blank" rel="noopener"><img src="screenshots/MemberBenefitsSeedData.seedBenefits.png" alt="MB-CRT-901 - Seed 10 Member Benefits per currency, kept for the data-heavy rows" loading="lazy"></a></td>
+      </tr>
+      <tr class="detail hide" data-status="Pass">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>MB-CRT-901</dd>
+                <dt>Method</dt><dd>MemberBenefitsSeedData#seedBenefits</dd>
+                <dt>Expected result</dt><dd>Seed 10 Member Benefits per currency, kept for the data-heavy rows</dd>
+                <dt>Tags</dt><dd>creates-data</dd>
+                <dt>Outcome</dt><dd>Pass in 712.37s</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Seed 10 Member Benefits per currency, kept for the data-heavy rows</dd>
+                <dt>Duration</dt><dd>712.37 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
+            </div>
+          </div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(700 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: MB-CRT-901: Seed 10 Member Benefits per currency, kept for the data-heavy rows</span></li>
+              <li class="k-data"><span class="at">0.02s</span><span class="kind">DATA</span><span class="what">Run currency = USDT</span></li>
+              <li class="k-step"><span class="at">0.02s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">0.40s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.96s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">1.35s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.36s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.64s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">2.10s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">2.10s</span><span class="kind">STEP</span><span class="what">Searching Member Benefits names for &quot;QA SEED MB&quot;.</span></li>
+              <li class="k-api"><span class="at">2.17s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">2.27s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">2.48s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">2.71s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">2.73s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">2.77s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">2.80s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.22s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;q=QA+SEED+MB&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">3.57s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">3.58s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">3.58s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">3.58s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.59s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.70s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">3.80s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">3.80s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">3.86s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">3.96s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.14s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.20s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.33s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.34s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.39s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.74s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">4.75s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">4.88s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">5.77s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">6.10s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">6.34s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">7.14s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">7.38s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">7.67s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">8.01s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">8.22s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">8.52s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">9.09s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">9.56s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">9.66s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">9.93s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">10.29s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">10.46s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">10.80s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">11.32s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">11.52s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">11.85s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">12.19s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">12.38s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">12.64s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">12.91s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">14.57s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">14.87s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">15.97s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.03s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">16.03s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">16.14s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">16.17s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">16.53s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">16.54s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">16.54s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">16.55s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.57s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">16.70s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">16.86s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">16.86s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">17.01s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">17.15s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.40s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.50s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.67s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.67s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.67s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">17.87s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">17.87s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">17.98s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">19.02s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">19.53s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">19.60s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">20.42s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">20.75s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">20.97s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">21.36s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">21.53s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">22.13s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">22.48s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">22.89s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">23.17s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">23.35s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">23.91s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">24.59s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">24.79s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">25.19s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">25.55s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">25.74s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">26.18s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">26.30s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">26.69s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">26.85s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">28.16s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">28.81s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">30.12s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.16s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">30.17s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">30.22s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">30.53s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">30.59s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">30.60s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">30.60s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">30.60s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.62s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">30.68s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">30.79s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">30.79s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">30.84s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">31.14s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.66s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.69s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.90s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.94s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">31.98s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">32.10s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.10s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">32.33s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">33.25s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">33.63s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">33.86s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">34.69s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">34.95s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">35.25s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">35.61s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">35.79s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">36.17s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">36.70s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">37.23s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">37.40s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">37.57s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">38.12s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">38.19s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">38.45s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">39.02s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">39.29s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">39.58s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">40.00s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">40.12s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">40.55s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">40.67s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">41.60s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">42.64s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">43.86s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">43.91s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">43.93s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">43.93s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">44.15s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">44.26s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">44.27s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">44.27s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">44.27s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">44.29s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">44.45s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">44.61s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">44.61s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">44.68s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">44.80s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.05s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.12s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.27s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.34s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.34s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">45.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">45.58s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">45.69s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">46.59s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">46.76s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">47.17s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">48.01s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">48.33s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">48.56s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">48.91s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">49.10s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">49.38s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">50.02s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">50.16s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">50.55s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">50.89s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">51.37s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">51.46s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">52.20s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">52.60s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">52.93s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">53.14s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">53.69s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">53.86s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">54.09s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">54.23s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">55.23s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">56.24s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">57.36s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">57.41s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">57.41s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">57.51s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">57.61s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">57.93s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">57.94s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">57.94s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">57.94s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">57.97s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">58.03s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">58.29s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">58.29s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">58.34s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">58.45s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">58.75s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">58.83s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">58.97s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">59.02s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">59.06s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">59.36s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">59.36s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">59.49s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">60.44s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">60.65s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">61.05s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">61.89s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">62.06s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">62.42s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">62.80s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">62.95s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">63.20s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">63.79s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">63.81s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">64.32s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">64.67s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">65.22s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">65.85s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">66.68s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">67.01s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">67.29s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">67.54s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">67.97s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">68.07s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">68.49s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">68.62s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">68.86s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">70.56s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">71.64s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">71.65s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">71.74s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">71.74s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">71.88s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">72.01s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">72.02s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">72.02s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">72.02s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.04s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.14s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">72.27s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">72.27s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">72.35s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">72.44s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">72.92s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">73.15s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">73.20s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">73.25s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">73.26s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">73.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">73.44s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">73.50s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">74.10s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">74.28s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">74.67s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">75.45s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">75.73s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">75.99s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">76.33s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">76.55s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">76.84s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">77.46s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">77.97s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">77.99s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">78.31s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">78.59s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">78.83s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">79.27s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">79.71s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">79.97s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">80.24s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">80.78s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">80.84s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">81.13s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">81.32s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">83.08s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">83.22s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">84.34s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">84.47s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">84.48s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">84.53s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">84.66s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">84.83s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">84.84s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">84.84s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">84.84s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">84.85s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">84.93s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">85.02s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">85.02s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">85.07s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">85.24s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">85.51s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">85.54s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">85.75s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">85.76s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">85.79s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">86.00s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">86.00s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">86.16s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">86.77s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">86.97s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">87.33s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">88.15s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">88.36s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">88.68s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">89.04s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">89.21s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">89.48s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">90.10s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">90.66s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">90.66s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">90.95s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">91.28s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">91.50s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">91.78s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">92.38s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">92.56s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">92.92s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">93.23s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">93.44s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">93.70s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">93.98s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">95.55s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">95.91s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">96.98s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">97.10s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">97.12s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">97.16s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">97.22s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">97.46s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">97.47s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">97.47s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">97.47s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">97.48s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">97.87s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">98.06s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">98.06s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">98.25s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">98.26s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">98.47s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">98.85s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">98.86s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">98.87s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">99.71s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">99.99s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">99.99s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">100.05s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">100.70s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">101.25s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">101.25s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">102.06s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">102.35s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">102.61s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">103.15s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">103.55s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">104.00s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">104.18s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">104.99s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">105.36s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">105.53s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">106.07s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">106.08s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">106.53s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">106.97s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">107.21s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">107.50s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">108.00s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">108.04s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">108.43s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">108.57s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">108.70s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">110.53s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">111.56s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">111.59s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-api"><span class="at">111.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">111.62s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">111.82s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">111.94s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-api"><span class="at">111.95s</span><span class="kind">API</span><span class="what">GET cms/member-benefits -&gt; 301</span></li>
+              <li class="k-api"><span class="at">111.95s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/cms/member-benefits/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">111.95s</span><span class="kind">API</span><span class="what">GET cms/member-benefits/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">111.96s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">112.03s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">112.17s</span><span class="kind">NAV</span><span class="what">Loaded cms/member-benefits/</span></li>
+              <li class="k-step"><span class="at">112.17s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-api"><span class="at">112.24s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">112.39s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">112.63s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">112.72s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">112.90s</span><span class="kind">API</span><span class="what">GET api/account/member-benefits?page=1&amp;pageSize=50&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">112.90s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">112.93s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">113.15s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">113.17s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">113.31s</span><span class="kind">API</span><span class="what">GET api/lang?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">113.90s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-api"><span class="at">114.14s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">114.46s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">115.28s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">115.59s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">115.83s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">116.36s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">116.45s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">116.71s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">117.26s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">117.74s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">118.32s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">118.63s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">119.03s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">119.16s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">119.47s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">120.03s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">120.25s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">120.56s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">120.99s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">121.11s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-api"><span class="at">121.44s</span><span class="kind">API</span><span class="what">POST api/account/uploadImage?is_external=1&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">121.64s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-api"><span class="at">122.70s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=USDT -&gt; 200</span></li>
+              <li class="k-step"><span class="at">123.57s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-api"><span class="at">124.63s</span><span class="kind">API</span><span class="what">POST api/account/member-benefits?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">124.68s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-step"><span class="at">124.68s</span><span class="kind">STEP</span><span class="what">The browser's own traffic stopped being recorded after 300 entries; the case's own steps continue.</span></li>
+              <li class="k-step"><span class="at">124.77s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">125.13s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">125.44s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">127.17s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">127.75s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">128.59s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">129.13s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">129.66s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">130.60s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">131.46s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">132.00s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">132.88s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">133.40s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">133.93s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">134.46s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">136.92s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">138.12s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">138.48s</span><span class="kind">DATA</span><span class="what">Seed benefits under USDT = 0 created, 1 already there, refused: QA SEED MB 01 (Successfully modified); QA SEED MB 02 (Successfully modified); QA SEED MB 03 (Successfully modified); QA SEED MB 04 (Successfully modified); QA SEED MB 05 (Successfully modified); QA SEED MB 06 (Successfully modified); QA SEED MB 07 (Successfully modified); QA SEED MB 08 (Successfully modified); QA SEED MB 09 (Successfully modified); QA SEED MB 10 (Successfully modified)</span></li>
+              <li class="k-step"><span class="at">138.48s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">138.68s</span><span class="kind">STEP</span><span class="what">Searching Member Benefits names for &quot;QA SEED MB&quot;.</span></li>
+              <li class="k-step"><span class="at">140.46s</span><span class="kind">STEP</span><span class="what">Setting the header currency filter to TRX.</span></li>
+              <li class="k-data"><span class="at">143.53s</span><span class="kind">DATA</span><span class="what">Currency = TRX</span></li>
+              <li class="k-data"><span class="at">143.53s</span><span class="kind">DATA</span><span class="what">Run currency = TRX</span></li>
+              <li class="k-step"><span class="at">143.53s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">143.72s</span><span class="kind">STEP</span><span class="what">Searching Member Benefits names for &quot;QA SEED MB&quot;.</span></li>
+              <li class="k-step"><span class="at">145.16s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">145.43s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">147.40s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">147.96s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">148.78s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">149.31s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">149.84s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">150.98s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">151.52s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">152.05s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">152.97s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">153.50s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">154.03s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">154.57s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">156.49s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">157.52s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">157.87s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">158.11s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">159.76s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">160.31s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">161.12s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">161.65s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">162.18s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">163.07s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">163.93s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">164.46s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">165.73s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">166.27s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">166.80s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">167.33s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">169.79s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">170.96s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">171.33s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">171.68s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">173.66s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">174.22s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">175.02s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">175.55s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">176.09s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">176.95s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">177.80s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">178.33s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">179.23s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">179.77s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">180.30s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">180.83s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">182.75s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">183.78s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">184.15s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">184.47s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">186.40s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">186.96s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">187.76s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">188.30s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">188.84s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">189.71s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">190.54s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">191.08s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">191.95s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">192.50s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">193.04s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">193.58s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">195.52s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">196.55s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">196.90s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">197.10s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">198.82s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">199.36s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">200.18s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">200.71s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">201.24s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">202.13s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">202.97s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">203.52s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">204.40s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">204.93s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">205.47s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">206.00s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">207.91s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">209.08s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">209.43s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">209.81s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">211.35s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">211.91s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">212.73s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">213.27s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">213.81s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">214.79s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">215.51s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">216.03s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">216.91s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">217.48s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">218.02s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">218.55s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">221.01s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">222.47s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">222.84s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">223.14s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">225.02s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">225.66s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">226.73s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">227.37s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">227.91s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">228.82s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">229.63s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">230.22s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">231.11s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">231.65s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">232.22s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">232.77s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">234.70s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">236.08s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">236.44s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">236.68s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">238.26s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">238.84s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">239.67s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">240.22s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">240.76s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">241.67s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">242.53s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">243.07s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">243.96s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">244.50s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">245.03s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">245.58s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">247.58s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">248.82s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">249.19s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">249.52s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">251.55s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">252.13s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">252.98s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">253.52s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">254.08s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">254.95s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">256.36s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">256.92s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">257.81s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">258.34s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">258.88s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">259.43s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">261.38s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">262.62s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">263.00s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">263.23s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">265.01s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">265.59s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">266.42s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">266.96s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">267.50s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">268.41s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">269.26s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">269.80s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">270.70s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">271.24s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">271.78s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">272.32s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">274.24s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">275.32s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-data"><span class="at">275.66s</span><span class="kind">DATA</span><span class="what">Seed benefits under TRX = 0 created, 1 already there, refused: QA SEED MB 01 (Successfully modified); QA SEED MB 02 (Successfully modified); QA SEED MB 03 (Successfully modified); QA SEED MB 04 (Successfully modified); QA SEED MB 05 (Successfully modified); QA SEED MB 06 (Successfully modified); QA SEED MB 07 (Successfully modified); QA SEED MB 08 (Successfully modified); QA SEED MB 09 (Successfully modified); QA SEED MB 10 (Successfully modified)</span></li>
+              <li class="k-step"><span class="at">275.66s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">275.93s</span><span class="kind">STEP</span><span class="what">Searching Member Benefits names for &quot;QA SEED MB&quot;.</span></li>
+              <li class="k-step"><span class="at">277.64s</span><span class="kind">STEP</span><span class="what">Setting the header currency filter to THB.</span></li>
+              <li class="k-data"><span class="at">280.72s</span><span class="kind">DATA</span><span class="what">Currency = THB</span></li>
+              <li class="k-data"><span class="at">280.72s</span><span class="kind">DATA</span><span class="what">Run currency = THB</span></li>
+              <li class="k-step"><span class="at">280.72s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">280.95s</span><span class="kind">STEP</span><span class="what">Searching Member Benefits names for &quot;QA SEED MB&quot;.</span></li>
+              <li class="k-step"><span class="at">282.09s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">282.34s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">284.10s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">284.68s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">285.53s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">286.08s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">286.62s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">287.74s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">288.27s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">288.82s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">289.72s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">290.25s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">290.80s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">291.35s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">293.34s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">295.04s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">295.41s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">295.92s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">297.99s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">298.57s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">299.37s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">299.92s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">300.46s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">301.36s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">302.22s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">302.75s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">303.64s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">304.19s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">304.73s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">305.28s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">307.24s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">308.64s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">309.01s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">309.24s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">311.00s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">311.58s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">312.39s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">312.93s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">313.48s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">314.38s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">315.25s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">315.83s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">316.72s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">317.26s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">317.81s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">318.35s</span><span class="kind">STEP</span><span class="what">Clicking Save member benefit.</span></li>
+              <li class="k-step"><span class="at">320.29s</span><span class="kind">STEP</span><span class="what">The page asked: &quot;Confirm to add?&quot; - pressing Confirm.</span></li>
+              <li class="k-step"><span class="at">321.49s</span><span class="kind">STEP</span><span class="what">The page said: &quot;Successfully modified&quot; - pressing OK.</span></li>
+              <li class="k-step"><span class="at">321.86s</span><span class="kind">STEP</span><span class="what">Opening Web content management &gt; Member Benefits.</span></li>
+              <li class="k-step"><span class="at">322.09s</span><span class="kind">STEP</span><span class="what">Clicking Add member benefit.</span></li>
+              <li class="k-step"><span class="at">323.87s</span><span class="kind">STEP</span><span class="what">Uploading benefit icon icon.jpg.</span></li>
+              <li class="k-step"><span class="at">324.44s</span><span class="kind">STEP</span><span class="what">Clicking Add banner.</span></li>
+              <li class="k-step"><span class="at">325.28s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">325.82s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">326.37s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">327.27s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">328.14s</span><span class="kind">STEP</span><span class="what">Uploading the mobile pop-up mobile-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">328.68s</span><span class="kind">STEP</span><span class="what">Uploading the PC pop-up pc-popup.jpg to banner 1.</span></li>
+              <li class="k-step"><span class="at">329.59s</span><span class="kind">STEP</span><span class="what">Uploading the small banner small-banner.jpg to banner 1.</span></li>
+            </ol>
+          </div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <h2 class="section">How to read this report</h2>
+  <div class="callout">
+    <p><b>Status</b> is what the run did, not a verdict on the application. A
+    <span class="st fail">Fail</span> on a case badged <code>known-defect</code> is the
+    expected outcome: those cases assert the behaviour the application <i>should</i>
+    have and stay red until the finding is fixed.</p>
+    <p><b>Not run</b> means the case exists in the suite but produced no result, normally
+    because it was filtered out with <code>-DexcludedGroups=creates-data</code>, which
+    keeps cases with real-world side effects - a registered account, a real SMS, a filed
+    deposit, a withdrawal hold, a staked casino bet - out of an unattended run.</p>
+    <p><b>Evidence</b> is the screenshot of the page as the case left it - captured for every
+    case that ran, passed or failed, just before teardown closed the browser. A
+    skipped case never ran, so it has none. Click an image for the full size.</p>
+    <p><b>Details</b>, on every row, opens what would not fit in the table: the case as its
+    source declares it, the diagnosis of a failure - exception, expected against actual,
+    the element that could not be resolved, the lines of this project involved, and the
+    full stack trace - and, for every row alike, the run's own record of what the browser
+    did.</p>
+    <p><b>What the run did</b> is that record. It is captured automatically while the case
+    runs: <code>NAV</code> for a page load or a new tab, <code>API</code> for a call the
+    site made of its own back end with the status it came back with, <code>NETWORK</code>
+    for one that came back 4xx or 5xx, <code>CONSOLE</code> for a console or uncaught
+    error, <code>EVIDENCE</code> for a screenshot, and <code>STEP</code>,
+    <code>CHECK</code> and <code>DATA</code> for what the case itself narrated. A passing
+    row carries one too, deliberately: a green result is a claim, and this is the working
+    behind it.</p>
+  </div>
+  <footer>Generated by <code>org.sengmean.report.HtmlReportGenerator</code> from the test sources, the run's results, its step logs and its screenshots. Rewritten at the end of every run by <code>HtmlReportListener</code>.</footer>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <img id="lightbox-img" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+  <div class="hint">Click anywhere, or press Escape, to close</div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var cap = document.getElementById('lightbox-cap');
+  function open(src, caption) {
+    img.setAttribute('src', src);
+    img.setAttribute('alt', caption || '');
+    cap.textContent = caption || '';
+    box.classList.add('open');
+  }
+  function close() {
+    box.classList.remove('open');
+    img.removeAttribute('src');
+  }
+  document.addEventListener('click', function (e) {
+    // Both the Evidence column's images and the ones shown inline against a trail
+    // line. The inline ones were left out when they were added, so they fell
+    // through to target="_blank" and every capture opened a new tab - fifty-two of
+    // them if a reader worked down the transfer walk.
+    var link = e.target.closest ? e.target.closest('a.shot, a.step-shot') : null;
+    if (link) {
+      // Only take over the plain click - a modified click still opens the file
+      // in a tab, which is what someone reaching for that expects.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+      e.preventDefault();
+      var inner = link.querySelector('img');
+      open(link.getAttribute('href'), inner ? inner.getAttribute('alt') : '');
+    } else if (box.classList.contains('open')) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { close(); }
+  });
+})();
+</script>
+<script>
+(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.case'));
+  var shown = document.getElementById('shown');
+  var search = document.getElementById('q');
+  var expandAll = document.getElementById('expand-all');
+  var filter = 'all';
+  var query = '';
+
+  function panelOf(row) {
+    var next = row.nextElementSibling;
+    return next && next.classList.contains('detail') ? next : null;
+  }
+
+  function matches(row) {
+    if (filter !== 'all' && row.getAttribute('data-status') !== filter) { return false; }
+    if (query === '') { return true; }
+    return (row.getAttribute('data-search') || '').indexOf(query) >= 0;
+  }
+
+  function apply() {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var ok = matches(row);
+      if (ok) { visible++; }
+      row.classList.toggle('hide', !ok);
+      var panel = panelOf(row);
+      if (panel) { panel.classList.toggle('hide', !ok || !row.classList.contains('open')); }
+    });
+    // A group whose every case is filtered out is hidden with its heading, so the
+    // page does not end in a run of empty tables under numbered titles.
+    Array.prototype.forEach.call(document.querySelectorAll('section.grp'), function (grp) {
+      var any = grp.querySelector('tr.case:not(.hide)');
+      grp.classList.toggle('hide', !any);
+    });
+    if (shown) {
+      shown.textContent = visible + ' of ' + rows.length + ' cases';
+    }
+  }
+
+  function open(row, wanted) {
+    var panel = panelOf(row);
+    if (!panel) { return; }
+    var isOpen = wanted === undefined ? !row.classList.contains('open') : wanted;
+    row.classList.toggle('open', isOpen);
+    panel.classList.toggle('hide', !isOpen);
+    var button = row.querySelector('button.more');
+    if (button) { button.setAttribute('aria-expanded', isOpen ? 'true' : 'false'); }
+  }
+
+  document.addEventListener('click', function (e) {
+    var more = e.target.closest ? e.target.closest('button.more') : null;
+    if (more) {
+      open(more.closest('tr.case'));
+      return;
+    }
+    var flt = e.target.closest ? e.target.closest('button.flt[data-filter]') : null;
+    if (flt) {
+      filter = flt.getAttribute('data-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('button.flt[data-filter]'),
+        function (b) { b.classList.toggle('on', b === flt); });
+      apply();
+    }
+  });
+
+  if (search) {
+    search.addEventListener('input', function () {
+      query = search.value.trim().toLowerCase();
+      apply();
+    });
+  }
+
+  if (expandAll) {
+    expandAll.addEventListener('click', function () {
+      var opening = expandAll.getAttribute('data-open') !== 'yes';
+      expandAll.setAttribute('data-open', opening ? 'yes' : 'no');
+      expandAll.textContent = opening ? 'Collapse all details' : 'Expand all details';
+      rows.forEach(function (row) { if (!row.classList.contains('hide')) { open(row, opening); } });
+    });
+  }
+
+  function openFromHash() {
+    if (!window.location.hash) { return; }
+    var target = document.getElementById(window.location.hash.slice(1));
+    if (!target) { return; }
+    // The hash may name either anchor a row carries: the internal
+    // case-<suite>-<method>, which the findings list links to, or the case
+    // id itself - "#HOME-002" - which is what the client test case sheet's
+    // per-row links use. The id sits on a <td>, so resolve upwards to the
+    // row rather than testing the target: without this the browser scrolls
+    // to the right place and leaves the details shut, which reads as a link
+    // that landed on the wrong thing.
+    var row = target.classList.contains('case')
+      ? target
+      : (target.closest ? target.closest('tr.case') : null);
+    if (row) {
+      open(row, true);
+      row.classList.add('flash');
+      row.scrollIntoView({ block: 'center' });
+    }
+  }
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();
+  apply();
+})();
+</script>
+  <div id="tip" role="tooltip"></div>
+  <script>
+  (function(){
+    var sum=document.querySelector('details.rpt-sum');
+    var KEY='admin-weibo-summary-open';
+    if(sum){
+      try{var v=localStorage.getItem(KEY);if(v!==null){sum.open=v==='1';}}catch(e){}
+      sum.addEventListener('toggle',function(){try{localStorage.setItem(KEY,sum.open?'1':'0');}catch(e){}});
+    }
+    var tip=document.getElementById('tip');
+    function show(el,x,y){tip.textContent=el.getAttribute('data-tip');tip.style.display='block';
+      var w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(x+12,window.innerWidth-w-8))+'px';tip.style.top=(y+14)+'px';}
+    function hide(){tip.style.display='none';}
+    document.addEventListener('mousemove',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){show(el,e.clientX,e.clientY);}else{hide();}});
+    document.addEventListener('focusin',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){var r=el.getBoundingClientRect();show(el,r.left,r.bottom);}});
+    document.addEventListener('focusout',hide);
+  })();
+  </script>
+</div>
+</body>
+</html>
