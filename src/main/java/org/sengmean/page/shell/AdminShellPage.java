@@ -92,12 +92,18 @@ public class AdminShellPage extends BasePage {
             "/" + org.sengmean.config.ConfigDataProvider.get("test.rankings.path", "member/rankings");
 
     /**
-     * Where Web content management &gt; Share link is expected to live: {@code test.shareLink.path}
-     * from {@code Config/}. Not yet confirmed - measured live 2026-10-21, Web content management
-     * offers only Member Benefits ({@code /cms/member-benefits}) and Game page banner
-     * ({@code /cms/game-banner}); no Share link entry. The default below follows that same
-     * {@code /cms/<kebab-name>} addressing the other two entries use, which is a grounded guess,
-     * not a measured path. See {@code ShareLinkListPage}.
+     * Where Web content management &gt; Member Benefits lives. Measured live on admin-test
+     * 2026-10-22: the menu entry links to {@code /cms/member-benefits}, the only Web content
+     * management entry (besides Game page banner) deployed at that date. See
+     * {@code MemberBenefitsListPage}.
+     */
+    public static final String MEMBER_BENEFITS_HREF = "/cms/member-benefits";
+
+    /**
+     * Where Web content management &gt; Share link lives: {@code test.shareLink.path} from
+     * {@code Config/}. Confirmed live 2026-10-26 - the menu now carries a "Share link" entry
+     * linking to exactly the guessed default below, {@code /cms/share-link}. See
+     * {@code ShareLinkListPage}.
      */
     public static final String SHARE_LINK_HREF =
             "/" + org.sengmean.config.ConfigDataProvider.get("test.shareLink.path", "cms/share-link");
@@ -111,6 +117,16 @@ public class AdminShellPage extends BasePage {
      */
     public static final String SMS_SENDING_LOG_HREF =
             "/" + org.sengmean.config.ConfigDataProvider.get("test.smsSendingLog.path", "tools/sms-sending-log");
+
+    /**
+     * Where Web content management &gt; Quick Tour Banner lives: {@code test.quickTour.path} from
+     * {@code Config/}. The guessed path was right - confirmed live 2026-10-24, where Web content
+     * management now also offers Welcome Banner, Banner management, Promotion Banner and Fast
+     * login banner beside the Member Benefits and Game page banner seen on 2026-10-21/22. See
+     * {@code QuickTourBannerListPage}'s own javadoc for what else was measured that day.
+     */
+    public static final String QUICK_TOUR_HREF =
+            "/" + org.sengmean.config.ConfigDataProvider.get("test.quickTour.path", "cms/quick-tour-banner");
 
 
     private final Locator languageSelect;
@@ -291,9 +307,23 @@ public class AdminShellPage extends BasePage {
         return optionValues("#currency option");
     }
 
-    /** The {@code value} attribute of every option a selector offers, in the order it offers them. */
+    /**
+     * The {@code value} attribute of every <b>selectable</b> option a selector offers, in the
+     * order it offers them - a {@code disabled} option (a placeholder or group heading, not a
+     * real choice) is left out.
+     *
+     * <h2>Why this matters</h2>
+     * Measured live on admin-test.138hk.vip 2026-10-23: {@code #currency}'s first option is a
+     * disabled "Fiat Currency" heading, value {@code ""}. Before this filter,
+     * {@link #currencyValues()} returned it as if it were a real currency, and every caller that
+     * iterates "every currency the header offers" - {@code MemberBenefitsSeedData},
+     * {@code ShareLinkSeedData} - tried {@code selectOption("")} on it first. Playwright refuses a
+     * disabled option outright ("option being selected is not enabled") and keeps retrying until
+     * {@code test.actionTimeout} runs out, so every one of those runs failed on the very first
+     * currency before anything else in the case had a chance to run.
+     */
     private java.util.List<String> optionValues(String selector) {
-        Object raw = page.locator(selector).evaluateAll("options => options.map(o => o.value)");
+        Object raw = page.locator(selector).evaluateAll("options => options.filter(o => !o.disabled).map(o => o.value)");
         return raw instanceof java.util.List<?> list
                 ? list.stream().map(String::valueOf).toList()
                 : java.util.List.of();

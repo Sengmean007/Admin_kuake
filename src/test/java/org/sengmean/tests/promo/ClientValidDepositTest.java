@@ -75,6 +75,17 @@ import static org.junit.jupiter.api.Assumptions.abort;
  *
  * <p>New ids, {@code SPD-001}..{@code 003}: there is no client workbook tab for Discount, the same
  * reason {@code SPR-*} and {@code SPS-*} are this project's own numbering.
+ *
+ * <h2>Still blocked: {@code test.user.*} is not a Quark member account (found 2026-10-24)</h2>
+ * {@link DepositPage}, {@link MemberSignInPage} and {@link org.sengmean.page.client.AlertBoard}
+ * were measured and corrected against the live Quark site this same session - see their own
+ * javadoc - but {@link #openSessions()} still aborts every row here, on sign-in itself, because
+ * {@code test.user.username}/{@code test.user.password} ({@code qa000092}/{@code password}) are
+ * NewWeibo_automation's own account, carried over unverified, and the live site refuses them
+ * ("Wrong username/password, please re-enter."). See {@code Config/config.properties}'s own note
+ * on {@code test.user.*} for what to correct once Si supplies (or confirms) the real account - very
+ * possibly {@code qa00002}, already signed in on a browser on this machine, one fewer zero than the
+ * configured username.
  */
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @Order(135)   // after Discount > System Promotion Setup (130), before the records it feeds (140)

@@ -43,13 +43,36 @@ import static org.junit.jupiter.api.Assumptions.abort;
  * NON-FUNCTIONAL sections were added; every row that exists is covered here regardless of what the
  * banner cell says.
  *
- * <h2>Written ahead of the screen, same as Rankings</h2>
- * Measured live on admin-test 2026-10-21: Web content management offers only Member Benefits and
- * Game page banner; no Share link entry. Every row is nonetheless written in full against the
- * workbook and the Figma spec note Si gave ("Back office &gt; Web content management &gt; Share
- * link", Platform project, "version 3.20.0" page) - see {@link ShareLinkFormPage}'s class Javadoc
- * for what that note says. {@link #signInAndProbe()} decides once whether the screen exists, and
- * while it does not, every row aborts naming that - clearing itself the day the screen ships.
+ * <h2>Written ahead of the screen, same as Rankings - shipped 2026-10-26</h2>
+ * Not deployed as of 2026-10-21 (Web content management then offered only Member Benefits and Game
+ * page banner); every row was nonetheless written in full against the workbook and the Figma spec
+ * note Si gave ("Back office &gt; Web content management &gt; Share link", Platform project,
+ * "version 3.20.0" page) - see {@link ShareLinkFormPage}'s class Javadoc for what that note says.
+ * {@link #signInAndProbe()} decides once whether the screen exists; it does now, confirmed live
+ * 2026-10-26 at {@code cms/share-link}, so this class no longer aborts on {@link #requireScreen()}.
+ *
+ * <h2>Locators re-measured against the live screen, 2026-10-26</h2>
+ * Several page-object locators were written against the Figma spec/workbook alone and did not
+ * survive contact with the real markup - fixed in {@link ShareLinkListPage} and
+ * {@link ShareLinkFormPage}, whose Javadoc on each field explains what changed and why. In short:
+ * "+ Add share link", "Modify" and "Return »" are {@code <a>} styled as buttons, not real
+ * {@code <button>}s; the Show-entries and content-Language selects were being matched by the
+ * header's own Interface Language select instead (same word, earlier in the DOM); the delete
+ * confirm dialog's Cancel/Delete buttons live one level higher than the locator reached; the three
+ * required language tabs carry a trailing {@code <span> *</span>}, which broke an exact-text match
+ * against the bare language name; the Title/Text character counters sit BEFORE the field, not
+ * after; per-field errors are a plain {@code div.invalid-feedback} sibling, not an "⚠" glyph; and
+ * an uploaded image previews from an {@code https://storage.googleapis.com/...} URL, never a
+ * {@code blob:}/{@code data:} one, so presence is now read off {@code deleteImageButton} instead
+ * (it only renders once an image is attached).
+ *
+ * <h2>One behaviour worth confirming with Si before trusting {@code SL-ADM-ADD-007}</h2>
+ * The workbook and the Figma spec note both say Active is unticked by default; measured live
+ * 2026-10-26 on a fresh Add form, it renders <b>ticked</b>. This is not a locator problem - the
+ * checkbox itself reads {@code checked} - so it was left as a live mismatch rather than silently
+ * flipped to match the screen, the same caution {@code tests-written-ahead-of-ui} calls for: this
+ * could be the spec going stale (like the sheet's own 100-vs-127 count) or a real default-value
+ * defect, and only Si can say which.
  *
  * <h2>Unlike Rankings, most of this is genuinely automatable once it ships</h2>
  * Share Link is a conventional CRUD screen - closer in shape to Other Category and Notification,
@@ -118,6 +141,17 @@ public class ShareLinkTest extends BaseTest {
         try {
             list.open();
             screenPresent = list.isShowing();
+            if (!screenPresent) {
+                // Temporary, finer-grained diagnostics (2026-10-26): isShowing() collapses three
+                // different signals (Add button, row count, "No data" text) into one boolean, which
+                // was not enough to tell a genuinely-undeployed screen apart from a probe that landed
+                // on the wrong page (stale/evicted session, slow first paint, wrong currency/menu
+                // state) - both produce the same false. Logging the raw counts and the URL the probe
+                // actually ended up on settles which one it is without needing a headed re-run.
+                CaseLog.data("Share Link probe landed on", sessionPage.url());
+                CaseLog.data("Share Link probe raw signals", "addButton=" + list.addButtonCountForDiagnostics()
+                        + " rows=" + list.rowCount() + " noDataText=" + sessionPage.getByText("No data").count());
+            }
             probeFailure = screenPresent ? "" : "the address " + AdminShellPage.SHARE_LINK_HREF
                     + " answered, but showed no Share Link list or Add button"
                     + (shell.hasMenuLink(AdminShellPage.SHARE_LINK_HREF) ? "" : ", and Web content management offers no Share link entry");

@@ -2,6 +2,7 @@ package org.sengmean.page.client;
 
 import com.microsoft.playwright.Locator;
 import com.microsoft.playwright.Page;
+import com.microsoft.playwright.options.AriaRole;
 import com.microsoft.playwright.options.WaitUntilState;
 import org.sengmean.base.BasePage;
 import org.sengmean.config.ConfigDataProvider;
@@ -14,11 +15,14 @@ import java.util.regex.Pattern;
  * Signs a member in on the <b>client platform</b> - the member site - for the rows that read what a
  * back-office feature delivered to a member (the Notification suite's Message Center rows).
  *
- * <h2>Ported, not invented</h2>
- * The steps are NewWeibo_automation's {@code LoginPage.signInOnVisibleForm}, which drives the member
- * site's form by its visible copy - "Log In", and the Username / Password / Verification Code
- * placeholders - because that is what survives both the desktop modal and the phone layout. The test
- * site accepts {@code 1111} as the verification code whatever the image shows ({@code test.captcha}).
+ * <h2>Ported, then corrected against the live Quark site (2026-10-24)</h2>
+ * The steps started as NewWeibo_automation's {@code LoginPage.signInOnVisibleForm}, driving the member
+ * site's form by its visible copy and the Username / Password / Verification Code placeholders -
+ * because that is what survives both the desktop modal and the phone layout. Two guesses that did not
+ * survive contact with {@code test-v2.138hk.vip}'s real markup: the nav control that opens the modal
+ * reads <b>"Login"</b> (one word), while the submit button inside it reads <b>"Log In"</b> (two words,
+ * matched by role and text now, not by a {@code button[class*='submit']} that does not exist here).
+ * The verification code field still accepts {@code 1111} whatever the image shows ({@code test.captcha}).
  *
  * <p>The site raises its promotional welcome banner twice - once before sign-in and once after - and
  * either one swallows the clicks that follow, so {@link #dismissBanners()} runs at both points.
@@ -46,15 +50,21 @@ public class MemberSignInPage extends BasePage {
         awaitReady();
         page.waitForTimeout(2500);
         dismissBanners();
-        page.getByText("Log In", new Page.GetByTextOptions().setExact(true))
+        // The nav control that opens the modal reads "Login" (one word); the submit button inside
+        // the modal reads "Log In" (two words) - two differently-spelled controls, confirmed live
+        // 2026-10-24. Neither matches the other's locator.
+        page.getByText("Login", new Page.GetByTextOptions().setExact(true))
                 .filter(new Locator.FilterOptions().setVisible(true)).first().click();
         field("Username").fill(username);
         field("Password").fill(password);
         field("Verification Code").fill(captcha);
-        page.locator("button[class*='submit']").filter(new Locator.FilterOptions().setVisible(true)).first().click();
+        // The submit button carries no "submit" class (confirmed live 2026-10-24: plain Tailwind
+        // utility classes, type="button") - matched by its own text instead.
+        page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Log In").setExact(true))
+                .filter(new Locator.FilterOptions().setVisible(true)).first().click();
         page.waitForTimeout(3500);
         dismissBanners();
-        boolean signedIn = page.getByText("Log In", new Page.GetByTextOptions().setExact(true))
+        boolean signedIn = page.getByText("Login", new Page.GetByTextOptions().setExact(true))
                 .filter(new Locator.FilterOptions().setVisible(true)).count() == 0;
         CaseLog.data("Member signed in", signedIn + (signedIn ? "" : " - the site said: " + visibleAlertText()));
         return signedIn;

@@ -14,11 +14,12 @@ import java.util.Map;
 /**
  * <b>Web content management &gt; Share link</b> - the list screen.
  *
- * <h2>Not deployed yet - read from the sheet and the Figma spec note, not measured</h2>
- * Measured live on admin-test 2026-10-21: Web content management offers only Member Benefits and
- * Game page banner; no Share link entry. Every locator here is read from the client's workbook and
- * the Figma spec note Si gave ("Back office &gt; Web content management &gt; Share link", Platform
- * project / "version 3.20.0" page), which states:
+ * <h2>Confirmed live 2026-10-26 at {@code cms/share-link}</h2>
+ * Not deployed as of 2026-10-21 (Web content management then offered only Member Benefits and Game
+ * page banner); live now, at the path the Figma spec note implied. Every locator was re-measured
+ * against the real screen on 2026-10-26 - see {@code ShareLinkTest}'s Javadoc for what that pass
+ * changed. The original spec note Si gave ("Back office &gt; Web content management &gt; Share
+ * link", Platform project / "version 3.20.0" page) still states:
  * <ul>
  *   <li>Breadcrumb "Home Page &gt; Web Content Management System &gt; Share Link"; a header "Share
  *       Link" with a <b>+ Add share link</b> button.</li>
@@ -48,18 +49,27 @@ public class ShareLinkListPage extends BasePage {
 
     public ShareLinkListPage(Page page) {
         super(page);
-        this.addButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Add share link").setExact(false));
-        this.showEntriesSelect = page.locator("select").first();
+        // Confirmed live 2026-10-26: "+ Add share link" is <a class="btn btn-primary">, not a
+        // <button> - AriaRole.BUTTON matched nothing and made isShowing()/clickAdd() fail outright.
+        this.addButton = page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Add share link").setExact(false));
+        // Scoped by the option set each select actually carries, not DOM position or "English"/
+        // "Active" text - the header's own Interface Language select (id="lang") sits before these
+        // in the DOM and shares both those words, so page.locator("select").first() and a hasText
+        // ("English") filter both silently resolved to the header selector instead of this screen's
+        // own controls. 20/200 and 繁體 are each unique to their own select.
+        this.showEntriesSelect = page.locator("select").filter(new Locator.FilterOptions().setHasText("20").setHasText("200"));
         this.statusFilter = page.locator("select").filter(new Locator.FilterOptions().setHasText("Active"));
-        this.languageFilter = page.locator("select").filter(new Locator.FilterOptions().setHasText("English").setHasNotText("Active"));
+        this.languageFilter = page.locator("select").filter(new Locator.FilterOptions().setHasText("繁體"));
         this.titleSearch = page.locator("input[placeholder*='itle' i]");
         this.searchButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Search").setExact(true));
         this.refreshIcon = page.locator("[class*='refresh' i], [title*='refresh' i]").first();
         this.headerCells = page.locator("table thead th");
         this.rows = page.locator("table tbody tr");
         this.footer = page.locator(":text('Showing')").first();
-        this.deleteDialog = page.getByText("Delete share link", new Page.GetByTextOptions().setExact(false))
-                .locator("xpath=ancestor::*[self::div][1]");
+        // Confirmed live 2026-10-26: the ancestor::div[1] of the "Delete share link" heading is only
+        // share-link-modal-header - it does not contain the Cancel/Delete buttons, so confirmDelete()
+        // and cancelDelete() threw "no element found". .share-link-modal is the whole dialog.
+        this.deleteDialog = page.locator(".share-link-modal");
     }
 
     // ---------------------------------------------------------------
@@ -74,6 +84,11 @@ public class ShareLinkListPage extends BasePage {
 
     public boolean isShowing() {
         return addButton.count() > 0 && (rows.count() > 0 || page.getByText("No data").count() > 0);
+    }
+
+    /** Raw count behind {@link #isShowing()}'s first signal - temporary diagnostic, see {@code ShareLinkTest}. */
+    public int addButtonCountForDiagnostics() {
+        return addButton.count();
     }
 
     // ---------------------------------------------------------------
@@ -184,7 +199,9 @@ public class ShareLinkListPage extends BasePage {
 
     public ShareLinkFormPage clickModify(int index) {
         CaseLog.step("Clicking Modify on row " + index + ".");
-        rows.nth(index).getByRole(AriaRole.BUTTON, new Locator.GetByRoleOptions().setName("Modify")).click();
+        // Confirmed live 2026-10-26: "Modify" is <a class="btn btn-primary btn-xs">, Delete is a
+        // real <button> - the two are not the same role here, unlike elsewhere in this project.
+        rows.nth(index).getByRole(AriaRole.LINK, new Locator.GetByRoleOptions().setName("Modify")).click();
         awaitReady();
         ShareLinkFormPage form = new ShareLinkFormPage(page);
         form.awaitOpen();

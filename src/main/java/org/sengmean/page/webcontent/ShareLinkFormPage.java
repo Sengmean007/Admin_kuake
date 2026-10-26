@@ -67,7 +67,9 @@ public class ShareLinkFormPage extends BasePage {
                 .locator("xpath=preceding-sibling::input[@type='checkbox'][1] | following-sibling::input[@type='checkbox'][1]");
         this.addOrSaveButton = page.getByRole(AriaRole.BUTTON,
                 new Page.GetByRoleOptions().setName(Pattern.compile("^(Add share link|Save)$")));
-        this.returnButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("Return »"));
+        // Confirmed live 2026-10-26: "Return »" is <a class="btn btn-primary">, not a <button> -
+        // AriaRole.BUTTON matched nothing and clickReturn() threw.
+        this.returnButton = page.getByRole(AriaRole.LINK, new Page.GetByRoleOptions().setName("Return »"));
     }
 
     public void awaitOpen() {
@@ -83,8 +85,16 @@ public class ShareLinkFormPage extends BasePage {
     // Language tabs
     // ---------------------------------------------------------------
 
+    /**
+     * Confirmed live 2026-10-26: each of the three required tabs (繁體, 简体, English) is
+     * {@code <a>LANG<span> *</span></a>} - a bare text node plus a child span, so the <a>'s own text
+     * reads "繁體 *" and nothing on the tab strip carries "繁體" alone. getByText(language, exact =
+     * true) therefore matched zero tabs for every required language - the one every row needs to
+     * fill. Scoped to the tab strip and matched by substring instead, which both sidesteps the " *"
+     * suffix and keeps each language unique against the other eleven tab labels.
+     */
     private Locator tab(String language) {
-        return page.getByText(language, new Page.GetByTextOptions().setExact(true)).filter(new Locator.FilterOptions().setVisible(true));
+        return page.locator("ul.nav-tabs > li > a").filter(new Locator.FilterOptions().setHasText(language));
     }
 
     public void switchTab(String language) {
@@ -128,8 +138,14 @@ public class ShareLinkFormPage extends BasePage {
         return counterNear(textInput);
     }
 
+    /**
+     * Confirmed live 2026-10-26: the "X / N" counter is a {@code span.char-counter} inside
+     * {@code .label-row}, which comes BEFORE the field in the DOM (the label row sits above the
+     * input), not after it - {@code following-sibling::*} never saw it. Read from the field's own
+     * parent (the form-group) instead, where it is a sibling of the field either way.
+     */
     private String counterNear(Locator field) {
-        Locator counter = field.locator("xpath=following-sibling::*").getByText(Pattern.compile("\\d+\\s*/\\s*\\d+"));
+        Locator counter = field.locator("xpath=..").getByText(Pattern.compile("\\d+\\s*/\\s*\\d+"));
         return counter.count() == 0 ? "" : counter.first().innerText().trim();
     }
 
@@ -142,22 +158,37 @@ public class ShareLinkFormPage extends BasePage {
     }
 
     public void uploadImage(Path file) {
+        PromptMessage.clearStray(page);
         CaseLog.step("Uploading " + file.getFileName() + ".");
         imageInput.setInputFiles(file);
         page.waitForTimeout(500);
     }
 
+    /**
+     * Confirmed live 2026-10-26: an upload is sent straight to cloud storage and previewed from the
+     * resulting {@code https://storage.googleapis.com/...} URL - never a {@code blob:}/{@code data:}
+     * URI, and the {@code <img>} carries no "preview" alt text either, so none of the three original
+     * patterns ever matched. {@link #deleteImageButton} only renders once an image is attached (it
+     * sits beside, never instead of, "Upload image"), which makes it the reliable signal here - both
+     * elements live in whichever single language tab's markup is in the DOM at a time (confirmed:
+     * only the active tab-pane is rendered at all), so this does not drift to another language's image.
+     */
     public boolean imagePreviewShown() {
-        return page.locator("img[src^='blob:'], img[src^='data:'], img[alt*='preview' i]").count() > 0;
+        return deleteImageButton.count() > 0;
     }
 
     public void deleteImage() {
         deleteImageButton.click();
     }
 
-    /** The error text shown under a field, by the field's own locator - "" if none. */
+    /**
+     * The error text shown under a field, by the field's own locator - "" if none. Confirmed live
+     * 2026-10-26: the per-field message is a plain {@code div.invalid-feedback} sibling, e.g. "Title
+     * (繁體) is required." - no "⚠" glyph is used anywhere on this screen, so the old text filter
+     * matched nothing.
+     */
     public String fieldError(Locator field) {
-        Locator error = field.locator("xpath=following-sibling::*").filter(new Locator.FilterOptions().setHasText("⚠"));
+        Locator error = field.locator("xpath=following-sibling::*[contains(@class,'invalid-feedback')]");
         return error.count() == 0 ? "" : error.first().innerText().trim();
     }
 
@@ -261,11 +292,21 @@ public class ShareLinkFormPage extends BasePage {
         return "true".equals(addOrSaveButton.getAttribute("disabled")) || addOrSaveButton.isDisabled();
     }
 
-    /** Clicks Add share link / Save and returns the toast/prompt text, OK pressed - "" if nothing appeared. */
+    /**
+     * Clicks Add share link / Save and returns the toast/prompt text, OK pressed - "" if nothing
+     * appeared. Presses <b>Confirm</b> first if the screen asks "Confirm to add?" before writing
+     * anything - the same two-button {@link PromptMessage} step measured live on Member Benefits'
+     * own save (see {@code MemberBenefitsFormPage#save}, which first shipped without this and
+     * silently saved nothing on every row that depended on it). Not yet confirmed live here, Share
+     * link being undeployed as of 2026-10-21, but {@link PromptMessage#confirmAndRead} is a safe
+     * superset of the plain {@link PromptMessage#readAndClose} this used before - it still reads a
+     * straight single-button validation message the same way when no Confirm step comes first.
+     */
     public String save() {
+        PromptMessage.clearStray(page);
         CaseLog.step("Clicking " + addOrSaveButton.first().innerText() + ".");
         addOrSaveButton.click();
-        return PromptMessage.readAndClose(page, 4000);
+        return PromptMessage.confirmAndRead(page, 4000);
     }
 
     /** The error box text shown above the save button on a failed save - "" if none. */

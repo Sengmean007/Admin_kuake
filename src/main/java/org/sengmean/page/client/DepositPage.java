@@ -17,6 +17,13 @@ import org.sengmean.report.CaseLog;
  * for the other four channels, the invalid-amount cases and the preset-amount controls - none of
  * which this project's own suite needs.
  *
+ * <h2>Measured against the live Quark site (2026-10-24)</h2>
+ * {@code "Channel"} is one of eight Deposit Channel tabs, and under it "Bank Transfer" is spelled
+ * exactly that way among eleven options - both matched the ported constants as written. What did
+ * not: see {@link #summaryReady} on the amount summary's own flakiness, and {@link AlertBoard}'s
+ * own javadoc - the "Confirm Deposit?" dialog this page's {@link #submit()}/{@link #confirm()} read
+ * does not use the CSS-module shape that class was ported with.
+ *
  * <p>Call {@link MemberSignInPage#useCurrency} to an HKD wallet <i>before</i> opening this page:
  * the wallet decides which Deposit Channel options even render, and Bank Transfer is a fiat-wallet
  * option.
@@ -33,6 +40,7 @@ public class DepositPage extends BasePage {
     private final Locator amountInput;
     private final Locator submitButton;
     private final Locator totalGamePointsValue;
+    private final Locator summaryReady;
     private final AlertBoard board;
 
     public DepositPage(Page page) {
@@ -43,6 +51,13 @@ public class DepositPage extends BasePage {
         this.submitButton = page.getByRole(AriaRole.BUTTON, new Page.GetByRoleOptions().setName("SUBMIT"));
         this.totalGamePointsValue = page.locator(
                 "xpath=//span[contains(text(),'Total game points')]/following-sibling::span");
+        // Found live 2026-10-24: once an amount is typed, "Deposit turnover req." and "System
+        // promotion" render inline straight away, but "Total game points" itself sometimes only
+        // appears once the "Show more" link is opened (a modal) - the row the form shows inline
+        // first is not consistently the same one run to run. "Deposit turnover req." was inline
+        // every time tried, so it is the readiness signal; totalGamePointsValue stays the one
+        // actually reported, read after readiness is confirmed.
+        this.summaryReady = page.getByText("Deposit turnover req", new Page.GetByTextOptions().setExact(false));
         this.board = new AlertBoard(page);
     }
 
@@ -120,20 +135,25 @@ public class DepositPage extends BasePage {
 
     private boolean waitForAmountSummary(int timeoutMillis) {
         for (int waited = 0; waited < timeoutMillis; waited += 500) {
-            if (!totalGamePointsValueText().isEmpty()) {
+            if (summaryReady.count() > 0) {
                 return true;
             }
             page.waitForTimeout(500);
         }
-        return !totalGamePointsValueText().isEmpty();
+        return summaryReady.count() > 0;
     }
 
+    /**
+     * "Total game points" itself, read via its own label - "" if the form has not rendered it yet.
+     * Not the readiness signal ({@link #showsAmountSummary()} is, via "Deposit turnover req.", which
+     * was inline every time measured) - see this class's own javadoc for why.
+     */
     public String totalGamePointsValueText() {
         return totalGamePointsValue.count() > 0 ? totalGamePointsValue.first().innerText().trim() : "";
     }
 
     public boolean showsAmountSummary() {
-        return !totalGamePointsValueText().isEmpty();
+        return summaryReady.count() > 0;
     }
 
     /** Presses SUBMIT, which opens a confirmation popup rather than committing anything by itself. */

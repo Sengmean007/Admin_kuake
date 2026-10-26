@@ -136,6 +136,13 @@
   .callout p:last-child{margin-bottom:0}
   .callout.warn{border-left-color:var(--partial)}
   h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  /* The index's package sections: heading, the package name beside it, then its tally. */
+  h2.section .pkg-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    font-weight:500;color:var(--muted);margin-left:8px}
+  .pkg-tally{display:flex;align-items:center;gap:12px;margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+  .pkg-tally .bar.mini{width:160px;flex:0 0 160px}
+  h3.pkg-findings{font-size:14px;margin:14px 0 4px}
+  h3.pkg-findings a{color:inherit}
   .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
   table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
   thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
@@ -304,12 +311,12 @@
     </summary>
     <div class="sub">Test case report &mdash; <code>org.sengmean.tests.auth.AdminLoginTest</code></div>
     <div class="meta">
-      <div><b>Target:</b> https://admin-test.1083.city/</div>
+      <div><b>Target:</b> https://admin-test.138hk.vip/</div>
       <div><b>Account:</b> qa0001</div>
-      <div><b>Run:</b> 2026-09-28 09:47</div>
-      <div><b>Elapsed:</b> 18.3s</div>
-      <div><b>Scope:</b> 1 of 32 suites executed</div>
-      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headed)</div>
+      <div><b>Run:</b> 2026-10-26 10:01</div>
+      <div><b>Elapsed:</b> 32.0s</div>
+      <div><b>Scope:</b> 1 of 63 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headless)</div>
       <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
       <div><b>Machine:</b> Windows 11 10.0</div>
     </div>
@@ -321,7 +328,7 @@
         <div class="tile skip"><b><i>&#8856;</i>0</b><span>skipped</span></div>
         <div class="tile notrun"><b><i>&#9675;</i>0</b><span>not run</span></div>
         <div class="tile"><b>100%</b><span>pass rate of the cases that ran</span></div>
-        <div class="tile"><b>3.1s</b><span>browser time</span></div>
+        <div class="tile"><b>6.4s</b><span>browser time</span></div>
     </div>
       <div class="chart" role="img" aria-label="Admin login test: 1 passed, 0 failed, 0 skipped, 0 not run">
         <div class="stack big"><span class="seg pass" style="flex-grow:1" tabindex="0" data-tip="Admin login test - 1 passed (100%)"><em>1</em></span></div>
@@ -361,11 +368,11 @@
         <td class="id" id="ADMLOGIN-001">ADMLOGIN-001</td>
         <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>validCredentialsSignTheOperatorIn</code></td>
         <td class="tpre"><span class="muted">&mdash;</span></td>
-        <td class="tsteps"><ol class="tc-steps"><li>Submitting the back office sign-in form.</li><li>Case ended on https://admin-test.1083.city/</li></ol><div class="src">From the run's step trail</div></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Submitting the back office sign-in form.</li><li>Case ended on https://admin-test.138hk.vip/</li></ol><div class="src">From the run's step trail</div></td>
         <td class="tdata"><div class="src">Used in this run</div><ul class="tc-data used"><li><code>Account = qa0001</code></li></ul></td>
         <td>a valid operator account signs in and reaches the Control Panel</td>
-        <td>The application behaved as expected.<div class="secs">28 events recorded, ended on <code>https://admin-test.1083.city/</code></div></td>
-        <td><span class="st pass">Pass</span><div class="secs">3.13s</div></td>
+        <td>The application behaved as expected.<div class="secs">26 events recorded, ended on <code>https://admin-test.138hk.vip/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">6.38s</div></td>
         <td><span class="muted">&mdash;</span></td>
         <td><a class="shot" href="screenshots/AdminLoginTest.validCredentialsSignTheOperatorIn.png" target="_blank" rel="noopener"><img src="screenshots/AdminLoginTest.validCredentialsSignTheOperatorIn.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
       </tr>
@@ -379,7 +386,7 @@
                 <dt>Method</dt><dd>AdminLoginTest#validCredentialsSignTheOperatorIn</dd>
                 <dt>Expected result</dt><dd>a valid operator account signs in and reaches the Control Panel</dd>
                 <dt>Tags</dt><dd>none</dd>
-                <dt>Outcome</dt><dd>Pass in 3.13s</dd>
+                <dt>Outcome</dt><dd>Pass in 6.38s</dd>
               </dl>
             </div>
             <div class="panel">
@@ -387,42 +394,40 @@
               <dl>
                 <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
                 <dt>Verified</dt><dd>a valid operator account signs in and reaches the Control Panel</dd>
-                <dt>Duration</dt><dd>3.13 seconds</dd>
+                <dt>Duration</dt><dd>6.38 seconds</dd>
               </dl>
               <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
             </div>
           </div>
           <div class="panel wide">
-            <h3>What the run did <span class="muted">(28 recorded events)</span></h3>
+            <h3>What the run did <span class="muted">(26 recorded events)</span></h3>
             <ol class="steps">
               <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: ADMLOGIN-001: a valid operator account signs in and reaches the Control Panel</span></li>
-              <li class="k-api"><span class="at">0.31s</span><span class="kind">API</span><span class="what">GET login -&gt; 301</span></li>
-              <li class="k-api"><span class="at">0.31s</span><span class="kind">API</span><span class="what">GET http://admin-test.1083.city/login/ -&gt; 307</span></li>
-              <li class="k-api"><span class="at">0.46s</span><span class="kind">API</span><span class="what">GET login/ -&gt; 200</span></li>
-              <li class="k-api"><span class="at">0.65s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/v31edd6df95cf4e85bb4c19e7a9bdbcba1788362987495 -&gt; 200</span></li>
-              <li class="k-api"><span class="at">0.80s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
-              <li class="k-api"><span class="at">1.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
-              <li class="k-api"><span class="at">1.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
-              <li class="k-api"><span class="at">1.06s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
-              <li class="k-api"><span class="at">1.07s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
-              <li class="k-nav"><span class="at">1.24s</span><span class="kind">NAV</span><span class="what">Loaded login/</span></li>
-              <li class="k-api"><span class="at">1.31s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
-              <li class="k-api"><span class="at">1.38s</span><span class="kind">API</span><span class="what">GET api/captcha?currency= -&gt; 200</span></li>
-              <li class="k-data"><span class="at">1.49s</span><span class="kind">DATA</span><span class="what">Account = qa0001</span></li>
-              <li class="k-step"><span class="at">1.52s</span><span class="kind">STEP</span><span class="what">Submitting the back office sign-in form.</span></li>
-              <li class="k-api"><span class="at">2.03s</span><span class="kind">API</span><span class="what">POST api/account/login -&gt; 200</span></li>
-              <li class="k-api"><span class="at">2.21s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
-              <li class="k-api"><span class="at">2.27s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
-              <li class="k-api"><span class="at">2.27s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
-              <li class="k-api"><span class="at">2.38s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency= -&gt; 200</span></li>
-              <li class="k-check"><span class="at">2.40s</span><span class="kind">CHECK</span><span class="what">Signed in: the header names qa0001.</span></li>
-              <li class="k-api"><span class="at">2.57s</span><span class="kind">API</span><span class="what">GET api/app-info?currency= -&gt; 200</span></li>
-              <li class="k-api"><span class="at">2.58s</span><span class="kind">API</span><span class="what">GET api/account/check-work-status?op=login -&gt; 200</span></li>
-              <li class="k-api"><span class="at">2.59s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency= -&gt; 200</span></li>
-              <li class="k-step"><span class="at">2.60s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.1083.city/</span></li>
-              <li class="k-api"><span class="at">2.66s</span><span class="kind">API</span><span class="what">GET api/captcha?currency= -&gt; 200</span></li>
-              <li class="k-api"><span class="at">2.84s</span><span class="kind">API</span><span class="what">GET api/account/user-profile?currency=USDT -&gt; 200</span></li>
-              <li class="k-evidence"><span class="at">2.85s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+              <li class="k-api"><span class="at">3.04s</span><span class="kind">API</span><span class="what">GET login -&gt; 301</span></li>
+              <li class="k-api"><span class="at">3.11s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/login/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">3.23s</span><span class="kind">API</span><span class="what">GET login/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.43s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">3.59s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">4.05s</span><span class="kind">NAV</span><span class="what">Loaded login/</span></li>
+              <li class="k-api"><span class="at">4.10s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">4.24s</span><span class="kind">API</span><span class="what">GET api/captcha?currency= -&gt; 200</span></li>
+              <li class="k-data"><span class="at">4.31s</span><span class="kind">DATA</span><span class="what">Account = qa0001</span></li>
+              <li class="k-step"><span class="at">4.34s</span><span class="kind">STEP</span><span class="what">Submitting the back office sign-in form.</span></li>
+              <li class="k-api"><span class="at">4.99s</span><span class="kind">API</span><span class="what">POST api/account/login -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.18s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.22s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">5.22s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">5.35s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency= -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.43s</span><span class="kind">API</span><span class="what">GET api/account/check-work-status?op=login -&gt; 200</span></li>
+              <li class="k-check"><span class="at">5.50s</span><span class="kind">CHECK</span><span class="what">Signed in: the header names qa0001.</span></li>
+              <li class="k-api"><span class="at">5.60s</span><span class="kind">API</span><span class="what">GET api/app-info?currency= -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.65s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency= -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.66s</span><span class="kind">API</span><span class="what">GET api/captcha?currency= -&gt; 200</span></li>
+              <li class="k-step"><span class="at">5.72s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.138hk.vip/</span></li>
+              <li class="k-api"><span class="at">5.94s</span><span class="kind">API</span><span class="what">GET api/account/user-profile?currency=USDT -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.94s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency= -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.94s</span><span class="kind">API</span><span class="what">GET api/account/home/index?blockType=todayRegisterUser&amp;currency=USDT -&gt; 200</span></li>
+              <li class="k-evidence"><span class="at">5.96s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
             </ol>
           </div>
         </td>

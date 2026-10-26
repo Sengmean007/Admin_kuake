@@ -8,8 +8,19 @@ import java.util.regex.Pattern;
 
 /**
  * The member site's own modal - the "alert board" it raises for confirmations, refusals and
- * "Confirm to start the game?". Ported from NewWeibo_automation's {@code page.common.AlertBoard}
- * unchanged, for {@link DepositPage}'s confirm step (2026-10-06).
+ * "Confirm to start the game?". Started as a direct, unchanged port of NewWeibo_automation's
+ * {@code page.common.AlertBoard}, for {@link DepositPage}'s confirm step (2026-10-06).
+ *
+ * <h2>Corrected against the live Quark site (2026-10-24)</h2>
+ * The ported locators target {@code AlertBoard_bg}/{@code AlertBoard_show} CSS-module classes -
+ * real on this site (seen, hidden, on other mounted dialogs: {@code AlertBoard_modal-content},
+ * {@code AlertBoard_deposit-activate-close}), but <b>not</b> on the Deposit confirm dialog
+ * {@link DepositPage} actually raises. That one dialog is a different, plain Tailwind component:
+ * one instance mounted at a time (not several, hidden ones, the way the ported javadoc below
+ * still describes for whichever dialog does use the CSS-module shape), wrapped in a
+ * {@code div[class*='z-alertBoard']}, its message in a sibling {@code div}, Cancel/Confirm as
+ * plain {@code <button>}s with no distinguishing class - matched here by role and exact text, same
+ * as before.
  *
  * <h2>Only the displayed board counts</h2>
  * The site keeps more than one alert board mounted at all times, and only the one on screen
@@ -21,10 +32,9 @@ import java.util.regex.Pattern;
  */
 public class AlertBoard {
 
-    private static final String SHOWN_BOARD =
-            "div[class*='AlertBoard_bg'][class*='AlertBoard_show']";
-    private static final Pattern ACKNOWLEDGE = Pattern.compile("^(OK|Ok|Close)$");
-    private static final String CONTENT = "[class*='AlertBoard_content']";
+    private static final String SHOWN_BOARD = "div[class*='z-alertBoard']";
+    private static final Pattern ACKNOWLEDGE = Pattern.compile("^(OK|Ok|Close|×)$");
+    private static final String CONTENT = "[class*='whitespace-pre-line']";
 
     /** How long pressing Confirm may take - a deposit confirm posts the order and may hand off to a gateway. */
     private static final double CONFIRM_TIMEOUT_MS = 30_000;

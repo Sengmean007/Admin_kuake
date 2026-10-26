@@ -7,7 +7,39 @@
     <option name="selectedModelId" value="auto" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="dd778d41-ad36-4835-be1a-fe5223fc8688" name="Changes" comment="" />
+    <list default="true" id="dd778d41-ad36-4835-be1a-fe5223fc8688" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AGENTS.md" beforeDir="false" afterPath="$PROJECT_DIR$/AGENTS.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Config/config.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Config/config.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TestCase/run/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/TestCase/run/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/.state/AdminLoginTest.properties" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/.state/AdminLoginTest.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/.state/NotificationSeedCleanupSuite.properties" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/.state/NotificationSeedCleanupSuite.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/.state/NotificationSeedSuite.properties" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/.state/NotificationSeedSuite.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/AdminLogin-test-report.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/AdminLogin-test-report.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/NotificationSeed-test-report.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/NotificationSeed-test-report.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/NotificationSeedCleanup-test-report.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/NotificationSeedCleanup-test-report.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/extent/.state/cases.json" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/extent/.state/cases.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/extent/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/extent/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/extent/screenshots/AdminLoginTest.validCredentialsSignTheOperatorIn.png" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/extent/screenshots/AdminLoginTest.validCredentialsSignTheOperatorIn.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/extent/screenshots/NotificationSeedData.seedNotifications.png" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/extent/screenshots/NotificationSeedData.seedNotifications.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/screenshots/AdminLoginTest.validCredentialsSignTheOperatorIn.png" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/screenshots/AdminLoginTest.validCredentialsSignTheOperatorIn.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/reports/screenshots/NotificationSeedData.seedNotifications.png" beforeDir="false" afterPath="$PROJECT_DIR$/docs/reports/screenshots/NotificationSeedData.seedNotifications.png" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/test-cases/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/test-cases/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/test-cases/notification.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/test-cases/notification.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/test-cases/other-category.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/test-cases/other-category.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docs/test-cases/test-cases.html" beforeDir="false" afterPath="$PROJECT_DIR$/docs/test-cases/test-cases.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/sengmean/page/client/AlertBoard.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sengmean/page/client/AlertBoard.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/sengmean/page/client/DepositPage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sengmean/page/client/DepositPage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/sengmean/page/client/MemberSignInPage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sengmean/page/client/MemberSignInPage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/sengmean/page/shell/AdminShellPage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sengmean/page/shell/AdminShellPage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/sengmean/page/webcontent/ShareLinkFormPage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sengmean/page/webcontent/ShareLinkFormPage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/sengmean/page/webcontent/ShareLinkListPage.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/sengmean/page/webcontent/ShareLinkListPage.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/org/sengmean/testdata/ShareLinkTestData.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/org/sengmean/testdata/ShareLinkTestData.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/org/sengmean/tests/promo/ClientValidDepositTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/org/sengmean/tests/promo/ClientValidDepositTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/org/sengmean/tests/webcontent/ShareLinkTest.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/java/org/sengmean/tests/webcontent/ShareLinkTest.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/resources/testdata/client_testcase.xlsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/test/resources/testdata/client_testcase.xlsx" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -40,6 +72,9 @@
     &quot;accountId&quot;: &quot;57d080d0-e86c-4405-9213-72ee0f6bee2e&quot;
   }
 }</component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file://$PROJECT_DIR$/src/test/java/org/sengmean/tests/webcontent/ShareLinkSeedData.java" root0="FORCE_HIGHLIGHTING" />
+  </component>
   <component name="MavenImportPreferences">
     <option name="generalSettings">
       <MavenGeneralSettings>
@@ -62,143 +97,155 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;JUnit.AdminLoginTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.AuthSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.ClientValidDepositTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.DailyRebateTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.DiscountSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationAccessControlSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationClientInboxSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationCreateSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationE2ESuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationEditSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationListSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationLocalizationSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationRecordDetailSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationRecordHistorySuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationRegressionSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationSeedSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationSendNowSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationTargetGroupsSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationTest$CreateNotification.untickingOverrideLeavesLanguagesRequired.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.NotificationTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryAccessControlSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryBannerSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryClientDisplaySuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryCreateSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryDeleteSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryEditSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryListSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryLocalizationSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryManageGamesSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryRegressionSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategorySeedSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryTest$CreateCategory.createWithOneLanguageBlank.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryTest$EditCategory.editStatus.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.OtherCategoryTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.ProductSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.RealTimeRebateTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.RebateAccessControlTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.RebateLocalizationTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.RebateMigrationTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.RebateSetUpTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.RebateSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.SystemPromotionRecordsTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.SystemPromotionSetupSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.SystemPromotionSetupTest.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.UiNotificationCenterClientHK.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.UiNotificationCenterClientHKSuite.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.UiOtherCategoryClientHK.executor&quot;: &quot;Run&quot;,
-    &quot;JUnit.UiOtherCategoryClientHKSuite.executor&quot;: &quot;Run&quot;,
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;TestNG.DailyRebateTest.executor&quot;: &quot;Run&quot;,
-    &quot;TestNG.RealTimeRebateTest.executor&quot;: &quot;Run&quot;,
-    &quot;copilot.chat.legacySessionMetadata.migrated&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
-    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;C:/Users/Acer/IdeaProjects/Admin_weibo&quot;,
-    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
-    &quot;project.structure.proportion&quot;: &quot;0.0&quot;,
-    &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "JUnit.AdminLoginTest.executor": "Run",
+    "JUnit.AuthSuite.executor": "Run",
+    "JUnit.ClientValidDepositTest.executor": "Run",
+    "JUnit.DailyRebateTest.executor": "Run",
+    "JUnit.DiscountSuite.executor": "Run",
+    "JUnit.MemberBenefitsSeedData.executor": "Run",
+    "JUnit.MemberBenefitsSeedData.seedBenefits.executor": "Run",
+    "JUnit.NotificationAccessControlSuite.executor": "Run",
+    "JUnit.NotificationClientInboxSuite.executor": "Run",
+    "JUnit.NotificationCreateSuite.executor": "Run",
+    "JUnit.NotificationE2ESuite.executor": "Run",
+    "JUnit.NotificationEditSuite.executor": "Run",
+    "JUnit.NotificationListSuite.executor": "Run",
+    "JUnit.NotificationLocalizationSuite.executor": "Run",
+    "JUnit.NotificationRecordDetailSuite.executor": "Run",
+    "JUnit.NotificationRecordHistorySuite.executor": "Run",
+    "JUnit.NotificationRegressionSuite.executor": "Run",
+    "JUnit.NotificationSeedData.executor": "Run",
+    "JUnit.NotificationSeedSuite.executor": "Run",
+    "JUnit.NotificationSendNowSuite.executor": "Run",
+    "JUnit.NotificationTargetGroupsSuite.executor": "Run",
+    "JUnit.NotificationTest$CreateNotification.untickingOverrideLeavesLanguagesRequired.executor": "Run",
+    "JUnit.NotificationTest.executor": "Run",
+    "JUnit.OtherCategoryAccessControlSuite.executor": "Run",
+    "JUnit.OtherCategoryBannerSuite.executor": "Run",
+    "JUnit.OtherCategoryClientDisplaySuite.executor": "Run",
+    "JUnit.OtherCategoryCreateSuite.executor": "Run",
+    "JUnit.OtherCategoryDeleteSuite.executor": "Run",
+    "JUnit.OtherCategoryEditSuite.executor": "Run",
+    "JUnit.OtherCategoryListSuite.executor": "Run",
+    "JUnit.OtherCategoryLocalizationSuite.executor": "Run",
+    "JUnit.OtherCategoryManageGamesSuite.executor": "Run",
+    "JUnit.OtherCategoryRegressionSuite.executor": "Run",
+    "JUnit.OtherCategorySeedData.executor": "Run",
+    "JUnit.OtherCategorySeedSuite.executor": "Run",
+    "JUnit.OtherCategoryTest$CreateCategory.createWithOneLanguageBlank.executor": "Run",
+    "JUnit.OtherCategoryTest$EditCategory.editStatus.executor": "Run",
+    "JUnit.OtherCategoryTest.executor": "Run",
+    "JUnit.ProductSuite.executor": "Run",
+    "JUnit.QuickTourBannerTest.executor": "Run",
+    "JUnit.RealTimeRebateTest.executor": "Run",
+    "JUnit.RebateAccessControlTest.executor": "Run",
+    "JUnit.RebateLocalizationTest.executor": "Run",
+    "JUnit.RebateMigrationTest.executor": "Run",
+    "JUnit.RebateSetUpTest.executor": "Run",
+    "JUnit.RebateSuite.executor": "Run",
+    "JUnit.ShareLinkSeedData.executor": "Run",
+    "JUnit.ShareLinkSeedData.seedShareLinks.executor": "Run",
+    "JUnit.ShareLinkSeedSuite.executor": "Debug",
+    "JUnit.ShareLinkTest$AdminShareLinkList.longContentDoesNotBreakLayout.executor": "Coverage",
+    "JUnit.ShareLinkTest.executor": "Run",
+    "JUnit.SystemPromotionRecordsTest.executor": "Run",
+    "JUnit.SystemPromotionSetupSuite.executor": "Run",
+    "JUnit.SystemPromotionSetupTest.executor": "Run",
+    "JUnit.UiNotificationCenterClientHK.executor": "Run",
+    "JUnit.UiNotificationCenterClientHKSuite.executor": "Run",
+    "JUnit.UiOtherCategoryClientHK.executor": "Run",
+    "JUnit.UiOtherCategoryClientHKSuite.executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "TestNG.DailyRebateTest.executor": "Run",
+    "TestNG.RealTimeRebateTest.executor": "Run",
+    "copilot.chat.legacySessionMetadata.migrated": "true",
+    "git-widget-placeholder": "master",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/Acer/IdeaProjects/Admin_kuake",
+    "project.structure.last.edited": "Project",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0",
+    "settings.editor.selected.configurable": "build.tools"
   }
-}</component>
-  <component name="RunManager" selected="JUnit.OtherCategoryTest">
-    <configuration name="DiscountSuite" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="Admin_weibo" />
+}]]></component>
+  <component name="RunManager" selected="JUnit.ShareLinkSeedSuite">
+    <configuration name="AdminLoginTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_kuake" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="org.sengmean.suites.*" />
+          <option name="PATTERN" value="org.sengmean.tests.auth.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="org.sengmean.suites" />
-      <option name="MAIN_CLASS_NAME" value="org.sengmean.suites.DiscountSuite" />
+      <option name="PACKAGE_NAME" value="org.sengmean.tests.auth" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.auth.AdminLoginTest" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="OtherCategoryTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="Admin_weibo" />
+    <configuration name="ShareLinkSeedData" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_kuake" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="org.sengmean.tests.product.*" />
+          <option name="PATTERN" value="org.sengmean.tests.webcontent.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="org.sengmean.tests.product" />
-      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.product.OtherCategoryTest" />
+      <option name="PACKAGE_NAME" value="org.sengmean.tests.webcontent" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.webcontent.ShareLinkSeedData" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="SystemPromotionSetupSuite" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="Admin_weibo" />
+    <configuration name="ShareLinkSeedSuite" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_kuake" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="org.sengmean.suites.promo.*" />
+          <option name="PATTERN" value="org.sengmean.suites.webcontent.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="org.sengmean.suites.promo" />
-      <option name="MAIN_CLASS_NAME" value="org.sengmean.suites.promo.SystemPromotionSetupSuite" />
+      <option name="PACKAGE_NAME" value="org.sengmean.suites.webcontent" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.suites.webcontent.ShareLinkSeedSuite" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="SystemPromotionSetupTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="Admin_weibo" />
+    <configuration name="ShareLinkTest$AdminShareLinkList.longContentDoesNotBreakLayout" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_kuake" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="org.sengmean.tests.promo.*" />
+          <option name="PATTERN" value="org.sengmean.tests.webcontent.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="org.sengmean.tests.promo" />
-      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.promo.SystemPromotionSetupTest" />
-      <option name="TEST_OBJECT" value="class" />
+      <option name="PACKAGE_NAME" value="org.sengmean.tests.webcontent.ShareLinkTest" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.webcontent.ShareLinkTest$AdminShareLinkList" />
+      <option name="METHOD_NAME" value="longContentDoesNotBreakLayout" />
+      <option name="TEST_OBJECT" value="method" />
       <method v="2">
         <option name="Make" enabled="true" />
       </method>
     </configuration>
-    <configuration name="UiOtherCategoryClientHK" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
-      <module name="Admin_weibo" />
+    <configuration name="ShareLinkTest" type="JUnit" factoryName="JUnit" temporary="true" nameIsGenerated="true">
+      <module name="Admin_kuake" />
       <extension name="coverage">
         <pattern>
-          <option name="PATTERN" value="org.sengmean.tests.product.*" />
+          <option name="PATTERN" value="org.sengmean.tests.webcontent.*" />
           <option name="ENABLED" value="true" />
         </pattern>
       </extension>
-      <option name="PACKAGE_NAME" value="org.sengmean.tests.product" />
-      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.product.UiOtherCategoryClientHK" />
+      <option name="PACKAGE_NAME" value="org.sengmean.tests.webcontent" />
+      <option name="MAIN_CLASS_NAME" value="org.sengmean.tests.webcontent.ShareLinkTest" />
       <option name="TEST_OBJECT" value="class" />
       <method v="2">
         <option name="Make" enabled="true" />
@@ -206,18 +253,18 @@
     </configuration>
     <recent_temporary>
       <list>
-        <item itemvalue="JUnit.OtherCategoryTest" />
-        <item itemvalue="JUnit.UiOtherCategoryClientHK" />
-        <item itemvalue="JUnit.SystemPromotionSetupTest" />
-        <item itemvalue="JUnit.DiscountSuite" />
-        <item itemvalue="JUnit.SystemPromotionSetupSuite" />
+        <item itemvalue="JUnit.ShareLinkSeedSuite" />
+        <item itemvalue="JUnit.ShareLinkSeedData" />
+        <item itemvalue="JUnit.ShareLinkTest" />
+        <item itemvalue="JUnit.ShareLinkTest$AdminShareLinkList.longContentDoesNotBreakLayout" />
+        <item itemvalue="JUnit.AdminLoginTest" />
       </list>
     </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.31033.145" />
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.33813.55" />
       </set>
     </attachedChunks>
   </component>
@@ -230,5 +277,10 @@
       <updated>1789458602009</updated>
     </task>
     <servers />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/Admin_kuake$ShareLinkTest_AdminShareLinkList_longContentDoesNotBreakLayout.ic" NAME="ShareLinkTest$AdminShareLinkList.longContentDoesNotBreakLayout Coverage Results" MODIFIED="1792984386199" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="idea" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="true">
+      <FILTER>org.sengmean.tests.webcontent.*</FILTER>
+    </SUITE>
   </component>
 </project>

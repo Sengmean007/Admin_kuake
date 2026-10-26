@@ -1663,3 +1663,66 @@ it currently only carries Notification and Other Category. Importing the tab fro
 `[TC_Admin] V.5.1.0 Weibo.xlsx` needs an actual spreadsheet tool (Excel/openpyxl); this session deliberately
 did not attempt it with raw zip/XML surgery on a binary that `split-cases`/`append-cases`/`case-page` all
 depend on.
+
+### Quick Tour Banner shipped between 2026-10-21/22 and 2026-10-24, and needed real fixes, not just confirmation
+
+`QuickTourBannerTest` was reporting all 28 rows Not run - `requireScreen()` aborting every case because the
+2026-10-21/22 measurement found no Quick Tour Banner entry in Web content management at all. It is live now
+(`cms/quick-tour-banner`, the guessed path), alongside four other entries that also weren't there yet -
+Welcome Banner, Banner management, Promotion Banner, Fast login banner - so `signInAndProbe()` now finds the
+screen and the gate opens.
+
+`QuickTourBannerListPage`'s locators matched the real markup on first measurement, unchanged. The two form
+page objects did not, and would have failed every row that reached them even with the gate open:
+
+- **`QuickTourContentTabFormPage`'s Title input** carries no `name` or `placeholder` at all - the guessed
+  `input[placeholder*='itle' i], input[name*='title' i]` matched nothing. Found by its `label.control-label`
+  instead (`//label[starts-with(normalize-space(.),'Title')]/following::input[1]`).
+- **The submit button has two different labels depending on which screen it's on** - "Add content tab" on
+  Add, "Save changes" on Modify - something the sheet's own "Save changes" wording throughout did not
+  distinguish. Matched by `button[type=submit]` now, since exactly one exists either way.
+- **"Return to list" is actually a link reading "Return »"**, on both `QuickTourContentTabFormPage` and
+  `QuickTourPageBannerFormPage` - not a button, and not that wording. The sidebar also has an unrelated
+  "Return to zero" link, so the fix matches the link role by its exact name rather than loosely.
+- **`QuickTourPageBannerFormPage`'s `h1` reads only "Configure Page Banner"** - the "Quick Tour Banner · "
+  half the sheet showed is the breadcrumb, a separate element, not part of the heading. `QT-A-PB_P01`'s
+  expected string is corrected to match.
+- **The image-slot size hint is not a following sibling of its `input[type=file]`** - it lives in the
+  field's `ancestor::div[1]`. `QuickTourContentTabFormPage#hintNear` corrected accordingly.
+
+Not yet measured: every other assertion in the 28 rows (validation messages, the Override section's copy
+behaviour, per-currency isolation, pagination) - those still need a real run against the live screen to
+confirm, the same as any suite whose gate has just opened for the first time.
+
+### The member-site deposit flow (`DepositPage`, `MemberSignInPage`, `AlertBoard`) was all guessed from NewWeibo_automation, and most of the guess was wrong (2026-10-24)
+
+`ClientValidDepositTest` crosses this project's own boundary (no member-site page objects, see this file's
+top) by design, porting NewWeibo_automation's deposit flow for Quark's member site
+(`test-v2.138hk.vip`). Measured against the live site this session - real findings, not confirmations:
+
+- **`MemberSignInPage`**: the nav control that opens the Log In modal reads "Login" (one word); the
+  submit button inside it reads "Log In" (two words) and carries no `submit` class at all (plain
+  Tailwind utilities, `type="button"`). The ported code used "Log In" for both and a `class*='submit'`
+  selector for the second - neither matched anything live. Both now matched by their own real text/role.
+- **`AlertBoard`**: ported from an `AlertBoard_bg`/`AlertBoard_show` CSS-module shape that is real on
+  this site (seen, hidden, on other mounted dialogs - `AlertBoard_modal-content`,
+  `AlertBoard_deposit-activate-close`) but not on the one dialog this class actually needs: Deposit's
+  own "Confirm Deposit?" popup is a different, plain Tailwind component, one instance mounted at a
+  time, in a `div[class*='z-alertBoard']`. Every locator in the class was pointed at the real shape.
+  This one defect alone meant `DepositPage.confirm()` could never have worked - `isConfirmDialogVisible()`
+  read an always-empty `board.innerText()` regardless of what was actually on screen.
+- **`DepositPage`**: the Channel tab ("Channel") and the Bank Transfer option both matched the ported
+  constants exactly - no fix needed there. The amount summary is flakier: typing an amount always shows
+  "Deposit turnover req." inline right away, but "Total game points" itself sometimes renders inline and
+  sometimes only behind a "Show more" link (a modal) - which one was inline was not consistent between two
+  tries moments apart. The readiness check (`showsAmountSummary()`) now polls for "Deposit turnover req."
+  instead, since that one was inline every time; `totalGamePointsValueText()` still reads "Total game
+  points" itself once ready, unchanged in meaning.
+- **Still blocked**: `test.user.username`/`test.user.password` (`qa000092`/`password`) are
+  NewWeibo_automation's own member account, carried over unverified - the live site refuses them. A
+  browser on this machine already has a saved session for `qa00002` (one fewer zero) on
+  `test-v2.138hk.vip`, very likely the real Quark QA account; `openSessions()` aborts on sign-in until
+  Si supplies or confirms the real credentials. See `Config/config.properties`'s own note on
+  `test.user.*`. Everything downstream of sign-in (the deposit itself, the admin-side cascade
+  assertions) is consequently still unverified against this live site - only the sign-in and deposit-form
+  layer was reachable this session.

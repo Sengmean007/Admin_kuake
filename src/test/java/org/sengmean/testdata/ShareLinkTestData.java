@@ -32,6 +32,22 @@ public final class ShareLinkTestData {
     public static final List<String> LANGUAGE_TABS = org.sengmean.page.webcontent.ShareLinkFormPage.LANGUAGE_TABS;
 
     // -----------------------------------------------------------------
+    // Seed data - kept between runs, see ShareLinkSeedData
+    // -----------------------------------------------------------------
+
+    /** Marks a seed record, not {@link #PREFIX} - so {@code ShareLinkTest} never touches it. */
+    public static final String SEED_PREFIX = "QA SEED SL ";
+
+    public static final int SEED_COUNT = 10;
+
+    /** Display orders 301-310 - clear of the 0/1/5/9/duplicate values the suite's own order rows use. */
+    public static final int SEED_ORDER_BASE = 300;
+
+    public static String seedName(int n) {
+        return SEED_PREFIX + String.format("%02d", n);
+    }
+
+    // -----------------------------------------------------------------
     // Upload images - Si's own pictures
     // -----------------------------------------------------------------
 

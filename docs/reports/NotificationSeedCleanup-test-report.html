@@ -305,17 +305,17 @@
   <details class="rpt-sum" open>
     <summary>
       <span class="rpt-line"><span class="chev" aria-hidden="true"></span><h1>Notification - delete seed data</h1><span class="rpt-toggle-hint">click to minimise / expand</span></span>
-      <span class="rpt-counts"><span class="cnt pass zero"><i>&#10003;</i>0 passed</span><span class="cnt fail zero"><i>&#10007;</i>0 failed</span><span class="cnt skip zero"><i>&#8856;</i>0 skipped</span><span class="cnt notrun"><i>&#9675;</i>1 not run</span><span class="cnt">1 cases</span></span>
-<span class="bar">      <span class="seg notrun" style="width:100.0000%" title="1 not run"></span>
+      <span class="rpt-counts"><span class="cnt pass"><i>&#10003;</i>1 passed</span><span class="cnt fail zero"><i>&#10007;</i>0 failed</span><span class="cnt skip zero"><i>&#8856;</i>0 skipped</span><span class="cnt notrun zero"><i>&#9675;</i>0 not run</span><span class="cnt">1 cases</span></span>
+<span class="bar">      <span class="seg pass" style="width:100.0000%" title="1 passed"></span>
 </span>
     </summary>
     <div class="sub">Test case report &mdash; <code>org.sengmean.suites.tool.NotificationSeedCleanupSuite</code></div>
     <div class="meta">
-      <div><b>Target:</b> https://admin-test.1083.city/</div>
+      <div><b>Target:</b> https://admin-test.138hk.vip/</div>
       <div><b>Account:</b> qa0001</div>
-      <div><b>Run:</b> 2026-09-28 15:51</div>
-      <div><b>Elapsed:</b> 561.8s</div>
-      <div><b>Scope:</b> 1 of 34 suites executed</div>
+      <div><b>Run:</b> 2026-10-21 17:27</div>
+      <div><b>Elapsed:</b> 84.1s</div>
+      <div><b>Scope:</b> 2 of 57 suites executed</div>
       <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headless)</div>
       <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
       <div><b>Machine:</b> Windows 11 10.0</div>
@@ -323,20 +323,20 @@
     <h2 class="rpt-h">Statistics</h2>
     <div class="tiles">
         <div class="tile "><b>1</b><span>cases</span></div>
-        <div class="tile pass"><b><i>&#10003;</i>0</b><span>passed</span></div>
+        <div class="tile pass"><b><i>&#10003;</i>1</b><span>passed</span></div>
         <div class="tile fail"><b><i>&#10007;</i>0</b><span>failed</span></div>
         <div class="tile skip"><b><i>&#8856;</i>0</b><span>skipped</span></div>
-        <div class="tile notrun"><b><i>&#9675;</i>1</b><span>not run</span></div>
-        <div class="tile"><b>&ndash;</b><span>pass rate of the cases that ran</span></div>
-        <div class="tile"><b>0.0s</b><span>browser time</span></div>
+        <div class="tile notrun"><b><i>&#9675;</i>0</b><span>not run</span></div>
+        <div class="tile"><b>100%</b><span>pass rate of the cases that ran</span></div>
+        <div class="tile"><b>10.8s</b><span>browser time</span></div>
     </div>
-      <div class="chart" role="img" aria-label="Notification - delete seed data: 0 passed, 0 failed, 0 skipped, 1 not run">
-        <div class="stack big"><span class="seg notrun" style="flex-grow:1" tabindex="0" data-tip="Notification - delete seed data - 1 not run (100%)"><em>1</em></span></div>
+      <div class="chart" role="img" aria-label="Notification - delete seed data: 1 passed, 0 failed, 0 skipped, 0 not run">
+        <div class="stack big"><span class="seg pass" style="flex-grow:1" tabindex="0" data-tip="Notification - delete seed data - 1 passed (100%)"><em>1</em></span></div>
         <div class="chart-legend"><span><i class="sw pass"></i>Passed</span><span><i class="sw fail"></i>Failed</span><span><i class="sw skip"></i>Skipped</span><span><i class="sw notrun"></i>Not run</span></div>
       </div>
     <h2 class="rpt-h">Cases by result</h2>
     <div class="case-lists">
-      <details class="cl notrun"><summary><i>&#9675;</i>Not run <span class="n">(1)</span></summary>
+      <details class="cl pass"><summary><i>&#10003;</i>Passed <span class="n">(1)</span></summary>
         <ol>
           <li><a href="#case-NotificationSeedData-deleteSeed">NOT-DEL-901</a> Delete every seeded notification</li>
         </ol>
@@ -364,19 +364,19 @@
   <table class="cases">
     <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
     <tbody>
-      <tr class="case" id="case-NotificationSeedData-deleteSeed" data-status="Not run" data-search="not-del-901 deleteseed delete every seeded notification creates-data">
+      <tr class="case" id="case-NotificationSeedData-deleteSeed" data-status="Pass" data-search="not-del-901 deleteseed delete every seeded notification creates-data">
         <td class="id" id="NOT-DEL-901">NOT-DEL-901</td>
         <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>deleteSeed</code><div class="tag">creates-data</div></td>
         <td class="tpre"><span class="muted">&mdash;</span></td>
-        <td class="tsteps"><span class="muted">&mdash;</span></td>
-        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><ol class="tc-steps"><li>Opening Tool &gt; Notification.</li><li>Showing 200 entries per page.</li><li>Case ended on https://admin-test.138hk.vip/tools/notification/</li></ol><div class="src">From the run's step trail</div></td>
+        <td class="tdata"><div class="src">Used in this run</div><ul class="tc-data used"><li><code>Seed notifications deleted = 0</code></li></ul></td>
         <td>Delete every seeded notification</td>
-        <td><span class="muted">Not executed in this run.</span></td>
-        <td><span class="st info">Not run</span></td>
-        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.<br>Filtered out of this run by <code>-DexcludedGroups</code>.</td>
-        <td><span class="muted">&mdash;</span></td>
+        <td>The application behaved as expected.<div class="secs">43 events recorded, ended on <code>https://admin-test.138hk.vip/tools/notification/</code></div></td>
+        <td><span class="st pass">Pass</span><div class="secs">10.75s</div></td>
+        <td><b>Creates data.</b> Side effects reach outside the browser &mdash; a real account, a real SMS, a filed deposit, a withdrawal hold or a staked balance &mdash; so it is kept out of unattended runs and must be run attended.</td>
+        <td><a class="shot" href="screenshots/NotificationSeedData.deleteSeed.png" target="_blank" rel="noopener"><img src="screenshots/NotificationSeedData.deleteSeed.png" alt="Captured the closing screenshot.  (1 of 1)" loading="lazy"></a></td>
       </tr>
-      <tr class="detail hide" data-status="Not run">
+      <tr class="detail hide" data-status="Pass">
         <td colspan="10">
           <div class="panels">
             <div class="panel">
@@ -386,15 +386,67 @@
                 <dt>Method</dt><dd>NotificationSeedData#deleteSeed</dd>
                 <dt>Expected result</dt><dd>Delete every seeded notification</dd>
                 <dt>Tags</dt><dd>creates-data</dd>
-                <dt>Outcome</dt><dd>Not run</dd>
+                <dt>Outcome</dt><dd>Pass in 10.75s</dd>
               </dl>
             </div>
             <div class="panel">
               <h3>The result</h3>
-              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+              <dl>
+                <dt>Verdict</dt><dd>Every assertion in the case held.</dd>
+                <dt>Verified</dt><dd>Delete every seeded notification</dd>
+                <dt>Duration</dt><dd>10.75 seconds</dd>
+              </dl>
+              <p class="muted">The steps below are the run's own record of how the case reached that verdict, and the Evidence column shows the page it finished on.</p>
             </div>
           </div>
-          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+          <div class="panel wide">
+            <h3>What the run did <span class="muted">(43 recorded events)</span></h3>
+            <ol class="steps">
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Case started: NOT-DEL-901: Delete every seeded notification</span></li>
+              <li class="k-step"><span class="at">0.00s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">0.04s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.07s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">0.25s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">0.69s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">0.77s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">0.87s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.24s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.35s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.45s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.46s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.49s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.52s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.59s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">1.60s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">2.31s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">3.53s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-data"><span class="at">4.68s</span><span class="kind">DATA</span><span class="what">Seed notifications deleted = 0</span></li>
+              <li class="k-step"><span class="at">4.68s</span><span class="kind">STEP</span><span class="what">Opening Tool &gt; Notification.</span></li>
+              <li class="k-api"><span class="at">4.69s</span><span class="kind">API</span><span class="what">GET tools/notification -&gt; 301</span></li>
+              <li class="k-api"><span class="at">4.69s</span><span class="kind">API</span><span class="what">GET http://admin-test.138hk.vip/tools/notification/ -&gt; 301</span></li>
+              <li class="k-api"><span class="at">4.69s</span><span class="kind">API</span><span class="what">GET tools/notification/ -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.71s</span><span class="kind">API</span><span class="what">GET https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 -&gt; 200</span></li>
+              <li class="k-api"><span class="at">4.76s</span><span class="kind">API</span><span class="what">GET https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,600,700,300italic,400italic,600italic -&gt; 200</span></li>
+              <li class="k-nav"><span class="at">5.03s</span><span class="kind">NAV</span><span class="what">Loaded tools/notification/</span></li>
+              <li class="k-api"><span class="at">5.08s</span><span class="kind">API</span><span class="what">POST cdn-cgi/rum? -&gt; 204</span></li>
+              <li class="k-api"><span class="at">5.21s</span><span class="kind">API</span><span class="what">GET api/account/user-profile -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.58s</span><span class="kind">API</span><span class="what">GET api/app-info?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.61s</span><span class="kind">API</span><span class="what">GET api/account/allow-menu?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.69s</span><span class="kind">API</span><span class="what">GET api/account/member_group?no_paginate=true&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.76s</span><span class="kind">API</span><span class="what">GET api/lang?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.76s</span><span class="kind">API</span><span class="what">GET api/account/phone-countries?currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.80s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-record?whereRange[sent_at][from]=&amp;whereRange[sent_at][to]=&amp;page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.81s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=50&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-api"><span class="at">5.88s</span><span class="kind">API</span><span class="what">GET api/account/agent?no_paginate=true&amp;status=1&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">6.63s</span><span class="kind">STEP</span><span class="what">Showing 200 entries per page.</span></li>
+              <li class="k-api"><span class="at">7.87s</span><span class="kind">API</span><span class="what">GET api/account/inbox-notification-rule?page=1&amp;paginate=200&amp;currency=HKD -&gt; 200</span></li>
+              <li class="k-step"><span class="at">10.45s</span><span class="kind">STEP</span><span class="what">Case ended on https://admin-test.138hk.vip/tools/notification/</span></li>
+              <li class="k-api"><span class="at">10.73s</span><span class="kind">API</span><span class="what">GET api/account/system_info?currency=HKD -&gt; 200</span></li>
+              <li class="k-evidence"><span class="at">10.74s</span><span class="kind">EVIDENCE</span><span class="what">Captured the closing screenshot.</span></li>
+            </ol>
+          </div>
         </td>
       </tr>
     </tbody>
