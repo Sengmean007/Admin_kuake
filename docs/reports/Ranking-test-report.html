@@ -1,0 +1,2798 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>User Rankings (Referral &amp; Withdrawal) - test case report</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1a2230; --muted:#5b6676;
+    --line:#e2e7ef; --head:#26314a; --headink:#ffffff;
+    --pass:#137a43; --pass-bg:#e6f5ec;
+    --fail:#b02525; --fail-bg:#fdecec;
+    --partial:#9a6a00; --partial-bg:#fdf3dd;
+    --info:#1f6a9c; --info-bg:#e6f1f9;
+    --accent:#c79a2f;                  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:32px 18px}
+  .wrap{max-width:1320px;margin:0 auto}
+  header.rpt{background:var(--head);color:var(--headink);border-radius:14px;padding:26px 30px;
+    box-shadow:0 6px 20px rgba(20,30,50,.12)}
+  header.rpt h1{margin:0 0 6px;font-size:24px;letter-spacing:.3px}
+  header.rpt .sub{opacity:.85;font-size:14px}
+  header.rpt code{background:rgba(255,255,255,.14);color:inherit}
+  .meta{display:flex;flex-wrap:wrap;gap:10px 26px;margin-top:16px;font-size:13.5px}
+  .meta b{color:var(--accent)}
+  .tally{margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.18);
+    font-size:14px;font-weight:600}
+  /* The run at a glance. Proportional segments, so the shape of a result is
+     readable before any of the five numbers above it has been read. */
+  .bar{display:flex;height:10px;border-radius:999px;overflow:hidden;margin-top:12px;
+    background:rgba(255,255,255,.16)}
+  .bar .seg{display:block;height:100%}
+  .bar .seg.pass{background:#3ddc84}
+  .bar .seg.fail{background:#ff6b6b}
+  .bar .seg.skip{background:#ffcc66}
+  .bar .seg.notrun{background:#8fa3bf}
+  .rate{margin-top:8px;font-size:12.5px;opacity:.85}
+  /* The same bar in a table cell, where the ground is white rather than the
+     header's navy, so the empty track has to be redrawn to stay visible. */
+  .bar.mini{width:150px;height:8px;margin:0;background:var(--line)}
+  td.minibar{width:170px}
+  .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 4px}
+  .toolbar .filters{display:flex;flex-wrap:wrap;gap:6px}
+  button.flt{font:inherit;font-size:12.5px;padding:6px 12px;border-radius:999px;
+    border:1px solid var(--line);background:var(--card);color:var(--muted);cursor:pointer}
+  button.flt:hover{color:var(--ink);border-color:var(--muted)}
+  button.flt.on{background:var(--head);border-color:var(--head);color:#fff}
+  .toolbar input[type=search]{font:inherit;font-size:13px;padding:7px 12px;flex:1 1 220px;
+    min-width:180px;border:1px solid var(--line);border-radius:999px;background:var(--card);
+    color:var(--ink)}
+  .toolbar .count{font-size:12.5px;color:var(--muted);margin-left:auto}
+  .hide{display:none !important}
+  .callout.bad{border-left-color:var(--fail)}
+  ol.findings{margin:0;padding-left:20px}
+  ol.findings li{margin-bottom:10px}
+  ol.findings a{color:var(--fail);font-family:ui-monospace,Menlo,Consolas,monospace;
+    font-weight:700;text-decoration:none}
+  ol.findings a:hover{text-decoration:underline}
+  .tag.known{background:var(--fail-bg);color:var(--fail)}
+  /* The detail panel under a row. It is a second <tr> rather than a nested table
+     so the seven columns stay aligned across every group on the page. */
+  button.more{font:inherit;font-size:11px;font-weight:600;padding:2px 8px;margin-right:7px;
+    border-radius:999px;border:1px solid var(--line);background:var(--card);
+    color:var(--muted);cursor:pointer;vertical-align:middle}
+  button.more:hover{color:var(--ink);border-color:var(--muted)}
+  button.more::before{content:"\25B8 "}
+  tr.case.open button.more::before{content:"\25BE "}
+  tr.case.open>td{background:#f2f6fd}
+  tr.case.flash>td{animation:flash 1.4s ease-out}
+  @keyframes flash{from{background:#fdf3dd}to{background:transparent}}
+  tr.detail>td{background:#f7f9fc;border-top:0;padding:0 13px 18px}
+  .panels{display:flex;flex-wrap:wrap;gap:14px}
+  .panel{flex:1 1 340px;background:var(--card);border:1px solid var(--line);
+    border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.wide{flex-basis:100%;margin-top:14px}
+  .panel h3{margin:0 0 10px;font-size:13px;text-transform:uppercase;
+    letter-spacing:.6px;color:var(--muted)}
+  .panel dl{margin:0;display:grid;grid-template-columns:150px 1fr;gap:6px 14px;font-size:13px}
+  .panel dt{color:var(--muted);font-weight:600}
+  .panel dd{margin:0;word-break:break-word}
+  .panel p{font-size:13px;margin:10px 0 0}
+  .cmp{display:grid;gap:6px}
+  .cmp>div{display:flex;gap:8px;align-items:baseline}
+  .cmp span{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;
+    color:var(--muted);min-width:58px}
+  .cmp code{white-space:pre-wrap;word-break:break-word}
+  .cmp>div:first-child code{background:var(--pass-bg);color:var(--pass)}
+  .cmp>div:last-child code{background:var(--fail-bg);color:var(--fail)}
+  .frames{display:flex;flex-direction:column;gap:4px;align-items:flex-start}
+  details.trace{margin-top:12px;font-size:12.5px}
+  details.trace>summary{cursor:pointer;color:var(--muted)}
+  details.trace pre{margin:8px 0 0;padding:12px;background:#f4f6fa;border-radius:8px;
+    overflow-x:auto;font-size:11.5px;line-height:1.45;max-height:340px}
+  /* The step trail. Kinds are badges rather than prose because they are what makes
+     it scannable - red for the network and console lines a failure hangs off. */
+  ol.steps{margin:0;padding:0;list-style:none;font-size:12.5px;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  ol.steps li{display:flex;gap:10px;padding:4px 0;border-top:1px solid var(--line);
+    align-items:baseline}
+  ol.steps li:first-child{border-top:0}
+  ol.steps .at{color:var(--muted);min-width:52px;text-align:right;font-size:11.5px}
+  ol.steps .kind{min-width:74px;font-size:10px;font-weight:700;letter-spacing:.5px;
+    padding:2px 7px;border-radius:4px;text-align:center;background:#eef1f6;color:var(--muted)}
+  ol.steps .what{flex:1;word-break:break-word;white-space:pre-wrap}
+  /* A capture shown against the trail line that describes it. Kept small so a
+     case with fifty-two of them still scrolls as a trail rather than a gallery,
+     and clickable so the full-size image is one click away. align-self:flex-start
+     stops a tall thumbnail stretching a short line's row. */
+  ol.steps .step-shot{flex:0 0 auto;align-self:flex-start;line-height:0;
+    border:1px solid var(--line);border-radius:4px;overflow:hidden}
+  ol.steps .step-shot img{display:block;width:180px;height:auto}
+  ol.steps li.k-evidence{align-items:flex-start}
+  @media (max-width:900px){ol.steps .step-shot img{width:120px}}
+  ol.steps li.k-step .kind{background:var(--info-bg);color:var(--info)}
+  ol.steps li.k-check .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-data .kind{background:var(--pass-bg);color:var(--pass)}
+  ol.steps li.k-network .kind,ol.steps li.k-console .kind{background:var(--fail-bg);color:var(--fail)}
+  ol.steps li.k-network .what,ol.steps li.k-console .what{color:var(--fail)}
+  /* A line the case declared FAIL. Tinted across the whole row rather than only
+     the text, so it is findable while scrolling a trail of a hundred lines, and
+     given a left rule so it still reads as failed without relying on colour. */
+  ol.steps li.failed{background:var(--fail-bg);
+    box-shadow:inset 3px 0 0 var(--fail);padding-left:7px}
+  ol.steps li.failed .what{color:var(--fail);font-weight:600}
+  ol.steps li.failed .kind{background:var(--fail);color:#fff}
+  ol.steps li.k-evidence .kind{background:var(--partial-bg);color:var(--partial)}
+  .nav{margin:18px 0 0;font-size:13.5px}
+  .nav a{color:var(--info);text-decoration:none}
+  .nav a:hover{text-decoration:underline}
+  .callout{background:var(--card);border-left:5px solid var(--accent);border-radius:10px;
+    padding:16px 20px;margin:22px 0;box-shadow:0 2px 8px rgba(20,30,50,.06);font-size:14px}
+  .callout h2{margin:0 0 8px;font-size:16px}
+  .callout p{margin:0 0 10px}
+  .callout p:last-child{margin-bottom:0}
+  .callout.warn{border-left-color:var(--partial)}
+  h2.section{font-size:18px;margin:30px 0 12px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  /* The index's package sections: heading, the package name beside it, then its tally. */
+  h2.section .pkg-name{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;
+    font-weight:500;color:var(--muted);margin-left:8px}
+  .pkg-tally{display:flex;align-items:center;gap:12px;margin:-4px 0 12px;font-size:13px;color:var(--muted)}
+  .pkg-tally .bar.mini{width:160px;flex:0 0 160px}
+  h3.pkg-findings{font-size:14px;margin:14px 0 4px}
+  h3.pkg-findings a{color:inherit}
+  .tbl-scroll{overflow-x:auto;border-radius:12px;box-shadow:0 2px 10px rgba(20,30,50,.07)}
+  table{border-collapse:collapse;width:100%;background:var(--card);font-size:13.5px;min-width:1000px}
+  thead th{background:var(--head);color:var(--headink);text-align:left;padding:11px 13px;
+    font-weight:600;white-space:nowrap}
+  tbody td{padding:11px 13px;border-top:1px solid var(--line);vertical-align:top;
+    overflow-wrap:break-word}
+  /* Fixed column widths on the case tables, because automatic layout shares the
+     width out by content and one long cell then starves the rest: a remark
+     carrying a two-sentence reading of a failure took 792 of 1565 pixels and left
+     the Actual result column at 103, wrapping its message one word per line. It
+     also stops the full-width detail row from widening the whole table, which was
+     pushing the failure panel off the right of the page. */
+  table.cases{table-layout:fixed;min-width:1600px}
+  table.cases th:nth-child(1),table.cases td:nth-child(1){width:6%}
+  table.cases th:nth-child(2),table.cases td:nth-child(2){width:10%}
+  table.cases th:nth-child(3),table.cases td:nth-child(3){width:12%}
+  table.cases th:nth-child(4),table.cases td:nth-child(4){width:14%}
+  table.cases th:nth-child(5),table.cases td:nth-child(5){width:10%}
+  table.cases th:nth-child(6),table.cases td:nth-child(6){width:11%}
+  table.cases th:nth-child(7),table.cases td:nth-child(7){width:11%}
+  table.cases th:nth-child(8),table.cases td:nth-child(8){width:6%}
+  table.cases th:nth-child(9),table.cases td:nth-child(9){width:10%}
+  table.cases th:nth-child(10),table.cases td:nth-child(10){width:10%}
+  table.cases tr.detail>td{width:auto}
+  /* Pre-condition, Test steps and Test data: the client workbook's own wording, with the values
+     the run actually used listed under the sheet's. */
+  .tc-pre{font-size:12.5px;white-space:pre-wrap}
+  ol.tc-steps{margin:0;padding-left:18px;font-size:12.5px}
+  ol.tc-steps li{margin:0 0 3px}
+  ul.tc-data{margin:0;padding-left:16px;font-size:12.5px}
+  ul.tc-data li{margin:0 0 3px;overflow-wrap:anywhere}
+  ul.tc-data.used code{font-size:11.5px;white-space:normal}
+  td.tsteps .src,td.tdata .src{margin:6px 0 3px;font-size:10.5px;font-weight:700;
+    letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+  /* The sheet ids run from HOME-001 to HKDWITHDRAWAL-012, and a fixed column
+     clips what it cannot fit: the longer ones were cut mid-word with no sign
+     that anything was missing. They wrap here rather than truncate. */
+  table.cases td.id{white-space:normal;overflow-wrap:anywhere}
+  tbody tr:nth-child(even){background:#fafbfd}
+  td.tc{font-weight:600}
+  td.tc a{color:var(--ink)}
+  td.id{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--muted);
+    font-size:12.5px;white-space:nowrap}
+  code{font-family:ui-monospace,Menlo,Consolas,monospace;
+    background:#eef1f6;padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .why{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:var(--fail);
+    white-space:pre-wrap;word-break:break-word}
+  .muted{color:var(--muted)}
+  .secs{margin-top:6px;font-size:11.5px;color:var(--muted)}
+  .tag{display:inline-block;margin-top:6px;margin-right:4px;padding:1px 7px;border-radius:4px;
+    background:#eef1f6;color:var(--muted);font-size:11px;font-weight:600;
+    font-family:ui-monospace,Menlo,Consolas,monospace}
+  .st{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:700;
+    white-space:nowrap}
+  .st.pass{color:var(--pass);background:var(--pass-bg)}
+  .st.fail{color:var(--fail);background:var(--fail-bg)}
+  .st.partial{color:var(--partial);background:var(--partial-bg)}
+  .st.info{color:var(--info);background:var(--info-bg)}
+  details.shots{max-width:100%}
+  details.shots>summary{cursor:pointer;font-size:12.5px;color:var(--muted);
+    padding:5px 9px;border:1px solid var(--line);border-radius:999px;
+    display:inline-block;list-style:none;user-select:none}
+  details.shots>summary::-webkit-details-marker{display:none}
+  details.shots>summary::before{content:"\25B8 ";color:var(--muted)}
+  details.shots[open]>summary::before{content:"\25BE "}
+  details.shots>summary:hover{color:var(--ink);border-color:var(--muted)}
+  details.shots[open]>summary{margin-bottom:8px}
+  a.shot{display:inline-block;margin:0 6px 6px 0;position:relative;cursor:zoom-in}
+  a.shot img{width:100%;max-width:260px;border:1px solid var(--line);border-radius:8px;display:block;
+    box-shadow:0 2px 6px rgba(20,30,50,.10);transition:transform .12s,box-shadow .12s}
+  a.shot:hover img{transform:scale(1.03);box-shadow:0 6px 18px rgba(20,30,50,.22)}
+  a.shot::after{content:"\2315";position:absolute;right:8px;bottom:8px;
+    background:rgba(15,25,45,.72);color:#fff;font-size:13px;line-height:1;
+    padding:5px 7px;border-radius:6px;opacity:0;transition:opacity .12s}
+  a.shot:hover::after{opacity:1}
+  /* Click-to-zoom overlay. A 260px thumbnail of a 1920x1080 capture is a
+     smudge - readable enough to say a picture exists, not enough to read the
+     page in it - so the full image opens over the report rather than in a
+     separate tab the reader then has to navigate back from. */
+  #lightbox{position:fixed;inset:0;background:rgba(10,16,28,.88);display:none;
+    align-items:center;justify-content:center;flex-direction:column;z-index:999;
+    padding:24px;cursor:zoom-out}
+  #lightbox.open{display:flex}
+  #lightbox img{max-width:96vw;max-height:86vh;border-radius:8px;
+    box-shadow:0 10px 40px rgba(0,0,0,.5);background:#fff}
+  #lightbox .cap{color:#e8eef8;font-size:13px;margin-top:12px;text-align:center;
+    max-width:80vw}
+  #lightbox .hint{color:#93a4bd;font-size:12px;margin-top:6px}
+  /* A suite page's header is its statistics summary, and collapses to its first
+     lines: title, counts and bar stay; run details, tiles, chart and the cases by
+     result fold away. Drawn on the header's navy, so the status colours are the
+     same bright steps as the header bar, each paired with an icon and a label. */
+  details.rpt-sum>summary{list-style:none;cursor:pointer;user-select:none}
+  details.rpt-sum>summary::-webkit-details-marker{display:none}
+  details.rpt-sum>summary:focus-visible{outline:2px solid #9cc9ff;outline-offset:6px;border-radius:6px}
+  .rpt-line{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .rpt-line{flex-wrap:nowrap}
+  .rpt-line h1{margin:0;flex:1 1 auto;min-width:0}
+  details.rpt-sum>.sub{margin-top:14px}
+  header.rpt .sub code{overflow-wrap:anywhere}
+  .chev::before{content:"\25B8";display:inline-block;opacity:.8;transition:transform .15s}
+  details[open]>summary .chev::before{transform:rotate(90deg)}
+  .rpt-toggle-hint{margin-left:auto;font-size:12px;opacity:.6}
+  .rpt-counts{display:flex;flex-wrap:wrap;gap:4px 18px;margin-top:10px;font-size:14px;
+    font-weight:600;font-variant-numeric:tabular-nums}
+  .cnt i,.tile i,details.cl>summary i{font-style:normal;margin-right:5px}
+  .cnt.pass i,.tile.pass i,details.cl.pass>summary i{color:#3ddc84}
+  .cnt.fail i,.tile.fail i,details.cl.fail>summary i{color:#ff6b6b}
+  .cnt.skip i,.tile.skip i,details.cl.skip>summary i{color:#ffcc66}
+  .cnt.notrun i,.tile.notrun i,details.cl.notrun>summary i{color:#b8c4d6}
+  .cnt.zero{opacity:.55}
+  .rpt-h{font-size:12.5px;text-transform:uppercase;letter-spacing:.7px;opacity:.75;
+    margin:20px 0 10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:10px}
+  .tile{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);
+    border-radius:10px;padding:10px 12px}
+  .tile b{display:block;font-size:22px;line-height:1.25;font-variant-numeric:tabular-nums}
+  .tile span{font-size:12px;opacity:.75}
+  .chart{margin:16px 0 0}
+  .stack{display:flex;gap:2px;height:28px}
+  .stack .seg{display:flex;align-items:center;justify-content:center;flex-basis:0;
+    min-width:4px;overflow:hidden}
+  .stack .seg:first-child{border-radius:4px 0 0 4px}
+  .stack .seg:last-child{border-radius:0 4px 4px 0}
+  .stack .seg:only-child{border-radius:4px}
+  .stack .seg.pass{background:#3ddc84}
+  .stack .seg.fail{background:#ff6b6b}
+  .stack .seg.skip{background:#ffcc66}
+  .stack .seg.notrun{background:#8fa3bf}
+  .stack .seg:focus-visible{outline:2px solid #fff;outline-offset:1px}
+  .stack em{font-style:normal;font-size:12px;font-weight:700;color:#14203a}
+  .chart-legend{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12.5px;opacity:.85}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  .sw.pass{background:#3ddc84}
+  .sw.fail{background:#ff6b6b}
+  .sw.skip{background:#ffcc66}
+  .sw.notrun{background:#8fa3bf}
+  .case-lists{display:flex;flex-direction:column;gap:8px}
+  details.cl{border:1px solid rgba(255,255,255,.16);border-radius:10px;padding:0 14px;
+    background:rgba(255,255,255,.04)}
+  details.cl>summary{cursor:pointer;padding:9px 0;font-weight:600;font-size:13.5px}
+  details.cl .n{opacity:.7;font-weight:400}
+  details.cl ol{margin:0 0 12px;padding-left:22px;font-size:13px;max-height:280px;overflow:auto}
+  details.cl li{margin:5px 0}
+  details.cl li a{font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:700;
+    text-decoration:none;color:#9cc9ff}
+  details.cl.fail li a{color:#ff9d9d}
+  details.cl li a:hover{text-decoration:underline}
+  header.rpt .why{color:#ffb3b3}
+  #tip{position:fixed;display:none;z-index:1000;background:#0e1524;color:#fff;font-size:12px;
+    padding:6px 9px;border-radius:6px;pointer-events:none;max-width:320px;
+    box-shadow:0 4px 14px rgba(0,0,0,.35)}
+  @media (max-width:640px){.rpt-toggle-hint{display:none}}
+  footer{margin-top:28px;font-size:12.5px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="rpt">
+  <details class="rpt-sum" open>
+    <summary>
+      <span class="rpt-line"><span class="chev" aria-hidden="true"></span><h1>User Rankings (Referral &amp; Withdrawal)</h1><span class="rpt-toggle-hint">click to minimise / expand</span></span>
+      <span class="rpt-counts"><span class="cnt pass zero"><i>&#10003;</i>0 passed</span><span class="cnt fail zero"><i>&#10007;</i>0 failed</span><span class="cnt skip zero"><i>&#8856;</i>0 skipped</span><span class="cnt notrun"><i>&#9675;</i>62 not run</span><span class="cnt">62 cases</span></span>
+<span class="bar">      <span class="seg notrun" style="width:100.0000%" title="62 not run"></span>
+</span>
+    </summary>
+    <div class="sub">Test case report &mdash; <code>org.sengmean.tests.member.RankingTest</code></div>
+    <div class="meta">
+      <div><b>Target:</b> https://admin-test.138hk.vip/</div>
+      <div><b>Account:</b> qa0001</div>
+      <div><b>Run:</b> 2026-10-21 17:27</div>
+      <div><b>Elapsed:</b> 84.1s</div>
+      <div><b>Scope:</b> 2 of 57 suites executed</div>
+      <div><b>Browser:</b> Chromium via Playwright 1.58.0 (headless)</div>
+      <div><b>Runner:</b> JUnit 5 on Java 25.0.1</div>
+      <div><b>Machine:</b> Windows 11 10.0</div>
+    </div>
+    <h2 class="rpt-h">Statistics</h2>
+    <div class="tiles">
+        <div class="tile "><b>62</b><span>cases</span></div>
+        <div class="tile pass"><b><i>&#10003;</i>0</b><span>passed</span></div>
+        <div class="tile fail"><b><i>&#10007;</i>0</b><span>failed</span></div>
+        <div class="tile skip"><b><i>&#8856;</i>0</b><span>skipped</span></div>
+        <div class="tile notrun"><b><i>&#9675;</i>62</b><span>not run</span></div>
+        <div class="tile"><b>&ndash;</b><span>pass rate of the cases that ran</span></div>
+        <div class="tile"><b>0.0s</b><span>browser time</span></div>
+    </div>
+      <div class="chart" role="img" aria-label="User Rankings (Referral &amp; Withdrawal): 0 passed, 0 failed, 0 skipped, 62 not run">
+        <div class="stack big"><span class="seg notrun" style="flex-grow:62" tabindex="0" data-tip="User Rankings (Referral &amp; Withdrawal) - 62 not run (100%)"><em>62</em></span></div>
+        <div class="chart-legend"><span><i class="sw pass"></i>Passed</span><span><i class="sw fail"></i>Failed</span><span><i class="sw skip"></i>Skipped</span><span><i class="sw notrun"></i>Not run</span></div>
+      </div>
+    <h2 class="rpt-h">Cases by result</h2>
+    <div class="case-lists">
+      <details class="cl notrun"><summary><i>&#9675;</i>Not run <span class="n">(62)</span></summary>
+        <ol>
+          <li><a href="#case-RankingTest-settledVsNonSettledCommission">RANK-DAT-001</a> Settled vs non-settled commission</li>
+          <li><a href="#case-RankingTest-reversedAndCancelledCommission">RANK-DAT-002</a> Reversed and cancelled commission</li>
+          <li><a href="#case-RankingTest-successfulVsFailedWithdrawal">RANK-DAT-003</a> Successful vs failed withdrawal</li>
+          <li><a href="#case-RankingTest-pendingRejectedCancelledWithdrawalsExcluded">RANK-DAT-004</a> Pending, rejected and cancelled withdrawals excluded</li>
+          <li><a href="#case-RankingTest-referralCountColumn">RANK-DAT-005</a> Referral count column</li>
+          <li><a href="#case-RankingTest-sortOrderHighestFirst">RANK-DAT-006</a> Sort order, highest first</li>
+          <li><a href="#case-RankingTest-tieBreakerOnEqualAmounts">RANK-DAT-007</a> Tie-breaker on equal amounts (OQ-12, answered in general by Ranking Settings)</li>
+          <li><a href="#case-RankingTest-tieBreakerAfterDropAndRegain">RANK-DAT-008</a> Tie-breaker when the earlier member later dropped and regained the amount</li>
+          <li><a href="#case-RankingTest-zeroAccountsShowNotRankedYet">RANK-DAT-009</a> $0 accounts show Not ranked yet (OQ-11)</li>
+          <li><a href="#case-RankingTest-financeCorrectionAfterSnapshot">RANK-DAT-010</a> Finance correction after snapshot changes only at the next update</li>
+          <li><a href="#case-RankingTest-oneSnapshotPerMemberPerUpdate">RANK-DAT-011</a> One snapshot per member per update</li>
+          <li><a href="#case-RankingTest-launchBackfillMatchesFinance">RANK-DAT-012</a> Launch backfill matches finance</li>
+          <li><a href="#case-RankingTest-noManualAmountEntry">RANK-DAT-013</a> No manual amount entry</li>
+          <li><a href="#case-RankingTest-dailyUpdateLandsOnMidnight">RANK-SCH-001</a> Daily update lands on 00:00</li>
+          <li><a href="#case-RankingTest-hourlyUpdateLandsOnTheHour">RANK-SCH-002</a> Hourly update lands on the hour</li>
+          <li><a href="#case-RankingTest-transactionBetweenUpdatesWaitsForNextOne">RANK-SCH-003</a> A transaction made between updates is not reflected until the next one</li>
+          <li><a href="#case-RankingTest-failedScheduledUpdateKeepsPreviousSnapshot">RANK-SCH-004</a> A failed scheduled update keeps the previous snapshot live</li>
+          <li><a href="#case-RankingTest-atomicSnapshotPublishUnderLoad">RANK-SCH-005</a> Atomic snapshot publish under load</li>
+          <li><a href="#case-RankingTest-timestampsAreOnTheScheduledBoundary">RANK-SCH-006</a> Timestamps are internally consistent</li>
+          <li><a href="#case-RankingTest-menuOpensWithThreeTabs">RANK-ADM-LST-001</a> Rankings menu opens with 3 tabs</li>
+          <li><a href="#case-RankingTest-statusBarContent">RANK-ADM-LST-002</a> Status bar content (AD-01)</li>
+          <li><a href="#case-RankingTest-columnLayout">RANK-ADM-LST-003</a> Column layout (AD-03, see the class Javadoc for the mock vs sheet gap)</li>
+          <li><a href="#case-RankingTest-adminShowsExactAmountsAndFullUsernames">RANK-ADM-LST-004</a> Admin shows exact amounts and full usernames regardless of client display (AD-06)</li>
+          <li><a href="#case-RankingTest-searchByUsernameReturnsOnlyThatRow">RANK-ADM-LST-005</a> Search by username returns only that row</li>
+          <li><a href="#case-RankingTest-searchByMemberIdReturnsOnlyThatRow">RANK-ADM-LST-006</a> Search by member ID returns only that row</li>
+          <li><a href="#case-RankingTest-searchWithNoMatchShowsNoData">RANK-ADM-LST-007</a> Search with no match shows No data</li>
+          <li><a href="#case-RankingTest-paginationAndShowFiftyEntries">RANK-ADM-LST-008</a> Pagination and Show 50 entries (AD-04)</li>
+          <li><a href="#case-RankingTest-exportCsvHeadersMatchListColumns">RANK-ADM-LST-009</a> Export CSV headers match list columns</li>
+          <li><a href="#case-RankingTest-exportCsvWithSearchApplied">RANK-ADM-LST-010</a> Export CSV with search applied (OQ-13)</li>
+          <li><a href="#case-RankingTest-noPerMemberEditing">RANK-ADM-LST-011</a> No per-member editing</li>
+          <li><a href="#case-RankingTest-emptyStateShowsNoData">RANK-ADM-LST-012</a> Empty state shows No data</li>
+          <li><a href="#case-RankingTest-listLoadsWithinThreeSeconds">RANK-ADM-LST-013</a> List loads within 3 seconds (NF-01, target to confirm)</li>
+          <li><a href="#case-RankingTest-turningWithdrawalRankingOff">RANK-ADM-TGL-001</a> Turning Withdrawal Ranking off</li>
+          <li><a href="#case-RankingTest-turningReferralRankingOff">RANK-ADM-TGL-002</a> Turning Referral Ranking off</li>
+          <li><a href="#case-RankingTest-bothTogglesOff">RANK-ADM-TGL-003</a> Both toggles off</li>
+          <li><a href="#case-RankingTest-togglesAreIndependent">RANK-ADM-TGL-004</a> Toggles are independent (AD-02)</li>
+          <li><a href="#case-RankingTest-toggleBackOn">RANK-ADM-TGL-005</a> Toggle back on</li>
+          <li><a href="#case-RankingTest-toggleOffAppliesToAllCurrencies">RANK-ADM-TGL-006</a> Toggle off applies to all currencies (AD-19)</li>
+          <li><a href="#case-RankingTest-openingTheModal">RANK-ADM-HIS-001</a> Opening the modal (AD-07, AD-08)</li>
+          <li><a href="#case-RankingTest-summaryValuesConsistentWithList">RANK-ADM-HIS-002</a> Summary values are consistent with the list (AD-09)</li>
+          <li><a href="#case-RankingTest-snapshotTableOrderAndColumns">RANK-ADM-HIS-003</a> Snapshot table order and columns (AC-07, AD-10)</li>
+          <li><a href="#case-RankingTest-rankChangeMarkers">RANK-ADM-HIS-004</a> Rank Change markers</li>
+          <li><a href="#case-RankingTest-amountChangeIsTheDifference">RANK-ADM-HIS-005</a> Amount Change is the difference between consecutive snapshots</li>
+          <li><a href="#case-RankingTest-periodFilter">RANK-ADM-HIS-006</a> Period filter (Today / Last 7 days / Last 30 days)</li>
+          <li><a href="#case-RankingTest-exportCsvFromTheModal">RANK-ADM-HIS-007</a> Export CSV from the modal</li>
+          <li><a href="#case-RankingTest-closeViaIconAndButton">RANK-ADM-HIS-008</a> Close via ✕ and via Close</li>
+          <li><a href="#case-RankingTest-memberWithOnlyOneSnapshot">RANK-ADM-HIS-009</a> A member with only one snapshot</li>
+          <li><a href="#case-RankingTest-lockedFixedSettingsCannotBeEdited">RANK-ADM-SET-001</a> Locked fixed settings cannot be edited (AC-14)</li>
+          <li><a href="#case-RankingTest-defaultAmountDisplayIsRounded">RANK-ADM-SET-002</a> Default Amount display is Rounded</li>
+          <li><a href="#case-RankingTest-clientPreviewUpdatesPerOption">RANK-ADM-SET-003</a> Client preview updates per option (AD-13)</li>
+          <li><a href="#case-RankingTest-saveChangesTheClientDisplay">RANK-ADM-SET-004</a> Save changes the client display (AD-13, AD-14)</li>
+          <li><a href="#case-RankingTest-cancelLeavesSettingUnchanged">RANK-ADM-SET-005</a> Cancel leaves the setting unchanged</li>
+          <li><a href="#case-RankingTest-operationLogEntryForDisplayToggle">RANK-ADM-SET-006</a> Operation log entry for a display toggle change (AC-06, AD-15)</li>
+          <li><a href="#case-RankingTest-operationLogEntryForAmountDisplayChange">RANK-ADM-SET-007</a> Operation log entry for an Amount display change</li>
+          <li><a href="#case-RankingTest-cancelWithNoSaveWritesNoLogEntry">RANK-ADM-SET-008</a> Cancel with no save writes no log entry</li>
+          <li><a href="#case-RankingTest-adminWithoutRankingsPermission">RANK-ADM-SET-009</a> Admin without Rankings permission (NF-04)</li>
+          <li><a href="#case-RankingTest-currencySelectorChangesTheList">RANK-ADM-CUR-001</a> Currency selector changes the list (AD-16)</li>
+          <li><a href="#case-RankingTest-amountHeaderCarriesTheCurrency">RANK-ADM-CUR-002</a> Amount header carries the currency (AD-17)</li>
+          <li><a href="#case-RankingTest-exportCsvReflectsSelectedCurrency">RANK-ADM-CUR-003</a> Export CSV reflects the selected currency (AC-17)</li>
+          <li><a href="#case-RankingTest-historyShowsSelectedCurrency">RANK-ADM-CUR-004</a> History shows the selected currency (AD-18)</li>
+          <li><a href="#case-RankingTest-ranksAreSeparatePerCurrency">RANK-ADM-CUR-005</a> Ranks are separate per currency, not combined or converted (AC-15, MC-04)</li>
+          <li><a href="#case-RankingTest-walletWithNoActivity">RANK-ADM-CUR-006</a> A wallet with no activity (MC-05)</li>
+        </ol>
+      </details>
+    </div>
+  </details>
+  </header>
+
+  <div class="nav"><a href="index.html">&larr; All suites</a></div>
+  <div class="toolbar">
+    <div class="filters" role="group" aria-label="Filter cases by status">
+      <button type="button" class="flt on" data-filter="all">All</button>
+      <button type="button" class="flt" data-filter="Pass">Passed</button>
+      <button type="button" class="flt" data-filter="Fail">Failed</button>
+      <button type="button" class="flt" data-filter="Skipped">Skipped</button>
+      <button type="button" class="flt" data-filter="Not run">Not run</button>
+    </div>
+    <input type="search" id="q" placeholder="Search id, case or message" aria-label="Search cases">
+    <button type="button" class="flt" id="expand-all">Expand all details</button>
+    <span class="count" id="shown">62 of 62 cases</span>
+  </div>
+  <section class="grp">
+  <h2 class="section">1. 1. Data rules &amp; calculation (API / DB level)</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-RankingTest-settledVsNonSettledCommission" data-status="Not run" data-search="rank-dat-001 settledvsnonsettledcommission settled vs non-settled commission">
+        <td class="id" id="RANK-DAT-001">RANK-DAT-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>settledVsNonSettledCommission</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Settled vs non-settled commission</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-001</dd>
+                <dt>Method</dt><dd>RankingTest#settledVsNonSettledCommission</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Settled vs non-settled commission</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-reversedAndCancelledCommission" data-status="Not run" data-search="rank-dat-002 reversedandcancelledcommission reversed and cancelled commission">
+        <td class="id" id="RANK-DAT-002">RANK-DAT-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>reversedAndCancelledCommission</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Reversed and cancelled commission</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-002</dd>
+                <dt>Method</dt><dd>RankingTest#reversedAndCancelledCommission</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Reversed and cancelled commission</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-successfulVsFailedWithdrawal" data-status="Not run" data-search="rank-dat-003 successfulvsfailedwithdrawal successful vs failed withdrawal">
+        <td class="id" id="RANK-DAT-003">RANK-DAT-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>successfulVsFailedWithdrawal</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Successful vs failed withdrawal</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-003</dd>
+                <dt>Method</dt><dd>RankingTest#successfulVsFailedWithdrawal</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Successful vs failed withdrawal</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-pendingRejectedCancelledWithdrawalsExcluded" data-status="Not run" data-search="rank-dat-004 pendingrejectedcancelledwithdrawalsexcluded pending, rejected and cancelled withdrawals excluded">
+        <td class="id" id="RANK-DAT-004">RANK-DAT-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>pendingRejectedCancelledWithdrawalsExcluded</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Pending, rejected and cancelled withdrawals excluded</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-004</dd>
+                <dt>Method</dt><dd>RankingTest#pendingRejectedCancelledWithdrawalsExcluded</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Pending, rejected and cancelled withdrawals excluded</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-referralCountColumn" data-status="Not run" data-search="rank-dat-005 referralcountcolumn referral count column">
+        <td class="id" id="RANK-DAT-005">RANK-DAT-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>referralCountColumn</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Referral count column</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-005</dd>
+                <dt>Method</dt><dd>RankingTest#referralCountColumn</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Referral count column</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-sortOrderHighestFirst" data-status="Not run" data-search="rank-dat-006 sortorderhighestfirst sort order, highest first">
+        <td class="id" id="RANK-DAT-006">RANK-DAT-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>sortOrderHighestFirst</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Sort order, highest first</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-006</dd>
+                <dt>Method</dt><dd>RankingTest#sortOrderHighestFirst</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Sort order, highest first</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-tieBreakerOnEqualAmounts" data-status="Not run" data-search="rank-dat-007 tiebreakeronequalamounts tie-breaker on equal amounts (oq-12, answered in general by ranking settings)">
+        <td class="id" id="RANK-DAT-007">RANK-DAT-007</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>tieBreakerOnEqualAmounts</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Tie-breaker on equal amounts (OQ-12, answered in general by Ranking Settings)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-007</dd>
+                <dt>Method</dt><dd>RankingTest#tieBreakerOnEqualAmounts</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Tie-breaker on equal amounts (OQ-12, answered in general by Ranking Settings)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-tieBreakerAfterDropAndRegain" data-status="Not run" data-search="rank-dat-008 tiebreakerafterdropandregain tie-breaker when the earlier member later dropped and regained the amount">
+        <td class="id" id="RANK-DAT-008">RANK-DAT-008</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>tieBreakerAfterDropAndRegain</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Tie-breaker when the earlier member later dropped and regained the amount</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-008</dd>
+                <dt>Method</dt><dd>RankingTest#tieBreakerAfterDropAndRegain</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Tie-breaker when the earlier member later dropped and regained the amount</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-zeroAccountsShowNotRankedYet" data-status="Not run" data-search="rank-dat-009 zeroaccountsshownotrankedyet $0 accounts show not ranked yet (oq-11)">
+        <td class="id" id="RANK-DAT-009">RANK-DAT-009</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>zeroAccountsShowNotRankedYet</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>$0 accounts show Not ranked yet (OQ-11)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-009</dd>
+                <dt>Method</dt><dd>RankingTest#zeroAccountsShowNotRankedYet</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>$0 accounts show Not ranked yet (OQ-11)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-financeCorrectionAfterSnapshot" data-status="Not run" data-search="rank-dat-010 financecorrectionaftersnapshot finance correction after snapshot changes only at the next update">
+        <td class="id" id="RANK-DAT-010">RANK-DAT-010</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>financeCorrectionAfterSnapshot</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Finance correction after snapshot changes only at the next update</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-010</dd>
+                <dt>Method</dt><dd>RankingTest#financeCorrectionAfterSnapshot</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Finance correction after snapshot changes only at the next update</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-oneSnapshotPerMemberPerUpdate" data-status="Not run" data-search="rank-dat-011 onesnapshotpermemberperupdate one snapshot per member per update">
+        <td class="id" id="RANK-DAT-011">RANK-DAT-011</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>oneSnapshotPerMemberPerUpdate</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>One snapshot per member per update</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-011</dd>
+                <dt>Method</dt><dd>RankingTest#oneSnapshotPerMemberPerUpdate</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>One snapshot per member per update</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-launchBackfillMatchesFinance" data-status="Not run" data-search="rank-dat-012 launchbackfillmatchesfinance launch backfill matches finance">
+        <td class="id" id="RANK-DAT-012">RANK-DAT-012</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>launchBackfillMatchesFinance</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Launch backfill matches finance</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-012</dd>
+                <dt>Method</dt><dd>RankingTest#launchBackfillMatchesFinance</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>Launch backfill matches finance</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-noManualAmountEntry" data-status="Not run" data-search="rank-dat-013 nomanualamountentry no manual amount entry">
+        <td class="id" id="RANK-DAT-013">RANK-DAT-013</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>noManualAmountEntry</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>No manual amount entry</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-DAT-013</dd>
+                <dt>Method</dt><dd>RankingTest#noManualAmountEntry</dd>
+                <dt>Group</dt><dd>1. Data rules &amp; calculation (API / DB level) (DataRulesAndCalculation)</dd>
+                <dt>Expected result</dt><dd>No manual amount entry</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="grp">
+  <h2 class="section">2. 2. Schedule &amp; job reliability</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-RankingTest-dailyUpdateLandsOnMidnight" data-status="Not run" data-search="rank-sch-001 dailyupdatelandsonmidnight daily update lands on 00:00">
+        <td class="id" id="RANK-SCH-001">RANK-SCH-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>dailyUpdateLandsOnMidnight</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Daily update lands on 00:00</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-SCH-001</dd>
+                <dt>Method</dt><dd>RankingTest#dailyUpdateLandsOnMidnight</dd>
+                <dt>Group</dt><dd>2. Schedule &amp; job reliability (ScheduleAndJobReliability)</dd>
+                <dt>Expected result</dt><dd>Daily update lands on 00:00</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-hourlyUpdateLandsOnTheHour" data-status="Not run" data-search="rank-sch-002 hourlyupdatelandsonthehour hourly update lands on the hour">
+        <td class="id" id="RANK-SCH-002">RANK-SCH-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>hourlyUpdateLandsOnTheHour</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Hourly update lands on the hour</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-SCH-002</dd>
+                <dt>Method</dt><dd>RankingTest#hourlyUpdateLandsOnTheHour</dd>
+                <dt>Group</dt><dd>2. Schedule &amp; job reliability (ScheduleAndJobReliability)</dd>
+                <dt>Expected result</dt><dd>Hourly update lands on the hour</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-transactionBetweenUpdatesWaitsForNextOne" data-status="Not run" data-search="rank-sch-003 transactionbetweenupdateswaitsfornextone a transaction made between updates is not reflected until the next one">
+        <td class="id" id="RANK-SCH-003">RANK-SCH-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>transactionBetweenUpdatesWaitsForNextOne</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>A transaction made between updates is not reflected until the next one</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-SCH-003</dd>
+                <dt>Method</dt><dd>RankingTest#transactionBetweenUpdatesWaitsForNextOne</dd>
+                <dt>Group</dt><dd>2. Schedule &amp; job reliability (ScheduleAndJobReliability)</dd>
+                <dt>Expected result</dt><dd>A transaction made between updates is not reflected until the next one</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-failedScheduledUpdateKeepsPreviousSnapshot" data-status="Not run" data-search="rank-sch-004 failedscheduledupdatekeepsprevioussnapshot a failed scheduled update keeps the previous snapshot live">
+        <td class="id" id="RANK-SCH-004">RANK-SCH-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>failedScheduledUpdateKeepsPreviousSnapshot</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>A failed scheduled update keeps the previous snapshot live</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-SCH-004</dd>
+                <dt>Method</dt><dd>RankingTest#failedScheduledUpdateKeepsPreviousSnapshot</dd>
+                <dt>Group</dt><dd>2. Schedule &amp; job reliability (ScheduleAndJobReliability)</dd>
+                <dt>Expected result</dt><dd>A failed scheduled update keeps the previous snapshot live</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-atomicSnapshotPublishUnderLoad" data-status="Not run" data-search="rank-sch-005 atomicsnapshotpublishunderload atomic snapshot publish under load">
+        <td class="id" id="RANK-SCH-005">RANK-SCH-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>atomicSnapshotPublishUnderLoad</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Atomic snapshot publish under load</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-SCH-005</dd>
+                <dt>Method</dt><dd>RankingTest#atomicSnapshotPublishUnderLoad</dd>
+                <dt>Group</dt><dd>2. Schedule &amp; job reliability (ScheduleAndJobReliability)</dd>
+                <dt>Expected result</dt><dd>Atomic snapshot publish under load</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-timestampsAreOnTheScheduledBoundary" data-status="Not run" data-search="rank-sch-006 timestampsareonthescheduledboundary timestamps are internally consistent">
+        <td class="id" id="RANK-SCH-006">RANK-SCH-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>timestampsAreOnTheScheduledBoundary</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Timestamps are internally consistent</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-SCH-006</dd>
+                <dt>Method</dt><dd>RankingTest#timestampsAreOnTheScheduledBoundary</dd>
+                <dt>Group</dt><dd>2. Schedule &amp; job reliability (ScheduleAndJobReliability)</dd>
+                <dt>Expected result</dt><dd>Timestamps are internally consistent</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="grp">
+  <h2 class="section">3. 3. Admin - ranking lists (Referral / Withdrawal tabs)</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-RankingTest-menuOpensWithThreeTabs" data-status="Not run" data-search="rank-adm-lst-001 menuopenswiththreetabs rankings menu opens with 3 tabs">
+        <td class="id" id="RANK-ADM-LST-001">RANK-ADM-LST-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>menuOpensWithThreeTabs</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Rankings menu opens with 3 tabs</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-001</dd>
+                <dt>Method</dt><dd>RankingTest#menuOpensWithThreeTabs</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Rankings menu opens with 3 tabs</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-statusBarContent" data-status="Not run" data-search="rank-adm-lst-002 statusbarcontent status bar content (ad-01)">
+        <td class="id" id="RANK-ADM-LST-002">RANK-ADM-LST-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>statusBarContent</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Status bar content (AD-01)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-002</dd>
+                <dt>Method</dt><dd>RankingTest#statusBarContent</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Status bar content (AD-01)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-columnLayout" data-status="Not run" data-search="rank-adm-lst-003 columnlayout column layout (ad-03, see the class javadoc for the mock vs sheet gap)">
+        <td class="id" id="RANK-ADM-LST-003">RANK-ADM-LST-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>columnLayout</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Column layout (AD-03, see the class Javadoc for the mock vs sheet gap)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-003</dd>
+                <dt>Method</dt><dd>RankingTest#columnLayout</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Column layout (AD-03, see the class Javadoc for the mock vs sheet gap)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-adminShowsExactAmountsAndFullUsernames" data-status="Not run" data-search="rank-adm-lst-004 adminshowsexactamountsandfullusernames admin shows exact amounts and full usernames regardless of client display (ad-06)">
+        <td class="id" id="RANK-ADM-LST-004">RANK-ADM-LST-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>adminShowsExactAmountsAndFullUsernames</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Admin shows exact amounts and full usernames regardless of client display (AD-06)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-004</dd>
+                <dt>Method</dt><dd>RankingTest#adminShowsExactAmountsAndFullUsernames</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Admin shows exact amounts and full usernames regardless of client display (AD-06)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-searchByUsernameReturnsOnlyThatRow" data-status="Not run" data-search="rank-adm-lst-005 searchbyusernamereturnsonlythatrow search by username returns only that row">
+        <td class="id" id="RANK-ADM-LST-005">RANK-ADM-LST-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>searchByUsernameReturnsOnlyThatRow</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Search by username returns only that row</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-005</dd>
+                <dt>Method</dt><dd>RankingTest#searchByUsernameReturnsOnlyThatRow</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Search by username returns only that row</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-searchByMemberIdReturnsOnlyThatRow" data-status="Not run" data-search="rank-adm-lst-006 searchbymemberidreturnsonlythatrow search by member id returns only that row">
+        <td class="id" id="RANK-ADM-LST-006">RANK-ADM-LST-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>searchByMemberIdReturnsOnlyThatRow</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Search by member ID returns only that row</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-006</dd>
+                <dt>Method</dt><dd>RankingTest#searchByMemberIdReturnsOnlyThatRow</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Search by member ID returns only that row</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-searchWithNoMatchShowsNoData" data-status="Not run" data-search="rank-adm-lst-007 searchwithnomatchshowsnodata search with no match shows no data">
+        <td class="id" id="RANK-ADM-LST-007">RANK-ADM-LST-007</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>searchWithNoMatchShowsNoData</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Search with no match shows No data</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-007</dd>
+                <dt>Method</dt><dd>RankingTest#searchWithNoMatchShowsNoData</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Search with no match shows No data</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-paginationAndShowFiftyEntries" data-status="Not run" data-search="rank-adm-lst-008 paginationandshowfiftyentries pagination and show 50 entries (ad-04)">
+        <td class="id" id="RANK-ADM-LST-008">RANK-ADM-LST-008</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>paginationAndShowFiftyEntries</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Pagination and Show 50 entries (AD-04)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-008</dd>
+                <dt>Method</dt><dd>RankingTest#paginationAndShowFiftyEntries</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Pagination and Show 50 entries (AD-04)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-exportCsvHeadersMatchListColumns" data-status="Not run" data-search="rank-adm-lst-009 exportcsvheadersmatchlistcolumns export csv headers match list columns">
+        <td class="id" id="RANK-ADM-LST-009">RANK-ADM-LST-009</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>exportCsvHeadersMatchListColumns</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Export CSV headers match list columns</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-009</dd>
+                <dt>Method</dt><dd>RankingTest#exportCsvHeadersMatchListColumns</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Export CSV headers match list columns</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-exportCsvWithSearchApplied" data-status="Not run" data-search="rank-adm-lst-010 exportcsvwithsearchapplied export csv with search applied (oq-13)">
+        <td class="id" id="RANK-ADM-LST-010">RANK-ADM-LST-010</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>exportCsvWithSearchApplied</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Export CSV with search applied (OQ-13)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-010</dd>
+                <dt>Method</dt><dd>RankingTest#exportCsvWithSearchApplied</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Export CSV with search applied (OQ-13)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-noPerMemberEditing" data-status="Not run" data-search="rank-adm-lst-011 nopermemberediting no per-member editing">
+        <td class="id" id="RANK-ADM-LST-011">RANK-ADM-LST-011</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>noPerMemberEditing</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>No per-member editing</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-011</dd>
+                <dt>Method</dt><dd>RankingTest#noPerMemberEditing</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>No per-member editing</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-emptyStateShowsNoData" data-status="Not run" data-search="rank-adm-lst-012 emptystateshowsnodata empty state shows no data">
+        <td class="id" id="RANK-ADM-LST-012">RANK-ADM-LST-012</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>emptyStateShowsNoData</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Empty state shows No data</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-012</dd>
+                <dt>Method</dt><dd>RankingTest#emptyStateShowsNoData</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>Empty state shows No data</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-listLoadsWithinThreeSeconds" data-status="Not run" data-search="rank-adm-lst-013 listloadswithinthreeseconds list loads within 3 seconds (nf-01, target to confirm)">
+        <td class="id" id="RANK-ADM-LST-013">RANK-ADM-LST-013</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>listLoadsWithinThreeSeconds</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>List loads within 3 seconds (NF-01, target to confirm)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-LST-013</dd>
+                <dt>Method</dt><dd>RankingTest#listLoadsWithinThreeSeconds</dd>
+                <dt>Group</dt><dd>3. Admin - ranking lists (Referral / Withdrawal tabs) (AdminRankingLists)</dd>
+                <dt>Expected result</dt><dd>List loads within 3 seconds (NF-01, target to confirm)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="grp">
+  <h2 class="section">4. 4. Admin - display toggles</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-RankingTest-turningWithdrawalRankingOff" data-status="Not run" data-search="rank-adm-tgl-001 turningwithdrawalrankingoff turning withdrawal ranking off">
+        <td class="id" id="RANK-ADM-TGL-001">RANK-ADM-TGL-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>turningWithdrawalRankingOff</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Turning Withdrawal Ranking off</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-TGL-001</dd>
+                <dt>Method</dt><dd>RankingTest#turningWithdrawalRankingOff</dd>
+                <dt>Group</dt><dd>4. Admin - display toggles (AdminDisplayToggles)</dd>
+                <dt>Expected result</dt><dd>Turning Withdrawal Ranking off</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-turningReferralRankingOff" data-status="Not run" data-search="rank-adm-tgl-002 turningreferralrankingoff turning referral ranking off">
+        <td class="id" id="RANK-ADM-TGL-002">RANK-ADM-TGL-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>turningReferralRankingOff</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Turning Referral Ranking off</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-TGL-002</dd>
+                <dt>Method</dt><dd>RankingTest#turningReferralRankingOff</dd>
+                <dt>Group</dt><dd>4. Admin - display toggles (AdminDisplayToggles)</dd>
+                <dt>Expected result</dt><dd>Turning Referral Ranking off</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-bothTogglesOff" data-status="Not run" data-search="rank-adm-tgl-003 bothtogglesoff both toggles off">
+        <td class="id" id="RANK-ADM-TGL-003">RANK-ADM-TGL-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>bothTogglesOff</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Both toggles off</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-TGL-003</dd>
+                <dt>Method</dt><dd>RankingTest#bothTogglesOff</dd>
+                <dt>Group</dt><dd>4. Admin - display toggles (AdminDisplayToggles)</dd>
+                <dt>Expected result</dt><dd>Both toggles off</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-togglesAreIndependent" data-status="Not run" data-search="rank-adm-tgl-004 togglesareindependent toggles are independent (ad-02)">
+        <td class="id" id="RANK-ADM-TGL-004">RANK-ADM-TGL-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>togglesAreIndependent</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Toggles are independent (AD-02)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-TGL-004</dd>
+                <dt>Method</dt><dd>RankingTest#togglesAreIndependent</dd>
+                <dt>Group</dt><dd>4. Admin - display toggles (AdminDisplayToggles)</dd>
+                <dt>Expected result</dt><dd>Toggles are independent (AD-02)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-toggleBackOn" data-status="Not run" data-search="rank-adm-tgl-005 togglebackon toggle back on">
+        <td class="id" id="RANK-ADM-TGL-005">RANK-ADM-TGL-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>toggleBackOn</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Toggle back on</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-TGL-005</dd>
+                <dt>Method</dt><dd>RankingTest#toggleBackOn</dd>
+                <dt>Group</dt><dd>4. Admin - display toggles (AdminDisplayToggles)</dd>
+                <dt>Expected result</dt><dd>Toggle back on</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-toggleOffAppliesToAllCurrencies" data-status="Not run" data-search="rank-adm-tgl-006 toggleoffappliestoallcurrencies toggle off applies to all currencies (ad-19)">
+        <td class="id" id="RANK-ADM-TGL-006">RANK-ADM-TGL-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>toggleOffAppliesToAllCurrencies</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Toggle off applies to all currencies (AD-19)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-TGL-006</dd>
+                <dt>Method</dt><dd>RankingTest#toggleOffAppliesToAllCurrencies</dd>
+                <dt>Group</dt><dd>4. Admin - display toggles (AdminDisplayToggles)</dd>
+                <dt>Expected result</dt><dd>Toggle off applies to all currencies (AD-19)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="grp">
+  <h2 class="section">5. 5. Admin - ranking history modal</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-RankingTest-openingTheModal" data-status="Not run" data-search="rank-adm-his-001 openingthemodal opening the modal (ad-07, ad-08)">
+        <td class="id" id="RANK-ADM-HIS-001">RANK-ADM-HIS-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>openingTheModal</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Opening the modal (AD-07, AD-08)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-001</dd>
+                <dt>Method</dt><dd>RankingTest#openingTheModal</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>Opening the modal (AD-07, AD-08)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-summaryValuesConsistentWithList" data-status="Not run" data-search="rank-adm-his-002 summaryvaluesconsistentwithlist summary values are consistent with the list (ad-09)">
+        <td class="id" id="RANK-ADM-HIS-002">RANK-ADM-HIS-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>summaryValuesConsistentWithList</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Summary values are consistent with the list (AD-09)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-002</dd>
+                <dt>Method</dt><dd>RankingTest#summaryValuesConsistentWithList</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>Summary values are consistent with the list (AD-09)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-snapshotTableOrderAndColumns" data-status="Not run" data-search="rank-adm-his-003 snapshottableorderandcolumns snapshot table order and columns (ac-07, ad-10)">
+        <td class="id" id="RANK-ADM-HIS-003">RANK-ADM-HIS-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>snapshotTableOrderAndColumns</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Snapshot table order and columns (AC-07, AD-10)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-003</dd>
+                <dt>Method</dt><dd>RankingTest#snapshotTableOrderAndColumns</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>Snapshot table order and columns (AC-07, AD-10)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-rankChangeMarkers" data-status="Not run" data-search="rank-adm-his-004 rankchangemarkers rank change markers">
+        <td class="id" id="RANK-ADM-HIS-004">RANK-ADM-HIS-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>rankChangeMarkers</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Rank Change markers</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-004</dd>
+                <dt>Method</dt><dd>RankingTest#rankChangeMarkers</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>Rank Change markers</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-amountChangeIsTheDifference" data-status="Not run" data-search="rank-adm-his-005 amountchangeisthedifference amount change is the difference between consecutive snapshots">
+        <td class="id" id="RANK-ADM-HIS-005">RANK-ADM-HIS-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>amountChangeIsTheDifference</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Amount Change is the difference between consecutive snapshots</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-005</dd>
+                <dt>Method</dt><dd>RankingTest#amountChangeIsTheDifference</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>Amount Change is the difference between consecutive snapshots</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-periodFilter" data-status="Not run" data-search="rank-adm-his-006 periodfilter period filter (today / last 7 days / last 30 days)">
+        <td class="id" id="RANK-ADM-HIS-006">RANK-ADM-HIS-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>periodFilter</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Period filter (Today / Last 7 days / Last 30 days)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-006</dd>
+                <dt>Method</dt><dd>RankingTest#periodFilter</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>Period filter (Today / Last 7 days / Last 30 days)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-exportCsvFromTheModal" data-status="Not run" data-search="rank-adm-his-007 exportcsvfromthemodal export csv from the modal">
+        <td class="id" id="RANK-ADM-HIS-007">RANK-ADM-HIS-007</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>exportCsvFromTheModal</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Export CSV from the modal</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-007</dd>
+                <dt>Method</dt><dd>RankingTest#exportCsvFromTheModal</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>Export CSV from the modal</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-closeViaIconAndButton" data-status="Not run" data-search="rank-adm-his-008 closeviaiconandbutton close via ✕ and via close">
+        <td class="id" id="RANK-ADM-HIS-008">RANK-ADM-HIS-008</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>closeViaIconAndButton</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Close via ✕ and via Close</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-008</dd>
+                <dt>Method</dt><dd>RankingTest#closeViaIconAndButton</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>Close via ✕ and via Close</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-memberWithOnlyOneSnapshot" data-status="Not run" data-search="rank-adm-his-009 memberwithonlyonesnapshot a member with only one snapshot">
+        <td class="id" id="RANK-ADM-HIS-009">RANK-ADM-HIS-009</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>memberWithOnlyOneSnapshot</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>A member with only one snapshot</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-HIS-009</dd>
+                <dt>Method</dt><dd>RankingTest#memberWithOnlyOneSnapshot</dd>
+                <dt>Group</dt><dd>5. Admin - ranking history modal (AdminRankingHistory)</dd>
+                <dt>Expected result</dt><dd>A member with only one snapshot</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="grp">
+  <h2 class="section">6. 6. Admin - ranking settings &amp; operation log</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-RankingTest-lockedFixedSettingsCannotBeEdited" data-status="Not run" data-search="rank-adm-set-001 lockedfixedsettingscannotbeedited locked fixed settings cannot be edited (ac-14)">
+        <td class="id" id="RANK-ADM-SET-001">RANK-ADM-SET-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>lockedFixedSettingsCannotBeEdited</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Locked fixed settings cannot be edited (AC-14)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-001</dd>
+                <dt>Method</dt><dd>RankingTest#lockedFixedSettingsCannotBeEdited</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Locked fixed settings cannot be edited (AC-14)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-defaultAmountDisplayIsRounded" data-status="Not run" data-search="rank-adm-set-002 defaultamountdisplayisrounded default amount display is rounded">
+        <td class="id" id="RANK-ADM-SET-002">RANK-ADM-SET-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>defaultAmountDisplayIsRounded</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Default Amount display is Rounded</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-002</dd>
+                <dt>Method</dt><dd>RankingTest#defaultAmountDisplayIsRounded</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Default Amount display is Rounded</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-clientPreviewUpdatesPerOption" data-status="Not run" data-search="rank-adm-set-003 clientpreviewupdatesperoption client preview updates per option (ad-13)">
+        <td class="id" id="RANK-ADM-SET-003">RANK-ADM-SET-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>clientPreviewUpdatesPerOption</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Client preview updates per option (AD-13)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-003</dd>
+                <dt>Method</dt><dd>RankingTest#clientPreviewUpdatesPerOption</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Client preview updates per option (AD-13)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-saveChangesTheClientDisplay" data-status="Not run" data-search="rank-adm-set-004 savechangestheclientdisplay save changes the client display (ad-13, ad-14)">
+        <td class="id" id="RANK-ADM-SET-004">RANK-ADM-SET-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>saveChangesTheClientDisplay</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Save changes the client display (AD-13, AD-14)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-004</dd>
+                <dt>Method</dt><dd>RankingTest#saveChangesTheClientDisplay</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Save changes the client display (AD-13, AD-14)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-cancelLeavesSettingUnchanged" data-status="Not run" data-search="rank-adm-set-005 cancelleavessettingunchanged cancel leaves the setting unchanged">
+        <td class="id" id="RANK-ADM-SET-005">RANK-ADM-SET-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>cancelLeavesSettingUnchanged</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Cancel leaves the setting unchanged</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-005</dd>
+                <dt>Method</dt><dd>RankingTest#cancelLeavesSettingUnchanged</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Cancel leaves the setting unchanged</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-operationLogEntryForDisplayToggle" data-status="Not run" data-search="rank-adm-set-006 operationlogentryfordisplaytoggle operation log entry for a display toggle change (ac-06, ad-15)">
+        <td class="id" id="RANK-ADM-SET-006">RANK-ADM-SET-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>operationLogEntryForDisplayToggle</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Operation log entry for a display toggle change (AC-06, AD-15)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-006</dd>
+                <dt>Method</dt><dd>RankingTest#operationLogEntryForDisplayToggle</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Operation log entry for a display toggle change (AC-06, AD-15)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-operationLogEntryForAmountDisplayChange" data-status="Not run" data-search="rank-adm-set-007 operationlogentryforamountdisplaychange operation log entry for an amount display change">
+        <td class="id" id="RANK-ADM-SET-007">RANK-ADM-SET-007</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>operationLogEntryForAmountDisplayChange</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Operation log entry for an Amount display change</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-007</dd>
+                <dt>Method</dt><dd>RankingTest#operationLogEntryForAmountDisplayChange</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Operation log entry for an Amount display change</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-cancelWithNoSaveWritesNoLogEntry" data-status="Not run" data-search="rank-adm-set-008 cancelwithnosavewritesnologentry cancel with no save writes no log entry">
+        <td class="id" id="RANK-ADM-SET-008">RANK-ADM-SET-008</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>cancelWithNoSaveWritesNoLogEntry</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Cancel with no save writes no log entry</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-008</dd>
+                <dt>Method</dt><dd>RankingTest#cancelWithNoSaveWritesNoLogEntry</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Cancel with no save writes no log entry</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-adminWithoutRankingsPermission" data-status="Not run" data-search="rank-adm-set-009 adminwithoutrankingspermission admin without rankings permission (nf-04)">
+        <td class="id" id="RANK-ADM-SET-009">RANK-ADM-SET-009</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>adminWithoutRankingsPermission</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Admin without Rankings permission (NF-04)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-SET-009</dd>
+                <dt>Method</dt><dd>RankingTest#adminWithoutRankingsPermission</dd>
+                <dt>Group</dt><dd>6. Admin - ranking settings &amp; operation log (AdminSettingsAndOperationLog)</dd>
+                <dt>Expected result</dt><dd>Admin without Rankings permission (NF-04)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <section class="grp">
+  <h2 class="section">7. 7. Admin - multi-currency</h2>
+  <div class="tbl-scroll">
+  <table class="cases">
+    <thead><tr><th>ID</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Actual result</th><th>Status</th><th>Remark / cause</th><th>Evidence</th></tr></thead>
+    <tbody>
+      <tr class="case" id="case-RankingTest-currencySelectorChangesTheList" data-status="Not run" data-search="rank-adm-cur-001 currencyselectorchangesthelist currency selector changes the list (ad-16)">
+        <td class="id" id="RANK-ADM-CUR-001">RANK-ADM-CUR-001</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>currencySelectorChangesTheList</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Currency selector changes the list (AD-16)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-CUR-001</dd>
+                <dt>Method</dt><dd>RankingTest#currencySelectorChangesTheList</dd>
+                <dt>Group</dt><dd>7. Admin - multi-currency (AdminMultiCurrency)</dd>
+                <dt>Expected result</dt><dd>Currency selector changes the list (AD-16)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-amountHeaderCarriesTheCurrency" data-status="Not run" data-search="rank-adm-cur-002 amountheadercarriesthecurrency amount header carries the currency (ad-17)">
+        <td class="id" id="RANK-ADM-CUR-002">RANK-ADM-CUR-002</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>amountHeaderCarriesTheCurrency</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Amount header carries the currency (AD-17)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-CUR-002</dd>
+                <dt>Method</dt><dd>RankingTest#amountHeaderCarriesTheCurrency</dd>
+                <dt>Group</dt><dd>7. Admin - multi-currency (AdminMultiCurrency)</dd>
+                <dt>Expected result</dt><dd>Amount header carries the currency (AD-17)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-exportCsvReflectsSelectedCurrency" data-status="Not run" data-search="rank-adm-cur-003 exportcsvreflectsselectedcurrency export csv reflects the selected currency (ac-17)">
+        <td class="id" id="RANK-ADM-CUR-003">RANK-ADM-CUR-003</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>exportCsvReflectsSelectedCurrency</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Export CSV reflects the selected currency (AC-17)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-CUR-003</dd>
+                <dt>Method</dt><dd>RankingTest#exportCsvReflectsSelectedCurrency</dd>
+                <dt>Group</dt><dd>7. Admin - multi-currency (AdminMultiCurrency)</dd>
+                <dt>Expected result</dt><dd>Export CSV reflects the selected currency (AC-17)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-historyShowsSelectedCurrency" data-status="Not run" data-search="rank-adm-cur-004 historyshowsselectedcurrency history shows the selected currency (ad-18)">
+        <td class="id" id="RANK-ADM-CUR-004">RANK-ADM-CUR-004</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>historyShowsSelectedCurrency</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>History shows the selected currency (AD-18)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-CUR-004</dd>
+                <dt>Method</dt><dd>RankingTest#historyShowsSelectedCurrency</dd>
+                <dt>Group</dt><dd>7. Admin - multi-currency (AdminMultiCurrency)</dd>
+                <dt>Expected result</dt><dd>History shows the selected currency (AD-18)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-ranksAreSeparatePerCurrency" data-status="Not run" data-search="rank-adm-cur-005 ranksareseparatepercurrency ranks are separate per currency, not combined or converted (ac-15, mc-04)">
+        <td class="id" id="RANK-ADM-CUR-005">RANK-ADM-CUR-005</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>ranksAreSeparatePerCurrency</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>Ranks are separate per currency, not combined or converted (AC-15, MC-04)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-CUR-005</dd>
+                <dt>Method</dt><dd>RankingTest#ranksAreSeparatePerCurrency</dd>
+                <dt>Group</dt><dd>7. Admin - multi-currency (AdminMultiCurrency)</dd>
+                <dt>Expected result</dt><dd>Ranks are separate per currency, not combined or converted (AC-15, MC-04)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+      <tr class="case" id="case-RankingTest-walletWithNoActivity" data-status="Not run" data-search="rank-adm-cur-006 walletwithnoactivity a wallet with no activity (mc-05)">
+        <td class="id" id="RANK-ADM-CUR-006">RANK-ADM-CUR-006</td>
+        <td class="tc"><button type="button" class="more" aria-expanded="false">Details</button><code>walletWithNoActivity</code></td>
+        <td class="tpre"><span class="muted">&mdash;</span></td>
+        <td class="tsteps"><span class="muted">&mdash;</span></td>
+        <td class="tdata"><span class="muted">&mdash;</span></td>
+        <td>A wallet with no activity (MC-05)</td>
+        <td><span class="muted">Not executed in this run.</span></td>
+        <td><span class="st info">Not run</span></td>
+        <td>Not part of this run &mdash; the suite was not executed, or the case was filtered out.</td>
+        <td><span class="muted">&mdash;</span></td>
+      </tr>
+      <tr class="detail hide" data-status="Not run">
+        <td colspan="10">
+          <div class="panels">
+            <div class="panel">
+              <h3>The case</h3>
+              <dl>
+                <dt>Case id</dt><dd>RANK-ADM-CUR-006</dd>
+                <dt>Method</dt><dd>RankingTest#walletWithNoActivity</dd>
+                <dt>Group</dt><dd>7. Admin - multi-currency (AdminMultiCurrency)</dd>
+                <dt>Expected result</dt><dd>A wallet with no activity (MC-05)</dd>
+                <dt>Tags</dt><dd>none</dd>
+                <dt>Outcome</dt><dd>Not run</dd>
+              </dl>
+            </div>
+            <div class="panel">
+              <h3>The result</h3>
+              <p class="muted">This case produced no result in this run, so there is nothing to report about it. It was either filtered out - normally by <code>-DexcludedGroups=creates-data</code> - or its suite was not part of the run at all.</p>
+            </div>
+          </div>
+          <div class="panel wide"><h3>What the run did</h3><p class="muted">No step trail was recorded for this case. Trails are written while a case runs, so one is missing whenever the case did not run in the run this report describes.</p></div>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+  </section>
+  <h2 class="section">How to read this report</h2>
+  <div class="callout">
+    <p><b>Status</b> is what the run did, not a verdict on the application. A
+    <span class="st fail">Fail</span> on a case badged <code>known-defect</code> is the
+    expected outcome: those cases assert the behaviour the application <i>should</i>
+    have and stay red until the finding is fixed.</p>
+    <p><b>Not run</b> means the case exists in the suite but produced no result, normally
+    because it was filtered out with <code>-DexcludedGroups=creates-data</code>, which
+    keeps cases with real-world side effects - a registered account, a real SMS, a filed
+    deposit, a withdrawal hold, a staked casino bet - out of an unattended run.</p>
+    <p><b>Evidence</b> is the screenshot of the page as the case left it - captured for every
+    case that ran, passed or failed, just before teardown closed the browser. A
+    skipped case never ran, so it has none. Click an image for the full size.</p>
+    <p><b>Details</b>, on every row, opens what would not fit in the table: the case as its
+    source declares it, the diagnosis of a failure - exception, expected against actual,
+    the element that could not be resolved, the lines of this project involved, and the
+    full stack trace - and, for every row alike, the run's own record of what the browser
+    did.</p>
+    <p><b>What the run did</b> is that record. It is captured automatically while the case
+    runs: <code>NAV</code> for a page load or a new tab, <code>API</code> for a call the
+    site made of its own back end with the status it came back with, <code>NETWORK</code>
+    for one that came back 4xx or 5xx, <code>CONSOLE</code> for a console or uncaught
+    error, <code>EVIDENCE</code> for a screenshot, and <code>STEP</code>,
+    <code>CHECK</code> and <code>DATA</code> for what the case itself narrated. A passing
+    row carries one too, deliberately: a green result is a claim, and this is the working
+    behind it.</p>
+  </div>
+  <footer>Generated by <code>org.sengmean.report.HtmlReportGenerator</code> from the test sources, the run's results, its step logs and its screenshots. Rewritten at the end of every run by <code>HtmlReportListener</code>.</footer>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Screenshot preview">
+  <img id="lightbox-img" alt="">
+  <div class="cap" id="lightbox-cap"></div>
+  <div class="hint">Click anywhere, or press Escape, to close</div>
+</div>
+<script>
+(function () {
+  var box = document.getElementById('lightbox');
+  var img = document.getElementById('lightbox-img');
+  var cap = document.getElementById('lightbox-cap');
+  function open(src, caption) {
+    img.setAttribute('src', src);
+    img.setAttribute('alt', caption || '');
+    cap.textContent = caption || '';
+    box.classList.add('open');
+  }
+  function close() {
+    box.classList.remove('open');
+    img.removeAttribute('src');
+  }
+  document.addEventListener('click', function (e) {
+    // Both the Evidence column's images and the ones shown inline against a trail
+    // line. The inline ones were left out when they were added, so they fell
+    // through to target="_blank" and every capture opened a new tab - fifty-two of
+    // them if a reader worked down the transfer walk.
+    var link = e.target.closest ? e.target.closest('a.shot, a.step-shot') : null;
+    if (link) {
+      // Only take over the plain click - a modified click still opens the file
+      // in a tab, which is what someone reaching for that expects.
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) { return; }
+      e.preventDefault();
+      var inner = link.querySelector('img');
+      open(link.getAttribute('href'), inner ? inner.getAttribute('alt') : '');
+    } else if (box.classList.contains('open')) {
+      close();
+    }
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { close(); }
+  });
+})();
+</script>
+<script>
+(function () {
+  var rows = Array.prototype.slice.call(document.querySelectorAll('tr.case'));
+  var shown = document.getElementById('shown');
+  var search = document.getElementById('q');
+  var expandAll = document.getElementById('expand-all');
+  var filter = 'all';
+  var query = '';
+
+  function panelOf(row) {
+    var next = row.nextElementSibling;
+    return next && next.classList.contains('detail') ? next : null;
+  }
+
+  function matches(row) {
+    if (filter !== 'all' && row.getAttribute('data-status') !== filter) { return false; }
+    if (query === '') { return true; }
+    return (row.getAttribute('data-search') || '').indexOf(query) >= 0;
+  }
+
+  function apply() {
+    var visible = 0;
+    rows.forEach(function (row) {
+      var ok = matches(row);
+      if (ok) { visible++; }
+      row.classList.toggle('hide', !ok);
+      var panel = panelOf(row);
+      if (panel) { panel.classList.toggle('hide', !ok || !row.classList.contains('open')); }
+    });
+    // A group whose every case is filtered out is hidden with its heading, so the
+    // page does not end in a run of empty tables under numbered titles.
+    Array.prototype.forEach.call(document.querySelectorAll('section.grp'), function (grp) {
+      var any = grp.querySelector('tr.case:not(.hide)');
+      grp.classList.toggle('hide', !any);
+    });
+    if (shown) {
+      shown.textContent = visible + ' of ' + rows.length + ' cases';
+    }
+  }
+
+  function open(row, wanted) {
+    var panel = panelOf(row);
+    if (!panel) { return; }
+    var isOpen = wanted === undefined ? !row.classList.contains('open') : wanted;
+    row.classList.toggle('open', isOpen);
+    panel.classList.toggle('hide', !isOpen);
+    var button = row.querySelector('button.more');
+    if (button) { button.setAttribute('aria-expanded', isOpen ? 'true' : 'false'); }
+  }
+
+  document.addEventListener('click', function (e) {
+    var more = e.target.closest ? e.target.closest('button.more') : null;
+    if (more) {
+      open(more.closest('tr.case'));
+      return;
+    }
+    var flt = e.target.closest ? e.target.closest('button.flt[data-filter]') : null;
+    if (flt) {
+      filter = flt.getAttribute('data-filter');
+      Array.prototype.forEach.call(document.querySelectorAll('button.flt[data-filter]'),
+        function (b) { b.classList.toggle('on', b === flt); });
+      apply();
+    }
+  });
+
+  if (search) {
+    search.addEventListener('input', function () {
+      query = search.value.trim().toLowerCase();
+      apply();
+    });
+  }
+
+  if (expandAll) {
+    expandAll.addEventListener('click', function () {
+      var opening = expandAll.getAttribute('data-open') !== 'yes';
+      expandAll.setAttribute('data-open', opening ? 'yes' : 'no');
+      expandAll.textContent = opening ? 'Collapse all details' : 'Expand all details';
+      rows.forEach(function (row) { if (!row.classList.contains('hide')) { open(row, opening); } });
+    });
+  }
+
+  function openFromHash() {
+    if (!window.location.hash) { return; }
+    var target = document.getElementById(window.location.hash.slice(1));
+    if (!target) { return; }
+    // The hash may name either anchor a row carries: the internal
+    // case-<suite>-<method>, which the findings list links to, or the case
+    // id itself - "#HOME-002" - which is what the client test case sheet's
+    // per-row links use. The id sits on a <td>, so resolve upwards to the
+    // row rather than testing the target: without this the browser scrolls
+    // to the right place and leaves the details shut, which reads as a link
+    // that landed on the wrong thing.
+    var row = target.classList.contains('case')
+      ? target
+      : (target.closest ? target.closest('tr.case') : null);
+    if (row) {
+      open(row, true);
+      row.classList.add('flash');
+      row.scrollIntoView({ block: 'center' });
+    }
+  }
+  window.addEventListener('hashchange', openFromHash);
+  openFromHash();
+  apply();
+})();
+</script>
+  <div id="tip" role="tooltip"></div>
+  <script>
+  (function(){
+    var sum=document.querySelector('details.rpt-sum');
+    var KEY='admin-weibo-summary-open';
+    if(sum){
+      try{var v=localStorage.getItem(KEY);if(v!==null){sum.open=v==='1';}}catch(e){}
+      sum.addEventListener('toggle',function(){try{localStorage.setItem(KEY,sum.open?'1':'0');}catch(e){}});
+    }
+    var tip=document.getElementById('tip');
+    function show(el,x,y){tip.textContent=el.getAttribute('data-tip');tip.style.display='block';
+      var w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(x+12,window.innerWidth-w-8))+'px';tip.style.top=(y+14)+'px';}
+    function hide(){tip.style.display='none';}
+    document.addEventListener('mousemove',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){show(el,e.clientX,e.clientY);}else{hide();}});
+    document.addEventListener('focusin',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');
+      if(el){var r=el.getBoundingClientRect();show(el,r.left,r.bottom);}});
+    document.addEventListener('focusout',hide);
+  })();
+  </script>
+</div>
+</body>
+</html>

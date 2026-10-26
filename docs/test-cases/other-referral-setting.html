@@ -1,0 +1,78 @@
+<!doctype html><meta charset="utf-8">
+<title>Client test cases</title>
+<style>
+ :root{--bg:#fbfbfd;--fg:#1d2027;--muted:#6b7280;--line:#e3e5ea;--card:#fff;
+       --link:#2f6feb;--warn:#9a6b00;--target:#fff3cd}
+ @media (prefers-color-scheme:dark){:root{--bg:#12141a;--fg:#e6e8ee;--muted:#98a0b0;
+       --line:#272b35;--card:#1a1d25;--link:#7aa7ff;--warn:#d6a634;--target:#33302099}}
+ *{box-sizing:border-box}
+ body{margin:0;background:var(--bg);color:var(--fg);
+      font:14px/1.55 system-ui,-apple-system,Segoe UI,sans-serif}
+ header{padding:2rem 2rem 1rem;border-bottom:1px solid var(--line)}
+ h1{margin:0 0 .3rem;font-size:1.35rem}
+ .sub{color:var(--muted)}
+ main{padding:1.5rem 2rem 4rem}
+ h2{font-size:1rem;margin:2rem 0 .6rem;padding-bottom:.35rem;
+    border-bottom:1px solid var(--line)}
+ .wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);
+       border-radius:8px}
+ table{border-collapse:collapse;width:100%;min-width:52rem}
+ th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--line);
+       vertical-align:top}
+ th{font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--muted);font-weight:600}
+ tr:last-child td{border-bottom:0}
+ td.id{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;white-space:nowrap}
+ /* The row a RUN link from the results workbook has jumped to. Without this the
+    browser scrolls to the right place and the reader still has to work out which of
+    the rows on screen was meant. scroll-margin keeps it clear of the sticky header. */
+ tr:target{scroll-margin-top:4rem}
+ tr:target td{background:var(--target,#fff6d5)}
+ tr:target td.id{font-weight:700}
+ td.run{white-space:nowrap}
+ a.run{display:inline-block;padding:.15rem .6rem;border:1px solid var(--link);
+       border-radius:5px;color:var(--link);text-decoration:none;font-weight:600}
+ a.run:hover{background:var(--link);color:#fff}
+ .none{color:var(--muted)}
+ .warn{color:var(--warn)}
+ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+ .note{max-width:60rem;color:var(--muted);margin:.8rem 0 0}
+ .back{display:inline-block;margin:0 0 .2rem;color:var(--link);text-decoration:none}
+ .back:hover{text-decoration:underline}
+ .cards{display:grid;gap:.8rem;
+        grid-template-columns:repeat(auto-fill,minmax(15rem,1fr))}
+ .card{display:block;padding:1rem 1.1rem;background:var(--card);border-radius:9px;
+       border:1px solid var(--line);text-decoration:none;color:inherit}
+ .card:hover{border-color:var(--link)}
+ .card .name{font-weight:600;margin-bottom:.2rem}
+ .card .count{color:var(--muted);font-size:.85rem}
+</style>
+<header><a class="back" href="index.html">&larr; all features</a><h1>Other Referral Setting</h1><div class="sub">0 of 22 rows have a test behind them &middot; generated 2026-10-26 10:50</div><p class="note">Clicking <b>Run</b> executes <code>./mvnw test -Dcase=&lt;id&gt;</code>
+in a console window. It needs the handler registered once per machine:
+<code>powershell -ExecutionPolicy Bypass -File tools\install-url-handler.ps1</code>.
+Rows with no link have no automated case - they are the client's, not the
+project's, and a link that ran nothing would report success.</p>
+</header><main>
+<h2>Other Referral Setting</h2><div class="wrap"><table><tr><th>Test case id</th><th>Scenario</th><th>Test case</th><th>Pre-condition</th><th>Test steps</th><th>Test data</th><th>Expected result</th><th>Importance</th><th>Run</th></tr><tr id="OTHERREFSET-001"><td class="id">TC_OTHER_REF_SET_001</td><td>Verify Other Referral setting List</td><td>Verify all Other Referral setting configurations are displayed</td><td>- Admin logged in<br>- Existing Other Referral setting</td><td>- Open Referral Setting <br>- Open Other Referral setting</td><td></td><td>All Other Referral setting are displayed with correct No, Title, Third-party referral link, Order, Status and Action</td><td></td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-002"><td class="id">TC_OTHER_REF_SET_002</td><td>Verify Adding Referral setting</td><td>Verify admin can create a new Other Referral setting</td><td>Admin logged in</td><td>- Open Referral Setting <br>- Open Other Referral setting<br>- Click Add another referral<br>- Enter all required fields<br>- Click Add</td><td>Title=WeTV<br>Link=wetv.app<br>Content=Hello<br>Order=1<br>Status=Active checked<br>Override all language</td><td>- New referral setting is created and displayed in the list<br>- On client, can see the referral tab on Referral Link page</td><td></td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-003"><td class="id">TC_OTHER_REF_SET_003</td><td>Verify Adding Referral setting more than 5</td><td>Verify admin cannot create a new Other Referral setting after reaching limit 5</td><td>Admin logged in<br>- 5 existed</td><td>- Open Referral Setting <br>- Open Other Referral setting<br>- Click Add another referral<br>- Enter all required fields<br>- Click Add</td><td>Title=WeTV<br>Link=wetv.app<br>Content=Hello<br>Order=1<br>Status=Active checked<br>Override all language</td><td>Should show an error message</td><td></td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-004"><td class="id">TC_OTHER_REF_SET_004</td><td>Verify Modify Referral setting</td><td>Verify admin can modify an existing Referral setting</td><td>Existing Referral setting</td><td>- Click Modify<br>- Update information<br>- Click Save</td><td>Title WeTV → JoTV</td><td>Updated information is saved and displayed correctly both admin and client</td><td></td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-005"><td class="id">TC_OTHER_REF_SET_005</td><td>Verify Delete Referral setting</td><td>Verify admin can delete a referral setting</td><td>Existing referral setting</td><td>- Click Delete<br>- Confirm deletion</td><td>JoTV</td><td>Referral setting is deleted and no longer displayed for both admin and client</td><td></td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-006"><td class="id">TC_OTHER_REF_SET_006</td><td>Verify Required Field Validation</td><td>Verify mandatory field validation</td><td>Admin on Add page</td><td>1. Leave required fields empty<br>2. Click Create</td><td>Empty fields</td><td>Validation message is displayed</td><td></td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-007"><td class="id">TC_OTHER_REF_SET_007</td><td>Verify Modify Status</td><td>Verify Active/Inactive status can be configured on Referral Setting list</td><td>Existing referral benefit</td><td>1. Modify Status<br>2. Save</td><td>Active → Inactive</td><td>- Status is updated successfully<br>- If inactive, on client cannot see that referral tab on Referral Link page</td><td></td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-008"><td class="id">TC_OTHER_REF_SET_008</td><td>Verify Banner upload UI on Add another referral</td><td>Verify Banner upload section is displayed on Add page</td><td>- Admin logged in</td><td>- Open Referral Setting<br>- Open Other Referral setting<br>- Click Add another referral</td><td>-</td><td>- Banner upload section is displayed above Title with Upload image and Delete image buttons<br>- Hint text: The recommended width is 920px，The recommended height is 336px</td><td>High</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-009"><td class="id">TC_OTHER_REF_SET_009</td><td>Verify Adding Other Referral with banner</td><td>Verify admin can create a referral with a banner image</td><td>- Admin logged in</td><td>- Click Add another referral<br>- Click Upload image, select valid image<br>- Enter all required fields<br>- Click Add</td><td>Banner=banner_920x336.png<br>Title=WeTV<br>Link=wetv.app<br>Content=Hello<br>Order=1<br>Active checked</td><td>- Image preview is displayed after upload<br>- Referral is created and listed<br>- On client Referral Link page, the referral card shows the uploaded banner with Title, Content, Link, QR code, Download, Copy, Share</td><td>High</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0010"><td class="id">TC_OTHER_REF_SET_0010</td><td>Verify Banner upload with supported file types</td><td>Verify JPG / JPEG / PNG / WEBP banner is accepted</td><td>- Admin on Add page</td><td>- Click Upload image<br>- Select each file type<br>- Fill required fields<br>- Click Add</td><td>banner.jpg<br>banner.jpeg<br>banner.png<br>banner.webp<br>(920x336)</td><td>Each file uploads, shows preview, saves and displays correctly on client</td><td>Medium</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0011"><td class="id">TC_OTHER_REF_SET_0011</td><td>Verify Banner upload with unsupported file types</td><td>Verify invalid file type is rejected</td><td>- Admin on Add page</td><td>- Click Upload image<br>- Select unsupported file</td><td>file.pdf<br>file.txt<br>file.exe<br>file.mp4</td><td>- File is rejected with an error message<br>- No preview, file is not saved</td><td>High</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0012"><td class="id">TC_OTHER_REF_SET_0012</td><td>Verify Banner upload file size limit</td><td>Verify image larger than max size is rejected</td><td>- Admin on Add page</td><td>- Click Upload image<br>- Select image larger than limit</td><td>banner_10MB.png</td><td>Error message about max file size is displayed and image is not uploaded<br>(Open question: max file size?)</td><td>Medium</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0013"><td class="id">TC_OTHER_REF_SET_0013</td><td>Verify Banner upload with non-recommended size</td><td>Verify image with dimension other than 920x336</td><td>- Admin on Add page</td><td>- Upload image with other dimension<br>- Fill required fields<br>- Click Add</td><td>640x440 (same ratio)<br>1920x1080 (other ratio)<br>300x1000 (portrait)</td><td>Error message about dimension is displayed and image is not uploaded</td><td>Medium</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0014"><td class="id">TC_OTHER_REF_SET_0014</td><td>Verify Delete image before saving</td><td>Verify admin can remove the uploaded banner on Add page</td><td>- Admin on Add page<br>- Image uploaded</td><td>- Click Upload image<br>- Click Delete image</td><td>banner_1280x880.png</td><td>Preview is removed and banner field becomes empty</td><td>Medium</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0015"><td class="id">TC_OTHER_REF_SET_0015</td><td>Verify Adding referral without banner</td><td>Verify behavior when banner is not uploaded</td><td>- Admin on Add page</td><td>- Enter Title, Link, Content, Order<br>- Do not upload banner<br>- Click Add</td><td>No banner</td><td>banner required for English / 繁體 / 简体</td><td>High</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0016"><td class="id">TC_OTHER_REF_SET_0016</td><td>Verify Modify page loads existing banner</td><td>Verify saved banner is shown on Modify page</td><td>- Existing referral with banner</td><td>- Open Other Referral setting<br>- Click Modify</td><td>-</td><td>Existing banner preview is displayed together with saved Title, Link, Content, Order, Status</td><td>Medium</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0017"><td class="id">TC_OTHER_REF_SET_0017</td><td>Verify Replace banner on Modify</td><td>Verify admin can replace the banner image</td><td>- Existing referral with banner</td><td>- Click Modify<br>- Click Upload image, choose new image<br>- Click Save</td><td>old.png → new.png</td><td>- New banner is saved<br>- Client shows the new banner after refresh (old image not cached)</td><td>High</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0018"><td class="id">TC_OTHER_REF_SET_0018</td><td>Verify Delete banner on Modify</td><td>Verify admin can delete an existing banner</td><td>- Existing referral with banner</td><td>- Click Modify<br>- Click Delete image<br>- Click Save</td><td>-</td><td>banner required for English / 繁體 / 简体</td><td>Medium</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0019"><td class="id">TC_OTHER_REF_SET_0019</td><td>Verify banner per language</td><td>Verify each language tab keeps its own banner</td><td>- Admin on Add page</td><td>- On 繁體 tab upload banner A<br>- Switch to English tab, upload banner B<br>- Click Add<br>- On client switch language 繁體 / English</td><td>繁體=banner_A<br>English=banner_B</td><td>- Client 繁體 shows banner A, English shows banner B<br>- Language without banner: will be empty</td><td>High</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0020"><td class="id">TC_OTHER_REF_SET_0020</td><td>Verify Override above contents copies banner</td><td>Verify Override to All languages also copies the banner</td><td>- Admin on Add page</td><td>- On 繁體 tab upload banner and fill fields<br>- Tick Override above contents to: All languages<br>- Click Add<br>- Check other language tabs and client</td><td>All languages</td><td>All language tabs have the same banner, Title, Link, Content; client shows the same banner in every language</td><td>High</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0021"><td class="id">TC_OTHER_REF_SET_0021</td><td>Verify Override to selected languages only</td><td>Verify only ticked languages are overwritten</td><td>- Existing referral with different banner per language</td><td>- On 繁體 tab upload new banner<br>- Tick English only<br>- Click Save</td><td>Override=English</td><td>English gets the 繁體 banner; other languages keep their own banner</td><td>Medium</td><td class="run"><span class="none">not automated</span></td></tr>
+<tr id="OTHERREFSET-0022"><td class="id">TC_OTHER_REF_SET_0022</td><td>Verify Download poster on client</td><td>Verify member can download the others referral poster</td><td>- Member logged in<br>- Active others referral with banner</td><td>- Client: Me &gt; Referral Link<br>- On Others referral card click Download</td><td>-</td><td>Poster image is downloaded / saved to device<br>(Open question: does downloaded image include QR code?)</td><td>Medium</td><td class="run"><span class="none">not automated</span></td></tr>
+</table></div></main>
